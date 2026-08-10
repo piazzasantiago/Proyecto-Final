@@ -15,7 +15,7 @@
 
 
 
-4\) 
+4\) Tabla PlanesTransicion: fechaFin puede ser NULL, ya que este solo tendrá un valor cuando finalice el plan de transición.
 
 
 
