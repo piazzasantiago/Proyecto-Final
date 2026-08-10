@@ -19,3 +19,8 @@
 
 
 
+5\) Tabla Recolecciones: 
+
+* fecha y hora separados. hora es time without time zone (solo tiempo, sin zona horaria).
+* observaciones puede ser NULL (opcional).
+
