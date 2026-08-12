@@ -6,7 +6,7 @@
 
 
 
-2\) Tabla Galpones: campo "descripcion" puede ser NULL.
+2\) Tabla Galpones: campo "descripcion" puede ser NULL. estado: operativo y no operativo.
 
 
 
@@ -16,10 +16,11 @@
 * cantidadInicial es la cantidad de gallinas que conforman al lote inicialmente. cantidadActual se va actualizando a medida que ocurre algún descarte o cuando se hace el vaciado sanitario se vuelve 0.
 * observaciones puede ser NULL, permitiendo cargar o no observaciones del lote.
 * idGalpón está puesto como FK pero no es PK de la tabla Lotes, pues un lote puede no tener asignado un galpón inicialmente (por ejemplo cuando se lo compra) o puede cambiarse a otro galpón para, por ejemplo, un mantenimiento del galpón de donde se sacó el lote ese.
+* estado: activo o baja.
 
 
 
-4\) Tabla PlanesTransicion: fechaFin determinará cuándo el lote pasa a estado productivo.
+4\) Tabla PlanesTransicion: fechaFin determinará cuándo el lote pasa a estado productivo. estado puede ser En Curso (C) y F (finalizado).
 
 
 
@@ -33,7 +34,7 @@
 
 6\) Tabla TiposAlerta: contiene los tipos de alertas que pueden existir, por ejemplo
 
-idAlerta: 1      nombre: baja postura
+idTipoAlerta: 1      nombre: baja postura
 
 No es necesario un estado, ya que son alertas que definimos nosotros como diseñadores del sistema.
 
@@ -43,7 +44,7 @@ No es necesario un estado, ya que son alertas que definimos nosotros como diseñ
 
 * descripcion es NOT NULL ya que explica la alerta. Toma el tipo de alerta y el lote, entonces en base a esto forma la alerta. Por ejemplo:
 
-idAlerta: 1   idLote: 5 (que está actualmente en el galpón 5)   idTipoAlerta: 1 (nombre: postura baja) 
+idAlerta: 1   idLote: 5 (que está actualmente en el galpón 3)   idTipoAlerta: 1 (nombre: postura baja)
 
 \---> se forma la descripcion: "Postura baja del lote 5 en el galpón 3".
 
@@ -66,19 +67,17 @@ Propuesta: que las alertas sean solamente productivas (postura, descartes, etc.)
 
 
 
-10\) Tabla MateriasPrimas: stockMinimo permitirá generar una alerta por stock bajo de una materia prima en particular.}
+10\) Tabla MateriasPrimas: stockMinimo permitirá generar una alerta por stock bajo de una materia prima en particular.
 
 
 
-11\) Tabla Entradas: ¿debería llamarse "EntradasAGalpones"?
+11\) Tabla Entradas: tipo: Gallinas (G) o Materias Primas (M).
 
 
 
-12\) Tabla LineasEntrada: tiene una relación débil y puede ser null la FK con Lotes y con MateriasPrimas. Esto es porque puede tratarse de una entrada únicamente de Lote a un galpón, o puede tratarse de una entrada de únicamente materias primas. ANALIZAR ESTO BIEN.
+12\) Tabla LineasEntrada: tiene una relación débil y puede ser null la FK con Lotes y con MateriasPrimas. Esto es porque puede tratarse de una entrada únicamente de Lote a un galpón, o puede tratarse de una entrada de únicamente materias primas. ANALIZAR ESTO BIEN. conclusión: se agrega un campo "tipo" en entradas para obligar a que idMateriaPrima o idLote no sea null al momento de cargar la entrada.
 
 
 
 13\) Tabla LineasCompra: la cantidad es DECIMAL(10,2) ya que puede tratarse de una compra en kg, por ej. IDEM LINEASENTRADA CON EL TEMA DE LAS RELACIONES CON LOTES Y MATERIASPRIMAS.
-
-
 
