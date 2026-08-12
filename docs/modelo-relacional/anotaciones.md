@@ -28,7 +28,6 @@
 
 * fecha es del tipo TIMESTAMP en MySQL, pero la idea es usar TIMESTAMP sin zona horaria en PostgreSQL. De esta forma, se registra la fecha y hora de las recolecciones que se cargan.
 * observaciones puede ser NULL.
-* ¿Debería llamarse "RecoleccionesDeGalpones"?
 
 
 
@@ -63,7 +62,7 @@ Propuesta: que las alertas sean solamente productivas (postura, descartes, etc.)
 
 
 
-9\) Tabla Descartes: ¿debería llamarse "DescartesDeGalpones"?. cantidad es decimal porque puede ser un descarte en kg de alguna materia prima (no solo gallinas muertas).
+9\) Tabla Descartes: cantidad es decimal porque puede ser un descarte en kg de alguna materia prima (no solo gallinas muertas).
 
 
 
