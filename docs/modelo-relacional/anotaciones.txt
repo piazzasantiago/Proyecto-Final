@@ -1,3 +1,0 @@
-1) El modelo NO contempla ninguna constraint específica (UNIQUE, CHECK, DEFAULT, etc.).
-2) Tabla Galpones: campo "descripcion" puede ser NULL.
-3) Tabla Lotes: fechaVaciado es un antributo que inidca la fecha en que se hizo el vaciado sanitario de ese Lote y puede ser NULL ya que esa acción no se produce al crearse el lote.
