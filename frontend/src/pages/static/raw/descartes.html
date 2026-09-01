@@ -1,0 +1,71 @@
+<div class="page active" id="page-descartes">
+      <div class="page-header">
+        <div>
+          <h1>Descartes</h1>
+          <div class="desc">Registro de descartes de materias primas ocurridos durante el proceso productivo.</div>
+        </div>
+        <button class="btn btn-green"><i class="fa-solid fa-plus"></i> Nuevo descarte</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Buscar por galpón o fecha..."></div>
+        <select class="select-filter"><option>Galpón: Todos</option><option>G-01</option><option>G-02</option><option>G-03</option><option>G-05</option></select>
+        <select class="select-filter"><option>Estado: Todos</option><option>Pendiente</option><option>Finalizado</option></select>
+      </div>
+
+      <div class="page-body-split">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Galpón</th><th>Estado</th><th>Ítems</th><th></th></tr></thead>
+            <tbody>
+              <tr class="row-selected">
+                <td>09/08/2026</td><td>G-05</td><td><span class="badge badge-green">Finalizado</span></td><td>2</td>
+                <td><div class="row-actions"><button class="icon-btn"><i class="fa-solid fa-eye"></i></button></div></td>
+              </tr>
+              <tr>
+                <td>08/08/2026</td><td>G-01</td><td><span class="badge badge-green">Finalizado</span></td><td>1</td>
+                <td><div class="row-actions"><button class="icon-btn"><i class="fa-solid fa-eye"></i></button></div></td>
+              </tr>
+              <tr>
+                <td>08/08/2026</td><td>G-03</td><td><span class="badge badge-gold">Pendiente</span></td><td>1</td>
+                <td><div class="row-actions"><button class="icon-btn"><i class="fa-solid fa-eye"></i></button></div></td>
+              </tr>
+              <tr>
+                <td>07/08/2026</td><td>G-02</td><td><span class="badge badge-green">Finalizado</span></td><td>3</td>
+                <td><div class="row-actions"><button class="icon-btn"><i class="fa-solid fa-eye"></i></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="detail-panel">
+          <div class="detail-head">
+            <div><h3>Descarte · G-05</h3><div class="sub">09/08/2026</div></div>
+            <span class="badge badge-green">Finalizado</span>
+          </div>
+          <div class="detail-body">
+            <div class="detail-sec-title" style="margin-top:0;">Datos del descarte</div>
+            <div class="detail-row"><span>Galpón</span><span>G-05</span></div>
+            <div class="detail-row"><span>Fecha</span><span>09/08/2026</span></div>
+            <div class="detail-row"><span>Estado</span><span>Finalizado</span></div>
+            <div class="detail-row" style="border-bottom:none; align-items:flex-start; flex-direction:column; gap:4px;">
+              <span>Observaciones</span>
+              <span style="font-weight:500; color:var(--gray-700); text-align:left;">Nidal dañado, se retiró de circulación.</span>
+            </div>
+
+            <div class="detail-sec-title">Detalle</div>
+            <table class="plan-table">
+              <thead><tr><th>Materia prima</th><th>Cantidad</th></tr></thead>
+              <tbody>
+                <tr><td>Alimento balanceado</td><td>15 kg</td></tr>
+                <tr><td>Nidales</td><td>1 unidad</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-outline"><i class="fa-solid fa-pen"></i> Editar</button>
+            <button class="btn btn-green"><i class="fa-solid fa-eye"></i> Ver historial</button>
+          </div>
+        </div>
+      </div>
+    </div>

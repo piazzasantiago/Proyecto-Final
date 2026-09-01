@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Por si algo se corre desde la raíz
+.env
+*.log
