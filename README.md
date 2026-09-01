@@ -1,5 +1,17 @@
 # AvíGest — Sistema Web de Gestión para una Granja Avícola Productora de Huevos
 
+Proyecto Final de Ingeniería en Computación — FACET, UNT
+
+**Integrantes:**
+- Piazza, Santiago Nicolás
+- Vargas, Antonio Jesús
+
+**Tecnologías:** React · Django + Django REST Framework · PostgreSQL
+
+---
+
+## Estado actual
+
 Primer módulo funcional del sistema: **Galpones**, con frontend real (React), backend real (Django + Django REST Framework) y base de datos real (PostgreSQL).
 
 El resto de las pantallas (Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Usuarios, Informes, y el login) se ven exactamente igual que en el mockup aprobado por el tutor — usan el HTML/CSS real del mockup — pero **no tienen funcionalidad todavía**: no leen ni guardan nada en la base de datos, y sus botones no hacen nada. Es solo la cáscara visual, para que la app se sienta completa al mostrarla. Se van implementando de a uno, siguiendo el mismo patrón que Galpones.
@@ -7,7 +19,8 @@ El resto de las pantallas (Lotes, Recolección, Descartes, Salidas, Entradas, Ma
 ## Estructura del proyecto
 
 ```
-pruebasDjango/
+Proyecto-Final/
+├── docs/        Documentación de la materia (anexo, plan de trabajo, arquitectura)
 ├── backend/     Django + DRF + PostgreSQL — API REST de Galpones
 └── frontend/    React + Vite — app completa (shell + Galpones funcional + resto visual)
 ```
@@ -101,6 +114,14 @@ Abrí `http://localhost:5173` en el navegador. Vas a entrar por la pantalla de l
 - **Error de conexión a la base de datos** al correr `migrate` o `runserver`: revisá que PostgreSQL esté corriendo (`pg_isready`) y que los datos en `backend/.env` coincidan con tu usuario/contraseña real.
 - **CORS bloqueado en la consola del navegador**: el backend ya permite `http://localhost:5173` por defecto (ver `CORS_ALLOWED_ORIGINS` en `backend/.env`); si corrés el frontend en otro puerto, agregalo ahí.
 
-## 6. Próximos pasos
+## 6. Documentación
+
+En `docs/` está toda la documentación de la materia:
+
+- `Plan de Trabajo.pdf`
+- `Anexo 1 Trabajo Final-Piazza Santiago Nicolás-Vargas Antonio Jesús.docx`
+- `AviGest_Documentacion_Arquitectura.docx`
+
+## 7. Próximos pasos
 
 Funcionalmente este repo cubre únicamente Galpones, tal como pidió el tutor — es lo único con backend real detrás. El resto de los módulos (Lotes, Recolección diaria, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Usuarios, Informes) ya se ven en la app (mismo diseño aprobado), pero son pantallas estáticas sin datos reales. Se van implementando de a uno siguiendo el mismo patrón que Galpones: modelo en `backend/`, endpoints DRF, y reemplazar el `StaticPage` correspondiente por una página React real en `frontend/src/pages/`.
