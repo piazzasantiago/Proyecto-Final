@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_filters",
     "corsheaders",
+    "usuarios",
     "galpones",
 ]
 
@@ -61,6 +62,10 @@ DATABASES = {
         "PORT": config("DB_PORT", default="5432"),
     }
 }
+
+# Modelo de usuario propio (tabla Usuarios del modelo relacional).
+# DEBE definirse antes de la primera migración del proyecto.
+AUTH_USER_MODEL = "usuarios.Usuario"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
