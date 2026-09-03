@@ -89,6 +89,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     class Meta:
         db_table = "Usuarios"
         ordering = ["apellido", "nombre"]
+        verbose_name = "usuario"
+        verbose_name_plural = "usuarios"
 
     @property
     def nombre_completo(self):
