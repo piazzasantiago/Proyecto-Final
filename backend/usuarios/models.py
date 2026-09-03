@@ -48,8 +48,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     (hash, verificación, cambio) y guarda el hash, nunca la contraseña.
 
     Hereda de:
-      - AbstractBaseUser: password, last_login y el manejo de sesión.
-      - PermissionsMixin: is_superuser y los permisos que necesita /admin/.
+    - AbstractBaseUser: password, last_login y el manejo de sesión.
+    - PermissionsMixin: is_superuser y los permisos que necesita /admin/.
     """
 
     ROL_ADMINISTRADOR = "A"

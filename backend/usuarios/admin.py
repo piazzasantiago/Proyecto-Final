@@ -41,3 +41,6 @@ class UsuarioAdmin(UserAdmin):
 admin.site.site_header = "AvíGest · Administración"
 admin.site.site_title = "AvíGest"
 admin.site.index_title = "Gestión de la granja avícola"
+
+from django.contrib.auth.models import Group
+admin.site.unregister(Group) # Se esconde la sección Groups en Django Admin ya que no la usamos
