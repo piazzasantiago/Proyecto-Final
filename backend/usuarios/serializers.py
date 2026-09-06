@@ -44,3 +44,52 @@ class LoginSerializer(serializers.Serializer):
 
     usuario = serializers.CharField()
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+
+class UsuarioCreateSerializer(serializers.ModelSerializer):
+    """
+    CU04 - Nuevo Usuario.
+
+    `password` es write_only: entra pero nunca sale en las respuestas.
+    """
+
+    password = serializers.CharField(
+        write_only=True, min_length=8, max_length=128,
+        style={"input_type": "password"},
+    )
+
+    class Meta:
+        model = Usuario
+        fields = ["nombre", "apellido", "usuario", "email", "dni", "rol", "password"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        # create_user() hashea la contraseña. Nunca usar Usuario(**datos).save(),
+        # porque guardaría la contraseña en texto plano.
+        return Usuario.objects.create_user(password=password, **validated_data)
+
+
+class UsuarioUpdateSerializer(serializers.ModelSerializer):
+    """
+    CU05 - Modificar Usuario.
+
+    No permite cambiar la contraseña: para eso está el restablecimiento, que
+    es una operación distinta y con su propio endpoint.
+    """
+
+    class Meta:
+        model = Usuario
+        fields = ["nombre", "apellido", "usuario", "email", "dni", "rol"]
+        extra_kwargs = {campo: {"required": False} for campo in fields}
+
+
+class RestablecerPasswordSerializer(serializers.Serializer):
+    """
+    Un Administrador asigna una contraseña provisoria a otro usuario.
+
+    Es la contraparte del cartel "¿Olvidaste tu contraseña?" del login: el
+    sistema no envía mails de recupero, el usuario le pide al administrador
+    que se la restablezca.
+    """
+
+    password_nueva = serializers.CharField(min_length=8, max_length=128)
