@@ -1,4 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+import { AuthProvider } from "./context/AuthContext";
+import RequireAuth from "./components/RequireAuth";
 import LoginPage from "./pages/LoginPage";
 import AppLayout from "./pages/AppLayout";
 import GalponesPage from "./pages/GalponesPage";
@@ -19,10 +22,20 @@ import usuariosHtml from "./pages/static/raw/usuarios.html?raw";
 function App() {
   return (
     <BrowserRouter>
+      {/* AuthProvider envuelve todo: la sesión queda disponible en cualquier página. */}
+      <AuthProvider>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/app" element={<AppLayout />}>
+        {/* Todo lo que cuelga de /app exige sesión iniciada. */}
+        <Route
+          path="/app"
+          element={
+            <RequireAuth>
+              <AppLayout />
+            </RequireAuth>
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StaticPage html={dashboardHtml} />} />
           <Route path="galpones" element={<GalponesPage />} />
@@ -38,6 +51,7 @@ function App() {
           <Route path="usuarios" element={<StaticPage html={usuariosHtml} />} />
         </Route>
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

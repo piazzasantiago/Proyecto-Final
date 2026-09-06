@@ -515,3 +515,44 @@
 .banner-loading{background:var(--gray-100); color:var(--gray-700);}
 .form-error{color:var(--red-500); font-size:12.5px; margin-top:2px;}
 .empty-state{padding:40px 20px; text-align:center; color:var(--gray-500); font-size:14px;}
+
+  /* ===== Autenticación (feature/gestion-usuarios) ===== */
+
+  /* Pantalla de carga mientras se valida el token guardado */
+  .auth-loading{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    gap:10px; color:var(--gray-500); font-size:15px;
+  }
+  .spinner{
+    width:17px; height:17px; border-radius:50%;
+    border:2.5px solid var(--gray-300); border-top-color:var(--green-600);
+    animation:girar .7s linear infinite;
+  }
+  @keyframes girar{to{transform:rotate(360deg);}}
+
+  /* Mensaje de error en formularios */
+  .alert{
+    display:flex; gap:10px; align-items:flex-start;
+    border-radius:10px; padding:12px 14px; font-size:14.5px; line-height:1.5;
+    margin-bottom:16px;
+  }
+  .alert i{margin-top:2px;}
+  .alert-error{background:var(--red-100); color:#8C2F27;}
+  .alert-info{background:var(--green-100); color:var(--green-900);}
+
+  /* Cartel informativo del modal de recupero de contraseña */
+  .modal-card-sm{max-width:440px;}
+  .aviso{
+    display:flex; gap:13px; align-items:flex-start;
+    background:var(--green-100); border:1px solid rgba(18,52,36,0.10);
+    border-radius:12px; padding:16px 17px;
+  }
+  .aviso-icon{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:var(--green-600); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+  .aviso p{font-size:14.5px; line-height:1.55; color:var(--gray-700); margin:0;}
+
+  /* El botón de ingresar se deshabilita mientras se envía el formulario */
+  .btn-primary:disabled{opacity:.65; cursor:not-allowed;}

@@ -1,9 +1,23 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
+import { useAuth } from "../context/AuthContext";
+
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
+
+/** Iniciales para el avatar: "Juan Pérez" -> "JP". */
+function iniciales(usuario) {
+  if (!usuario) return "?";
+  return `${usuario.nombre?.[0] ?? ""}${usuario.apellido?.[0] ?? ""}`.toUpperCase();
+}
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const { usuario, cerrarSesion, esAdministrador } = useAuth();
+
+  async function handleLogout() {
+    await cerrarSesion();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <div className="screen active" id="screen-app">
@@ -53,16 +67,24 @@ export default function AppLayout() {
         <NavLink to="/app/informes" className={navItemClass}>
           <i className="fa-solid fa-chart-simple"></i> Informes
         </NavLink>
-        <NavLink to="/app/usuarios" className={navItemClass}>
-          <i className="fa-solid fa-users"></i> Usuarios
-        </NavLink>
+        {/* La gestión de usuarios es exclusiva del Administrador.
+            Ocultar el enlace es solo comodidad visual: el backend responde
+            403 igual si alguien intentara entrar por otra vía. */}
+        {esAdministrador && (
+          <NavLink to="/app/usuarios" className={navItemClass}>
+            <i className="fa-solid fa-users"></i> Usuarios
+          </NavLink>
+        )}
 
         <div className="sb-footer">
           <div className="sb-user">
-            <div className="sb-avatar">JP</div>
-            <div className="sb-user-info"><b>Juan Pérez</b><span>Administrador</span></div>
+            <div className="sb-avatar">{iniciales(usuario)}</div>
+            <div className="sb-user-info">
+              <b>{usuario?.nombre_completo}</b>
+              <span>{usuario?.rol_display}</span>
+            </div>
           </div>
-          <div className="sb-logout" onClick={() => navigate("/login")}>
+          <div className="sb-logout" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket"></i> Cerrar sesión
           </div>
         </div>
