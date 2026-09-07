@@ -9,6 +9,7 @@ import {
   restablecerPassword,
   updateUsuario,
 } from "../api/usuarios";
+import CampoPassword from "../components/CampoPassword";
 import UsuarioFormModal from "../components/UsuarioFormModal";
 import { useAuth } from "../context/AuthContext";
 
@@ -282,14 +283,18 @@ export default function UsuariosPage() {
                 Vas a asignarle una contraseña provisoria a <b>{modalPassword.nombre_completo}</b>.
                 Comunicásela para que pueda ingresar y cambiarla.
               </p>
-              <div className="field">
-                <label>Contraseña provisoria</label>
-                <input
-                  type="text"
+              <div className="form-group full">
+                {/* Arranca visible: el administrador necesita leer la
+                    contraseña para poder comunicársela al usuario. */}
+                <CampoPassword
+                  label="Contraseña provisoria"
                   value={passwordNueva}
                   onChange={(e) => setPasswordNueva(e.target.value)}
                   placeholder="Mínimo 8 caracteres"
+                  autoComplete="new-password"
                   minLength={8}
+                  maxLength={128}
+                  visiblePorDefecto
                 />
               </div>
             </div>

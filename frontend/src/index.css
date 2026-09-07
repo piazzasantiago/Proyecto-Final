@@ -612,3 +612,36 @@
   .form-hint{font-size:12.5px; color:var(--gray-500); margin-top:6px; line-height:1.45; display:block;}
 
   .banner-ok{background:var(--green-100); color:var(--green-900);}
+
+  /* ===== Campo de contraseña con ojo (componente CampoPassword) ===== */
+
+  /* Contenedor propio para que el botón se posicione respecto de él.
+     Funciona igual dentro de .field (login) y de .form-group (modales). */
+  .password-wrap{position:relative;}
+
+  /* Espacio a la derecha para que el texto no quede debajo del ojo. */
+  .password-wrap input{padding-right:42px;}
+
+  /* Solo cuando hay ícono a la izquierda (el candado del login) se deja
+     espacio de ese lado. En los modales no hay ícono. */
+  .password-wrap.tiene-icono > i{
+    position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    color:var(--gray-500); font-size:16px; pointer-events:none;
+  }
+  .password-wrap.tiene-icono input{padding-left:38px;}
+
+  .input-toggle{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:32px; height:32px; border:none; background:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gray-500); font-size:15px; border-radius:7px;
+    transition:color .15s, background .15s;
+  }
+  .input-toggle:hover{color:var(--green-700); background:rgba(46,138,92,0.08);}
+
+  /* `.input-wrap i` posiciona los íconos a la izquierda (el candado). El del
+     ojo va dentro de un botón, así que hay que devolverlo al flujo normal. */
+  .input-toggle i, .password-wrap .input-toggle i{
+    position:static; transform:none; left:auto;
+    color:inherit; font-size:inherit;
+  }

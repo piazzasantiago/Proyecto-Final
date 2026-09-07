@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
+import CampoPassword from "../components/CampoPassword";
 import { useAuth } from "../context/AuthContext";
 
 // Pantalla de login (CU01), con el mismo diseño del mockup aprobado.
@@ -93,19 +94,15 @@ export default function LoginPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="password">Contraseña</label>
-            <div className="input-wrap">
-              <i className="fa-solid fa-lock"></i>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <CampoPassword
+              id="password"
+              label="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              icono="fa-lock"
+              autoComplete="current-password"
+              required
+            />
           </div>
 
           <div className="row-between">

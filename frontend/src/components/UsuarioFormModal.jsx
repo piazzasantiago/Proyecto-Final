@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import CampoPassword from "./CampoPassword";
+
 const emptyForm = {
   nombre: "",
   apellido: "",
@@ -123,21 +125,19 @@ export default function UsuarioFormModal({ initialData, onClose, onSubmit }) {
 
               {!isEdit && (
                 <div className="form-group full">
-                  <label>Contraseña inicial</label>
-                  <input
+                  <CampoPassword
+                    label="Contraseña inicial"
                     name="password"
-                    type="password"
                     value={form.password}
                     onChange={handleChange}
+                    placeholder="Mínimo 8 caracteres"
+                    autoComplete="new-password"
                     required
                     minLength={8}
                     maxLength={128}
-                    placeholder="Mínimo 8 caracteres"
+                    error={errors.password?.join(" ")}
+                    hint="Comunicásela al usuario para que pueda ingresar por primera vez."
                   />
-                  {errors.password && <span className="form-error">{errors.password.join(" ")}</span>}
-                  <span className="form-hint">
-                    Comunicásela al usuario para que pueda ingresar por primera vez.
-                  </span>
                 </div>
               )}
 
