@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
+import { MENU } from "../config/menu";
 import { useAuth } from "../context/AuthContext";
 
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
@@ -12,12 +13,14 @@ function iniciales(usuario) {
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const { usuario, cerrarSesion, esAdministrador } = useAuth();
+  const { usuario, cerrarSesion } = useAuth();
 
   async function handleLogout() {
     await cerrarSesion();
     navigate("/login", { replace: true });
   }
+
+  const rol = usuario?.rol;
 
   return (
     <div className="screen active" id="screen-app">
@@ -27,54 +30,24 @@ export default function AppLayout() {
           <span>AvíGest</span>
         </div>
 
-        <div className="sb-section-label">Principal</div>
-        <NavLink to="/app/dashboard" className={navItemClass}>
-          <i className="fa-solid fa-gauge-high"></i> Dashboard
-        </NavLink>
+        <div className="sb-nav">
+          {MENU.map((grupo) => {
+            // Solo las secciones habilitadas para el rol del usuario actual.
+            const visibles = grupo.items.filter((item) => item.roles.includes(rol));
+            if (visibles.length === 0) return null;
 
-        <div className="sb-section-label">Producción</div>
-        <NavLink to="/app/galpones" className={navItemClass}>
-          <i className="fa-solid fa-warehouse"></i> Galpones
-        </NavLink>
-        <NavLink to="/app/lotes" className={navItemClass}>
-          <i className="fa-solid fa-kiwi-bird"></i> Lotes de Gallinas
-        </NavLink>
-        <NavLink to="/app/recoleccion" className={navItemClass}>
-          <i className="fa-solid fa-egg"></i> Recolección diaria
-        </NavLink>
-        <NavLink to="/app/descartes" className={navItemClass}>
-          <i className="fa-solid fa-trash-can"></i> Descartes
-        </NavLink>
-        <NavLink to="/app/salidas" className={navItemClass}>
-          <i className="fa-solid fa-truck-ramp-box"></i> Salidas
-        </NavLink>
-
-        <div className="sb-section-label">Insumos</div>
-        <NavLink to="/app/entradas" className={navItemClass}>
-          <i className="fa-solid fa-dolly"></i> Entradas
-        </NavLink>
-        <NavLink to="/app/materias-primas" className={navItemClass}>
-          <i className="fa-solid fa-boxes-stacked"></i> Materias Primas
-        </NavLink>
-        <NavLink to="/app/compras" className={navItemClass}>
-          <i className="fa-solid fa-cart-shopping"></i> Compras
-        </NavLink>
-        <NavLink to="/app/proveedores" className={navItemClass}>
-          <i className="fa-solid fa-truck"></i> Proveedores
-        </NavLink>
-
-        <div className="sb-section-label">Gestión</div>
-        <NavLink to="/app/informes" className={navItemClass}>
-          <i className="fa-solid fa-chart-simple"></i> Informes
-        </NavLink>
-        {/* La gestión de usuarios es exclusiva del Administrador.
-            Ocultar el enlace es solo comodidad visual: el backend responde
-            403 igual si alguien intentara entrar por otra vía. */}
-        {esAdministrador && (
-          <NavLink to="/app/usuarios" className={navItemClass}>
-            <i className="fa-solid fa-users"></i> Usuarios
-          </NavLink>
-        )}
+            return (
+              <div key={grupo.grupo}>
+                <div className="sb-section-label">{grupo.grupo}</div>
+                {visibles.map((item) => (
+                  <NavLink key={item.to} to={item.to} className={navItemClass}>
+                    <i className={`fa-solid ${item.icono}`}></i> {item.texto}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
+        </div>
 
         <div className="sb-footer">
           <div className="sb-user">

@@ -556,3 +556,59 @@
 
   /* El botón de ingresar se deshabilita mientras se envía el formulario */
   .btn-primary:disabled{opacity:.65; cursor:not-allowed;}
+
+  /* ===== Correcciones del shell (feature/gestion-usuarios) ===== */
+
+  /* Los enlaces del menú son <a> (NavLink de react-router): sin subrayado. */
+  .sb-item{text-decoration:none;}
+  .sb-item:hover{text-decoration:none;}
+
+  /* La barra lateral no debe estirarse cuando el contenido es más alto que la
+     pantalla: queda fija con su propio scroll. */
+  .sidebar{
+    position:sticky; top:16px; align-self:start;
+    height:calc(100vh - 32px);
+  }
+  .sb-nav{flex:1; overflow-y:auto; min-height:0;}
+  .sb-footer{flex-shrink:0;}
+
+  /* ===== Tarjetas de usuario (feature/gestion-usuarios) ===== */
+
+  .usuario-card{
+    background:#fff; border-radius:16px; border:1px solid rgba(18,52,36,0.08);
+    padding:18px 16px; cursor:pointer; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  }
+  .usuario-card:hover{border-color:var(--green-600);}
+  .usuario-card.card-selected{background:var(--green-100); border-color:var(--green-600);}
+
+  .uc-avatar{
+    width:56px; height:56px; border-radius:50%;
+    background:var(--gray-200); color:var(--gray-500);
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:700; margin-bottom:4px;
+  }
+  .uc-avatar-sm{width:42px; height:42px; font-size:15px; margin:0;}
+  .usuario-card.card-selected .uc-avatar{background:var(--green-600); color:#fff;}
+
+  .uc-nombre{font-size:15.5px; font-weight:700; color:var(--gray-900); line-height:1.25;}
+  .uc-usuario{font-size:13px; color:var(--gray-500);}
+
+  /* Los badges de rol y estado van uno al lado del otro, centrados y alineados. */
+  .uc-badges{
+    display:flex; flex-wrap:wrap; justify-content:center;
+    align-items:center; gap:6px; margin-top:6px;
+  }
+
+  .uc-head-user{display:flex; align-items:center; gap:11px;}
+  .uc-head-user h3{line-height:1.25;}
+  .uc-head-user .sub{font-size:13.5px; color:var(--gray-500); margin-top:2px;}
+
+  .badge-gray{background:var(--gray-200); color:var(--gray-700);}
+
+  /* Segunda fila de acciones del panel de detalle */
+  .detail-actions-sec{padding-top:0; border-top:none;}
+
+  .form-hint{font-size:12.5px; color:var(--gray-500); margin-top:6px; line-height:1.45; display:block;}
+
+  .banner-ok{background:var(--green-100); color:var(--green-900);}
