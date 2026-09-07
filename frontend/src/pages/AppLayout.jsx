@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { MENU } from "../config/menu";
@@ -14,6 +15,8 @@ function iniciales(usuario) {
 export default function AppLayout() {
   const navigate = useNavigate();
   const { usuario, cerrarSesion } = useAuth();
+  // Controla el sidebar como panel deslizante en tablet/celular.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   async function handleLogout() {
     await cerrarSesion();
@@ -24,13 +27,38 @@ export default function AppLayout() {
 
   return (
     <div className="screen active" id="screen-app">
-      <div className="sidebar">
+      <button
+        type="button"
+        className="mobile-topbar-toggle"
+        aria-label="Abrir menú"
+        onClick={() => setSidebarOpen(true)}
+      >
+        <i className="fa-solid fa-bars"></i>
+      </button>
+
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        ></div>
+      )}
+
+      <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sb-brand">
           <div className="logo-mark"><i className="fa-solid fa-egg"></i></div>
           <span>AvíGest</span>
+          <button
+            type="button"
+            className="sidebar-close"
+            aria-label="Cerrar menú"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
-        <div className="sb-nav">
+        <div className="sb-nav" onClick={() => setSidebarOpen(false)}>
           {MENU.map((grupo) => {
             // Solo las secciones habilitadas para el rol del usuario actual.
             const visibles = grupo.items.filter((item) => item.roles.includes(rol));
