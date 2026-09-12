@@ -21,11 +21,16 @@
 name: Tests del Backend
 
 on:
-  # Corre en cualquier push, sin importar la rama.
+  # Corre en cualquier push, EXCEPTO cuando los únicos archivos modificados
+  # están dentro de docs/ o son archivos Markdown en la raíz (README.md).
+  # Así un commit que solo agrega documentación no dispara el CI.
   push:
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
 
-  # Corre cuando se abre o actualiza un PR hacia develop o main.
-  # Esto da un check verde/rojo visible en el PR antes de mergear.
+  # En los PRs hacia develop o main siempre corre, incluso si solo hay
+  # cambios de documentación, para garantizar que el merge sea seguro.
   pull_request:
     branches: [develop, main]
 
