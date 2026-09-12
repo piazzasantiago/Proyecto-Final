@@ -49,7 +49,7 @@ function App() {
           <Route path="materias-primas" element={<StaticPage html={materiasPrimasHtml} />} />
           <Route path="compras" element={<RequireRol roles={rolesDe("/app/compras")}><StaticPage html={comprasHtml} /></RequireRol>} />
           <Route path="proveedores" element={<RequireRol roles={rolesDe("/app/proveedores")}><StaticPage html={proveedoresHtml} /></RequireRol>} />
-          <Route path="informes" element={<StaticPage html={informesHtml} />} />
+          <Route path="informes" element={<RequireRol roles={rolesDe("/app/informes")}><StaticPage html={informesHtml} /></RequireRol>} />
           <Route path="usuarios" element={<RequireRol roles={rolesDe("/app/usuarios")}><UsuariosPage /></RequireRol>} />
         </Route>
       </Routes>
