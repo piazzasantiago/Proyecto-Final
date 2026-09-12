@@ -19,8 +19,10 @@ módulos funcionales de punta a punta: **Galpones** y **Usuarios**.
 |---|---|---|
 | Autenticación | CU01, CU02 | Funcional |
 | Gestión de Usuarios | CU03 a CU08 | Funcional |
-| Gestión de Galpones | CU09 a CU14 | Funcional (con permisos por rol) |
+| Gestión de Galpones | CU09 a CU14 | Funcional — pendientes de la rama `feature/gestion-galpones` |
 | Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+
+Los pendientes del módulo Galpones se completan en la rama `feature/gestion-galpones`.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -30,15 +32,26 @@ Galpones y Usuarios.
 
 ### Acceso por rol
 
-El sistema define tres roles, y cada uno accede a un conjunto distinto de
-secciones y operaciones:
+El sistema define tres roles con distintos niveles de acceso:
 
-- **Administrador:** acceso total, incluida la gestión de usuarios.
-- **Operario:** carga y consulta de la operación diaria. No accede a Usuarios,
-  Compras ni Proveedores.
-- **Consulta:** solo lectura de la información productiva e informes.
+| Sección | Administrador | Operario | Consulta |
+|---|:---:|:---:|:---:|
+| Dashboard | Sí | Sí | Sí |
+| Galpones | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Lotes de Gallinas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Recolección diaria | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Descartes | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Compras | Sí (CRUD) | No | Sí (consulta) |
+| Proveedores | Sí (CRUD) | No | Sí (consulta) |
+| Informes | Sí | No | Sí |
+| Usuarios | Sí (CRUD) | No | No |
 
-El detalle completo está en `docs/docs-usuarios.md`.
+> Los módulos sin backend real todavía muestran el mockup. Los permisos de
+> escritura/lectura dentro de cada sección se aplicarán en el backend cuando
+> cada módulo se implemente. El detalle completo está en `docs/docs-usuarios.md`.
 
 ---
 
@@ -46,9 +59,12 @@ El detalle completo está en `docs/docs-usuarios.md`.
 
 ```
 Proyecto-Final/
-├── docs/        Documentación del proyecto y de cada feature
-├── backend/     Django + DRF + PostgreSQL — API REST
-└── frontend/    React + Vite — interfaz web
+├── .github/
+│   └── workflows/
+│       └── tests.yml    CI: tests automáticos en cada push
+├── docs/                Documentación del proyecto y de cada feature
+├── backend/             Django + DRF + PostgreSQL — API REST
+└── frontend/            React + Vite — interfaz web
 ```
 
 ### Backend
@@ -56,7 +72,7 @@ Proyecto-Final/
 ```
 backend/
 ├── config/          configuración del proyecto y rutas raíz
-├── usuarios/        modelo Usuario, autenticación JWT y permisos por rol
+├── usuarios/        modelo Usuario, autenticación JWT, permisos y tests
 ├── galpones/        módulo de Galpones
 └── manage.py
 ```
@@ -65,13 +81,13 @@ backend/
 
 ```
 frontend/src/
-├── api/         cliente HTTP y funciones de la API, una por caso de uso
-├── config/      matriz rol × sección del menú
-├── context/     estado de la sesión
-├── components/  componentes reutilizables
-├── pages/       una pantalla por módulo
-│   └── static/  HTML de los módulos aún no implementados
-└── index.css    estilos del sistema
+├── api/             cliente HTTP y funciones de la API, una por módulo
+├── config/menu.js   matriz rol × sección — fuente única de verdad
+├── context/         estado de la sesión (AuthContext)
+├── components/      componentes reutilizables
+├── pages/           una pantalla por módulo
+│   └── static/      HTML de los módulos aún no implementados
+└── index.css        estilos del sistema
 ```
 
 ---
@@ -156,6 +172,21 @@ npm run dev
 Abrir `http://localhost:5173` e iniciar sesión con el usuario creado en el paso
 anterior.
 
+## 5. Correr los tests
+
+```bash
+cd backend
+python manage.py test --verbosity=2
+```
+
+Django crea automáticamente una base de datos temporaria, corre todos los tests
+y la elimina al terminar. No toca la base de desarrollo.
+
+```
+Ran 34 tests in ~3s
+OK
+```
+
 ---
 
 ## Endpoints principales
@@ -181,6 +212,31 @@ Authorization: Bearer <token>
 
 ---
 
+## Integración continua (CI)
+
+El proyecto usa **GitHub Actions** para correr los tests automáticamente.
+
+El workflow (`.github/workflows/tests.yml`) se ejecuta en:
+
+- Cualquier `push` a cualquier rama, excepto si los únicos archivos
+  modificados son documentación (`docs/**` o `*.md`).
+- Cualquier Pull Request hacia `develop` o `main` (siempre, sin excepción).
+
+Cada ejecución levanta PostgreSQL como servicio Docker, instala las
+dependencias, aplica las migraciones y corre `python manage.py test`. El
+resultado aparece como ✅ o ❌ en la pestaña Actions de GitHub y en cada
+commit.
+
+**Protección de ramas:** el workflow reporta el resultado pero no bloquea
+automáticamente el merge. Para hacerlo bloqueante hay que configurarlo en
+GitHub (ver sección "Pendientes transversales" al final de este archivo).
+
+**Agregar tests de una nueva feature:** crear `backend/<app>/tests.py` en la
+rama correspondiente. El workflow los descubre y corre automáticamente junto
+con los existentes — el archivo `tests.yml` no necesita modificarse.
+
+---
+
 ## Flujo de trabajo con Git
 
 - **`main`** — versión final del proyecto.
@@ -200,7 +256,7 @@ En `docs/`:
 
 | Archivo | Contenido |
 |---|---|
-| `docs-usuarios.md` | Autenticación y gestión de usuarios (CU01 a CU08) |
+| `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
 | `Anexo 1 Trabajo Final...docx` | Presentación de la idea de proyecto |
@@ -231,18 +287,56 @@ Verificar que el backend esté en ejecución en el puerto 8000 y que el archivo
 El backend autoriza `http://localhost:5173` por defecto. Si el frontend corre en
 otro puerto, agregarlo a `CORS_ALLOWED_ORIGINS` en `backend/.env`.
 
+**Los tests fallan con error de conexión a la base**
+Verificar que PostgreSQL esté corriendo y que `DB_HOST`, `DB_USER` y
+`DB_PASSWORD` en `.env` sean correctos. Los tests usan la misma configuración
+del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
+
 ---
 
 ## Próximos pasos
 
-1. **Lotes de Gallinas** (CU42 a CU48), incluyendo el plan de transición y el
-   vaciado sanitario.
-2. **Recolección diaria** (CU24 a CU32), primer módulo con estructura de
-   cabecera y líneas.
-3. **Descartes** (CU15 a CU23).
-4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
-5. **Informes e indicadores productivos** (CU85 a CU89).
+1. **`feature/gestion-galpones`** — completar el módulo de Galpones con los
+   pendientes detectados en esta feature:
+   - Ocultar el botón "Nuevo Galpón" para el rol Operario (el backend ya
+     rechaza con 403, pero el botón no debería mostrarse).
+   - Revisar la interfaz de Galpones aplicando el mismo estándar de permisos
+     por rol que se implementó en Usuarios.
+   - Agregar tests automatizados del módulo en `backend/galpones/tests.py`.
+   - Documentar los casos de uso CU09 a CU14 en `docs/docs-galpones.md`.
+
+2. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
+   de transición y vaciado sanitario.
+
+3. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
+   módulo con estructura de cabecera y líneas.
+
+4. **`feature/descartes`** — Descartes (CU15 a CU23).
+
+5. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+
+6. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
-backend, endpoints con DRF, permisos por rol, pantalla React, y documentación
-en `docs/`.
+backend, endpoints con DRF, permisos por rol, pantalla React, tests en
+`backend/<app>/tests.py`, y documentación en `docs/docs-<feature>.md`.
+
+### Pendientes transversales
+
+Mejoras que aplican a múltiples módulos y conviene implementar cuando haya
+dos o tres modelos funcionales, para aplicarlas de una vez y con consistencia:
+
+**Registro de auditoría.** Agregar una clase base abstracta `ModeloAuditable`
+en `backend/core/models.py` con los campos `creado_por`, `modificado_por`,
+`fecha_creacion` y `fecha_modificacion`. Cada modelo la hereda con una sola
+línea. Permite saber quién cargó cada recolección, quién modificó un lote,
+quién dio de baja un galpón. El momento natural para implementarlo es al
+desarrollar Lotes o Recolección, que son los primeros módulos donde esa
+información tiene valor operativo real.
+
+**Protección de ramas en GitHub.** El workflow de CI ya corre los tests y
+reporta el resultado en cada push. Para que ese resultado sea bloqueante
+(impedir el merge si los tests fallan), hay que activarlo en GitHub:
+Settings → Branches → Branch protection rules → "Require status checks to
+pass before merging" → seleccionar `Django Tests`. Aplicar en `develop` y
+`main`.

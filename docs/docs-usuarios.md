@@ -4,8 +4,8 @@
 **Casos de uso:** CU01, CU02, CU03, CU04, CU05, CU06, CU07, CU08
 
 Primera feature con autenticación real del sistema. Incorpora el modelo de
-usuario propio, el inicio de sesión con JWT, el control de acceso por rol y la
-gestión completa de usuarios, tanto en el backend como en la interfaz.
+usuario propio, el inicio de sesión con JWT, el control de acceso por rol,
+la gestión completa de usuarios, tests automatizados y CI con GitHub Actions.
 
 ---
 
@@ -16,16 +16,18 @@ gestión completa de usuarios, tanto en el backend como en la interfaz.
 - Modelo `Usuario` propio, que reemplaza al usuario por defecto de Django.
 - Inicio y cierre de sesión con tokens JWT.
 - Control de acceso por rol (Administrador, Operario, Consulta) aplicado a
-  **todos** los endpoints, incluidos los de Galpones.
+  todos los endpoints, incluidos los de Galpones.
 - ABM completo de usuarios con búsqueda, filtros, alta y baja lógica.
 - Restablecimiento de contraseña por parte del Administrador.
 - Interfaz React conectada a la API, con menú y rutas filtradas por rol.
+- Matriz de visibilidad de secciones por rol, definida en `config/menu.js`.
+- Tests automatizados del backend (34 tests en 4 clases).
+- Workflow de CI con GitHub Actions que corre los tests en cada push.
 
 ### Qué no incluye
 
 - Recupero automático de contraseña por email. El sistema muestra un cartel
   indicando que hay que pedirle ayuda a un administrador.
-- Cambio de contraseña por parte del propio usuario (queda pendiente).
 - Refresh automático del token: la sesión dura 8 horas y luego hay que
   volver a iniciar sesión.
 - Asignación de operarios a galpones (tabla `UsuariosDelGalpon` del modelo
@@ -45,8 +47,8 @@ gestión completa de usuarios, tanto en el backend como en la interfaz.
 1. El usuario accede a la pantalla de inicio de sesión.
 2. Ingresa su nombre de usuario o su email, y su contraseña.
 3. El sistema valida las credenciales.
-4. El sistema genera un token de sesión y lo devuelve junto con los datos del
-   usuario.
+4. El sistema genera un token de sesión y lo devuelve junto con los datos
+   del usuario.
 5. El sistema redirige al panel principal, mostrando únicamente las secciones
    habilitadas para su rol.
 
@@ -55,7 +57,7 @@ gestión completa de usuarios, tanto en el backend como en la interfaz.
 - **3a. Credenciales incorrectas:** el sistema muestra "Usuario o contraseña
   incorrectos" y permanece en la pantalla de inicio de sesión.
 - **3b. Usuario dado de baja:** el sistema rechaza el acceso con el mismo
-  mensaje genérico.
+  mensaje genérico, sin revelar que el usuario existe.
 - **2a. El usuario no recuerda su contraseña:** selecciona "¿Olvidaste tu
   contraseña?" y el sistema informa que debe solicitar a un administrador que
   se la restablezca.
@@ -74,8 +76,8 @@ gestión completa de usuarios, tanto en el backend como en la interfaz.
 2. El sistema descarta el token de sesión.
 3. El sistema redirige a la pantalla de inicio de sesión.
 
-**Postcondición:** las pantallas del sistema dejan de ser accesibles hasta un
-nuevo inicio de sesión.
+**Postcondición:** las pantallas del sistema dejan de ser accesibles hasta
+un nuevo inicio de sesión.
 
 ---
 
@@ -87,15 +89,15 @@ nuevo inicio de sesión.
 
 1. El Administrador accede a la sección Usuarios.
 2. El sistema muestra el listado de usuarios registrados.
-3. El Administrador ingresa un texto de búsqueda o aplica filtros por rol y
-   por estado.
+3. El Administrador ingresa un texto de búsqueda o aplica filtros por rol
+   y por estado.
 4. El sistema muestra los usuarios que cumplen los criterios.
 5. El Administrador selecciona un usuario y el sistema muestra su detalle.
 
 **Flujos alternativos**
 
-- **4a. Sin resultados:** el sistema informa que no hay usuarios que coincidan
-  con la búsqueda.
+- **4a. Sin resultados:** el sistema informa que no hay usuarios que
+  coincidan con la búsqueda.
 
 **Notas:** la búsqueda se realiza sobre nombre, apellido, nombre de usuario,
 email y DNI.
@@ -110,18 +112,18 @@ email y DNI.
 
 1. El Administrador selecciona "Nuevo usuario".
 2. El sistema muestra el formulario de alta.
-3. El Administrador completa nombre, apellido, nombre de usuario, email, DNI,
-   rol y una contraseña inicial.
+3. El Administrador completa nombre, apellido, nombre de usuario, email,
+   DNI, rol y una contraseña inicial.
 4. El sistema valida los datos.
 5. El sistema registra el usuario con estado Activo.
 6. El sistema muestra el usuario creado en el listado.
 
 **Flujos alternativos**
 
-- **4a. Nombre de usuario, email o DNI ya registrados:** el sistema indica cuál
-  es el dato duplicado y no crea el usuario.
-- **4b. Contraseña menor a 8 caracteres:** el sistema lo informa y no crea el
-  usuario.
+- **4a. Nombre de usuario, email o DNI ya registrados:** el sistema indica
+  cuál es el dato duplicado y no crea el usuario.
+- **4b. Contraseña menor a 8 caracteres:** el sistema lo informa y no crea
+  el usuario.
 
 **Postcondición:** el usuario puede iniciar sesión con la contraseña asignada.
 
@@ -140,9 +142,11 @@ email y DNI.
 
 **Flujos alternativos**
 
-- **4a. Datos duplicados con otro usuario:** el sistema lo informa y no guarda.
+- **4a. Datos duplicados con otro usuario:** el sistema lo informa y no
+  guarda.
 
-**Notas:** la contraseña no se modifica desde este caso de uso.
+**Notas:** la contraseña no se modifica desde este caso de uso. Para eso
+existe el restablecimiento.
 
 ---
 
@@ -179,7 +183,7 @@ usuario registró conviene darlo de baja (CU08) en lugar de eliminarlo.
 
 **Flujos alternativos**
 
-- **1a. El usuario ya está activo:** el sistema lo informa y no realiza cambios.
+- **1a. El usuario ya está activo:** el sistema lo informa (409 Conflict).
 
 **Postcondición:** el usuario vuelve a poder iniciar sesión.
 
@@ -197,9 +201,9 @@ usuario registró conviene darlo de baja (CU08) en lugar de eliminarlo.
 
 **Flujos alternativos**
 
-- **1a. El usuario seleccionado es el propio Administrador:** el sistema impide
-  la operación, para evitar que quede sin acceso al sistema.
-- **1b. El usuario ya está dado de baja:** el sistema lo informa.
+- **1a. El usuario seleccionado es el propio Administrador:** el sistema
+  impide la operación, para evitar que quede sin acceso al sistema.
+- **1b. El usuario ya está dado de baja:** el sistema lo informa (409 Conflict).
 
 **Postcondición:** el usuario no puede iniciar sesión, pero se conserva su
 registro y el historial asociado.
@@ -217,18 +221,19 @@ contraseña provisoria.
 **Flujo principal**
 
 1. El Administrador selecciona un usuario y elige "Restablecer contraseña".
-2. Ingresa una contraseña provisoria de al menos 8 caracteres.
+2. El Administrador ingresa una contraseña provisoria de al menos 8 caracteres.
+   El campo arranca visible para que pueda leerla y comunicársela al usuario.
 3. El sistema reemplaza la contraseña del usuario.
 4. El Administrador comunica la contraseña provisoria al usuario.
 
-**Notas:** no se solicita la contraseña anterior, porque el Administrador no la
-conoce; ese es justamente el motivo del pedido.
-
-**Se propone incorporarlo al listado de casos de uso del proyecto.**
+**Notas:** no se solicita la contraseña anterior, porque el Administrador
+no la conoce. **Se propone incorporarlo al listado de casos de uso.**
 
 ---
 
 ## 3. Matriz rol × caso de uso
+
+### Autenticación y usuarios
 
 | Caso de uso | Administrador | Operario | Consulta |
 |---|:---:|:---:|:---:|
@@ -241,19 +246,29 @@ conoce; ese es justamente el motivo del pedido.
 | CU07 Dar de Alta Usuario | Sí | No | No |
 | CU08 Dar de Baja Usuario | Sí | No | No |
 | Restablecer Contraseña | Sí | No | No |
-| CU09 Buscar Galpón | Sí | Sí | Sí |
-| CU10 a CU14 (escritura sobre Galpones) | Sí | No | No |
 
-### Secciones visibles en el menú
+### Visibilidad de secciones en el menú
 
 | Sección | Administrador | Operario | Consulta |
 |---|:---:|:---:|:---:|
 | Dashboard | Sí | Sí | Sí |
-| Galpones, Lotes, Recolección, Descartes, Salidas | Sí | Sí | Sí |
-| Entradas, Materias Primas | Sí | Sí | Sí |
-| Compras, Proveedores | Sí | No | No |
-| Informes | Sí | Sí | Sí |
-| Usuarios | Sí | No | No |
+| Galpones | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Lotes de Gallinas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Recolección diaria | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Descartes | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Compras | Sí (CRUD) | No | Sí (consulta) |
+| Proveedores | Sí (CRUD) | No | Sí (consulta) |
+| Informes | Sí | No | Sí |
+| Usuarios | Sí (CRUD) | No | No |
+
+**Importante:** la columna "visibilidad" controla si el enlace aparece en el
+menú y si la ruta es accesible. Los permisos de escritura dentro de cada
+sección (CRUD vs solo consulta) se implementan en el `permission_classes` del
+ViewSet de cada módulo cuando se desarrolle. La fuente única de la matriz es
+`frontend/src/config/menu.js`.
 
 ---
 
@@ -274,15 +289,12 @@ Corresponde a la tabla `Usuarios` del modelo relacional.
 | `estado` | CHAR(1) | A (Activo), I (Inactivo) |
 | `is_staff` | BOOLEAN | Acceso al panel `/admin/` de Django |
 
-**Campos heredados de Django:** `last_login`, `is_superuser` y las relaciones
-de `PermissionsMixin`, que el panel de administración requiere para funcionar.
-
 **Propiedades calculadas (no son columnas):**
 
 - `nombre_completo` — concatena nombre y apellido.
 - `es_administrador` — `rol == "A"`.
 - `is_active` — se deriva de `estado`. Django consulta este atributo al
-  autenticar, de modo que un usuario dado de baja no puede iniciar sesión.
+  autenticar; un usuario dado de baja no puede iniciar sesión.
 
 ---
 
@@ -309,7 +321,14 @@ de `PermissionsMixin`, que el panel de administración requiere para funcionar.
 {
   "access": "eyJhbGci...",
   "refresh": "eyJhbGci...",
-  "usuario": { "id_usuario": 1, "usuario": "jperez", "rol": "A", "rol_display": "Administrador", ... }
+  "usuario": {
+    "id_usuario": 1,
+    "usuario": "jperez",
+    "rol": "A",
+    "rol_display": "Administrador",
+    "nombre_completo": "Juan Pérez",
+    ...
+  }
 }
 ```
 
@@ -321,159 +340,234 @@ Authorization: Bearer <access>
 
 ---
 
-## 6. Decisiones de diseño
+## 6. Tests automatizados
 
-### 6.1 Modelo de usuario propio en lugar del de Django
+Los tests viven en `backend/usuarios/tests.py` y cubren los casos de uso de
+esta feature. Se organizan en cuatro clases, cada una independiente: Django
+crea una base temporaria al principio y la destruye al terminar.
 
-Django incluye un modelo `User` con campos `username`, `first_name`,
-`last_name` y `is_active`. No se utilizó porque el modelo relacional del
-proyecto define `nombre`, `apellido`, `dni`, `rol` y `estado`, que no tienen
-correspondencia directa.
+### Estructura
 
-Se extendió `AbstractBaseUser` para conservar el manejo seguro de contraseñas y
-la integración con el panel de administración, definiendo los campos propios.
+| Clase | Tests | Qué cubre |
+|---|:---:|---|
+| `LoginTests` | 7 | CU01: credenciales, email, mensaje genérico, usuario inactivo |
+| `MeTests` | 3 | Token válido, sin token, token inválido |
+| `PermisosPorRolTests` | 8 | Los tres roles × usuarios y galpones |
+| `ABMUsuariosTests` | 16 | CU03 a CU08 completo y restablecimiento de contraseña |
+| **Total** | **34** | |
 
-**Consecuencia:** `AUTH_USER_MODEL` debe declararse **antes de la primera
-migración** del proyecto. Cambiarlo después obliga a recrear la base de datos.
+### Cómo correrlos localmente
 
-### 6.2 Roles como campo `rol`, no como Grupos de Django
+```bash
+cd backend
+python manage.py test --verbosity=2
+```
 
-Django ofrece un sistema de grupos y permisos configurable desde el panel de
-administración. Se optó por el campo `rol` por cuatro razones:
+`--verbosity=2` muestra el nombre de cada test y si pasó (`ok`) o falló
+(`FAIL`). Sin ese flag solo muestra el total.
 
-1. **Los roles son fijos.** El análisis de requisitos define exactamente tres,
-   y no se prevé que el cliente cree otros.
-2. **El modelo relacional ya define `rol`.** Usar además grupos implicaría
-   mantener la misma información en dos lugares, con riesgo de desincronización.
-3. **La granularidad no coincide.** Los permisos de Django son por modelo y
-   operación (`add_galpon`, `change_galpon`). Las reglas del sistema son de otra
-   naturaleza: "un administrador no puede darse de baja a sí mismo", "un
-   operario solo carga en sus galpones asignados". Esas reglas se escriben en
-   código de todos modos.
-4. **Rendimiento.** Se midió: verificar el campo `rol` no genera consultas SQL,
-   mientras que `has_perm()` genera dos consultas la primera vez por petición.
+### Cómo escalar los tests a futuras features
 
-**Cuándo revisar esta decisión:** si el cliente solicitara definir roles nuevos
-sin modificar el código.
+Cada nueva app de Django tiene su propio `tests.py`:
 
-### 6.3 Autenticación con JWT en lugar de sesiones
+```
+backend/lotes/tests.py       ← se crea con la feature de Lotes
+backend/recoleccion/tests.py ← se crea con esa feature
+```
 
-La API es consumida por una aplicación React independiente, no por páginas
-renderizadas por el servidor. Los tokens JWT resultan más adecuados porque:
+El comando `python manage.py test` los descubre y los corre todos juntos
+automáticamente. No hace falta modificar ningún archivo de configuración.
 
-- No requieren estado en el servidor.
-- Funcionan igual desde una eventual aplicación móvil.
-- No son vulnerables a CSRF, ya que el token se envía explícitamente por
-  código y no automáticamente por el navegador.
+### Decisiones sobre los tests
 
-El panel `/admin/` de Django sigue utilizando cookies de sesión, que es el
-mecanismo apropiado para una interfaz renderizada en el servidor. Ambos
-mecanismos conviven sin interferir, ya que operan sobre rutas distintas.
-
-### 6.4 `is_active` derivado de `estado`
-
-Django consulta el atributo `is_active` para permitir o bloquear el inicio de
-sesión. Se implementó como propiedad calculada a partir de `estado` en lugar de
-como un campo independiente, para evitar dos atributos que signifiquen lo mismo
-y puedan quedar desincronizados.
-
-**Consecuencia:** dar de baja a un usuario (CU08) le impide iniciar sesión de
-forma automática, sin lógica adicional.
-
-### 6.5 El control de acceso se implementa en el backend
-
-Los permisos se validan en el backend mediante dos clases:
-
-- `EsAdministrador` — restringe la gestión de usuarios.
-- `LecturaAutenticados_EscrituraAdministrador` — permite consultar a cualquier
-  usuario autenticado y modificar solo al Administrador. Se aplica a Galpones y
-  se reutilizará en los módulos productivos siguientes.
-
-El frontend replica esa lógica únicamente para **ocultar acciones no
-disponibles**, lo que mejora la experiencia de uso pero **no constituye un
-mecanismo de seguridad**: se verificó que la API responde 403 ante cualquier
-operación no autorizada, aun cuando se la invoque sin pasar por la interfaz.
-
-### 6.6 Restricción de rutas además de ocultar enlaces en el menú
-
-Ocultar un enlace del menú no impide acceder a la ruta escribiendo la URL, ni
-evita que una pantalla ya abierta permanezca visible al cambiar de usuario. Por
-eso las rutas restringidas se envuelven en el componente `RequireRol`.
-
-La matriz rol × sección se define en un único archivo (`src/config/menu.js`),
-consumido tanto por el menú lateral como por las rutas, para que ambos no
-puedan quedar desincronizados.
-
-### 6.7 Recupero de contraseña manual
-
-El sistema no envía correos de recupero. El enlace "¿Olvidaste tu contraseña?"
-muestra un cartel indicando que hay que solicitar ayuda a un administrador.
-
-Esta decisión hace necesario el caso de uso adicional de restablecimiento de
-contraseña, sin el cual el circuito quedaría incompleto.
-
-### 6.8 Validación centralizada en el backend
-
-Los formularios utilizan validación de HTML (`required`, `minLength`,
-`type="email"`) para dar respuesta inmediata, pero la validación efectiva es la
-del backend: cuando la API responde con un error, el mensaje se muestra tal
-como llega.
-
-El motivo es evitar dos conjuntos de reglas que puedan divergir con el tiempo.
+**No se implementaron tests de frontend.** Los tests del backend cubren la
+API completa (modelo, serializer, permisos, respuesta HTTP), que es donde
+vive la lógica del sistema. La configuración de Jest con React en Vite tiene
+un costo significativo que no se justifica en esta etapa. Se puede incorporar
+más adelante comenzando por `config/menu.js`, que es JavaScript puro sin
+dependencias de React.
 
 ---
 
-## 7. Archivos de la feature
+## 7. Integración continua (CI con GitHub Actions)
+
+El workflow `.github/workflows/tests.yml` corre automáticamente en cada push.
+
+### Cuándo se ejecuta
+
+| Situación | ¿Corre? |
+|---|:---:|
+| Push con solo cambios en `docs/` o `*.md` | No |
+| Push con cualquier otro archivo | Sí |
+| Pull Request hacia `develop` o `main` | Siempre |
+
+Los pushes de documentación pura no disparan el CI porque no pueden romper
+el código. Los PR hacia ramas protegidas siempre corren, sin excepción.
+
+### Qué hace el workflow
+
+1. Levanta PostgreSQL 16 como servicio Docker.
+2. Instala Python 3.11 y las dependencias del backend.
+3. Crea un archivo `.env` con las credenciales del entorno de CI.
+4. Verifica la configuración de Django (`manage.py check`).
+5. Aplica las migraciones.
+6. Corre `python manage.py test --verbosity=2`.
+
+### Resultado visible en GitHub
+
+- **Pestaña Actions:** historial de todas las ejecuciones.
+- **Junto a cada commit:** ✅ o ❌.
+- **En el PR:** bloque de checks antes del botón de merge.
+
+### Protección de ramas (recomendado)
+
+En Settings → Branches → Branch protection rules, configurar para `develop`
+y `main`:
+
+```
+☑ Require status checks to pass before merging
+  → Django Tests
+```
+
+Con esto ningún PR puede mergearse si los tests están fallando.
+
+### Agregar tests de una nueva feature
+
+Solo hay que crear `backend/<app>/tests.py` en la rama de la feature. El
+workflow los descubre y los corre automáticamente junto con los existentes.
+**El archivo `tests.yml` no necesita modificarse nunca.**
+
+---
+
+## 8. Archivos de la feature
 
 ### Backend
 
 ```
 backend/
 ├── config/
-│   ├── settings.py            AUTH_USER_MODEL, JWT, app "usuarios"
-│   └── urls.py                incorpora las rutas de usuarios
-├── usuarios/                  app nueva
-│   ├── models.py              Usuario y UsuarioManager
-│   ├── serializers.py         validación de entrada y salida
-│   ├── views.py               login, me, logout y UsuarioViewSet
-│   ├── permissions.py         clases de permisos por rol
-│   ├── urls.py                rutas de autenticación y del ViewSet
-│   ├── admin.py               configuración del panel de administración
+│   ├── settings.py              AUTH_USER_MODEL, JWT, CORS, app "usuarios"
+│   └── urls.py                  incluye las rutas de usuarios
+├── usuarios/
+│   ├── models.py                Usuario y UsuarioManager
+│   ├── serializers.py           validación de entrada y salida
+│   ├── views.py                 login, me, logout y UsuarioViewSet
+│   ├── permissions.py           EsAdministrador y LecturaAutenticados_EscrituraAdministrador
+│   ├── urls.py                  rutas de autenticación y del ViewSet
+│   ├── admin.py                 configuración del panel de administración
+│   ├── tests.py                 34 tests automatizados
 │   └── migrations/0001_initial.py
 └── galpones/
-    └── views.py               se le aplican los permisos por rol
+    └── views.py                 se le aplica LecturaAutenticados_EscrituraAdministrador
 ```
 
 ### Frontend
 
 ```
 frontend/
-├── index.html                 título y favicon propios
-├── public/favicon.svg         ícono del sistema
+├── index.html                   título y favicon propios
+├── public/favicon.svg           ícono del sistema (huevo dorado)
 └── src/
     ├── api/
-    │   ├── client.js          envío del token y traducción de errores
-    │   ├── auth.js            login, me, logout
-    │   └── usuarios.js        una función por caso de uso
-    ├── config/menu.js         matriz rol × sección
+    │   ├── client.js            envío del token y traducción de errores DRF
+    │   ├── auth.js              login, me, logout
+    │   └── usuarios.js          una función por caso de uso
+    ├── config/menu.js           matriz rol × sección — fuente única de verdad
     ├── context/AuthContext.jsx  estado de la sesión
     ├── components/
-    │   ├── RequireAuth.jsx    rutas que exigen sesión
-    │   ├── RequireRol.jsx     rutas restringidas por rol
-    │   ├── CampoPassword.jsx  campo de contraseña con mostrar/ocultar
-    │   └── UsuarioFormModal.jsx  alta y edición
+    │   ├── RequireAuth.jsx      rutas que exigen sesión
+    │   ├── RequireRol.jsx       rutas restringidas por rol
+    │   ├── CampoPassword.jsx    campo de contraseña con mostrar/ocultar
+    │   └── UsuarioFormModal.jsx alta y edición de usuarios
     ├── pages/
-    │   ├── LoginPage.jsx      CU01, con autenticación real
-    │   ├── AppLayout.jsx      menú filtrado por rol
-    │   └── UsuariosPage.jsx   CU03 a CU08
-    └── index.css              estilos agregados
+    │   ├── LoginPage.jsx        CU01, con autenticación real
+    │   ├── AppLayout.jsx        menú filtrado por rol y datos reales del usuario
+    │   └── UsuariosPage.jsx     CU03 a CU08
+    └── index.css                estilos agregados
+```
+
+### CI
+
+```
+.github/
+└── workflows/
+    └── tests.yml                workflow de GitHub Actions
 ```
 
 ---
 
-## 8. Verificación realizada
+## 9. Decisiones de diseño
 
-Se comprobó, con la base de datos PostgreSQL y ambos servidores en ejecución:
+### 9.1 Modelo de usuario propio en lugar del de Django
+
+Django incluye un modelo `User` que no tiene `dni`, `rol` ni `estado`, que
+son campos del modelo relacional del proyecto. Se extendió `AbstractBaseUser`
+para definir los campos propios manteniendo el manejo seguro de contraseñas
+y la integración con el panel de administración.
+
+**Consecuencia:** `AUTH_USER_MODEL` debe declararse antes de la primera
+migración. Cambiarlo después obliga a recrear la base de datos.
+
+### 9.2 Roles como campo `rol`, no como Grupos de Django
+
+Se midió el costo en consultas SQL: verificar `u.es_administrador` (campo
+`rol`) genera **0 consultas**; `has_perm()` genera **2 consultas** la primera
+vez por petición. Además, los roles son fijos según el análisis de requisitos,
+y las reglas de negocio no son expresables con permisos de modelo de Django
+("un administrador no puede darse de baja a sí mismo").
+
+### 9.3 Autenticación con JWT en lugar de sesiones
+
+La API es consumida por una SPA independiente. JWT no requiere estado en el
+servidor, funciona igual desde una eventual app móvil, y no es vulnerable
+a CSRF. El panel `/admin/` sigue usando cookies de sesión, que es el
+mecanismo apropiado para una interfaz server-side.
+
+### 9.4 `is_active` derivado de `estado`
+
+Django consulta `is_active` para permitir o bloquear el inicio de sesión.
+Se implementó como propiedad calculada a partir de `estado` para evitar dos
+atributos que signifiquen lo mismo. Dar de baja a un usuario bloquea el
+login automáticamente.
+
+### 9.5 El control de acceso se implementa en el backend
+
+Los permisos se validan en el backend (`permissions.py`) antes de ejecutar
+cualquier vista. El frontend replica esa lógica solo para ocultar acciones
+no disponibles: se verificó que la API responde 403 ante cualquier operación
+no autorizada aunque se la invoque sin pasar por la interfaz.
+
+### 9.6 Matriz de permisos centralizada en `config/menu.js`
+
+La visibilidad de cada sección por rol se define en un único archivo,
+consumido tanto por el sidebar como por `RequireRol` en `App.jsx`. Si
+estuviera en dos lugares distintos, podrían quedar desincronizados. Cuando
+un módulo obtenga backend real, el `permission_classes` de su ViewSet debe
+replicar la misma lógica.
+
+### 9.7 CI en todas las ramas, no solo en `develop` y `main`
+
+Detectar un test roto en la rama `feature/*` mientras se trabaja es mucho
+más barato que detectarlo al abrir el PR. Por eso el workflow corre en
+cualquier push. Los pushes de documentación pura se excluyen con
+`paths-ignore` para no consumir minutos de CI innecesariamente.
+
+### 9.8 Recupero de contraseña manual
+
+El sistema no envía correos. El enlace "¿Olvidaste tu contraseña?" muestra
+un cartel con instrucciones para pedirle ayuda al administrador. Esto hace
+necesario el caso de uso adicional de restablecimiento.
+
+### 9.9 Validación centralizada en el backend
+
+Los formularios usan validación HTML básica (`required`, `minLength`,
+`type="email"`) para respuesta inmediata, pero la validación efectiva es la
+del backend. Los mensajes de error se muestran tal como llegan de la API,
+para evitar dos conjuntos de reglas que puedan divergir.
+
+---
+
+## 10. Verificación realizada
 
 **Autenticación**
 
@@ -481,15 +575,16 @@ Se comprobó, con la base de datos PostgreSQL y ambos servidores en ejecución:
 - Credenciales incorrectas y usuario inexistente devuelven el mismo mensaje.
 - Un usuario dado de baja no puede iniciar sesión; al darlo de alta, sí.
 - Sin token o con token inválido, la API responde 401.
-- La sesión se conserva al recargar la página.
+- La sesión se conserva al recargar la página (token en `localStorage`).
 
 **Permisos**
 
-- Galpones: consulta permitida a los tres roles; creación, modificación y
-  eliminación solo al Administrador (403 en los demás casos).
-- Usuarios: los roles Operario y Consulta reciben 403 en todas las operaciones.
+- Galpones: consulta permitida a los tres roles; escritura solo al
+  Administrador (403 en los demás).
+- Usuarios: Operario y Consulta reciben 403 en todas las operaciones.
 - Al escribir la URL `/app/usuarios` con un rol no autorizado, la interfaz
   redirige al panel principal.
+- Compras, Proveedores e Informes no aparecen en el menú del Operario.
 
 **Gestión de usuarios**
 
@@ -498,23 +593,30 @@ Se comprobó, con la base de datos PostgreSQL y ambos servidores en ejecución:
 - Rechazo de contraseñas menores a 8 caracteres.
 - Alta y baja lógica, incluyendo el rechazo de operaciones repetidas (409).
 - Un Administrador no puede eliminarse ni darse de baja a sí mismo.
-- El restablecimiento de contraseña invalida la anterior y habilita la nueva.
+- El restablecimiento invalida la contraseña anterior y habilita la nueva.
 - El hash de la contraseña nunca se incluye en las respuestas de la API.
+
+**Tests y CI**
+
+- 34 tests corren en ~3 segundos: `Ran 34 tests in 3s — OK`.
+- El workflow de GitHub Actions se ejecutó correctamente en la rama
+  `feature/gestion-usuarios` tras el push.
+- Los pushes con solo cambios en `docs/` no disparan el CI.
 
 ---
 
-## 9. Pendientes
+## 11. Pendientes
 
-- **Cambio de contraseña por el propio usuario.** Hoy solo el Administrador
-  puede restablecerla.
-- **Campo `debe_cambiar_password`,** para obligar al usuario a definir una
-  contraseña propia tras un restablecimiento.
-- **Renovación automática del token.** La sesión expira a las 8 horas y obliga
-  a iniciar sesión nuevamente.
-- **Revocación de tokens.** Al cerrar sesión, el token se descarta en el
-  cliente pero sigue siendo válido hasta su expiración.
-- **Asignación de operarios a galpones** (`UsuariosDelGalpon`), que permitirá
-  restringir la carga de datos a los galpones asignados a cada operario.
-- **Registro de auditoría:** qué usuario creó o modificó cada registro.
-- **Pruebas automatizadas** con el framework de pruebas de Django. La
-  verificación descrita en la sección 8 se realizó de forma manual.
+- **Renovación automática del token.** La sesión expira a las 8 horas.
+- **Revocación de tokens al cerrar sesión.** El token se descarta en el
+  cliente pero sigue siendo técnicamente válido hasta su expiración.
+- **Asignación de operarios a galpones** (`UsuariosDelGalpon`), que
+  permitirá restringir la carga a los galpones asignados a cada operario.
+- **Protección de ramas en GitHub:** el workflow ya corre los tests y reporta
+  el resultado, pero el bloqueo efectivo del merge requiere una configuración
+  adicional en GitHub: Settings → Branches → Branch protection rules →
+  "Require status checks to pass before merging" → seleccionar `Django Tests`.
+  Sin esa configuración, el PR se puede mergear aunque el CI haya fallado.
+- **Tests de `config/menu.js`:** la matriz de permisos del frontend es
+  JavaScript puro, testeable sin Jest + React. Conveniente cuando la
+  matriz crezca con más módulos.
