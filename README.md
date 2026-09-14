@@ -12,116 +12,331 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-Primer módulo funcional del sistema: **Galpones**, con frontend real (React), backend real (Django + Django REST Framework) y base de datos real (PostgreSQL).
+El sistema cuenta con **autenticación real y control de acceso por rol**, y dos
+módulos funcionales de punta a punta: **Galpones** y **Usuarios**.
 
-El resto de las pantallas (Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Usuarios, Informes, y el login) se ven exactamente igual que en el mockup aprobado por el tutor — usan el HTML/CSS real del mockup — pero **no tienen funcionalidad todavía**: no leen ni guardan nada en la base de datos, y sus botones no hacen nada. Es solo la cáscara visual, para que la app se sienta completa al mostrarla. Se van implementando de a uno, siguiendo el mismo patrón que Galpones.
+| Módulo | Casos de uso | Estado |
+|---|---|---|
+| Autenticación | CU01, CU02 | Funcional |
+| Gestión de Usuarios | CU03 a CU08 | Funcional |
+| Gestión de Galpones | CU09 a CU14 | Funcional — pendientes de la rama `feature/gestion-galpones` |
+| Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+
+Los pendientes del módulo Galpones se completan en la rama `feature/gestion-galpones`.
+
+Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
+por el tutor: **no leen ni guardan datos**, y sus botones no realizan
+operaciones. Sirven para presentar la aplicación completa mientras se
+implementan los módulos restantes, uno por uno, siguiendo el mismo patrón que
+Galpones y Usuarios.
+
+### Acceso por rol
+
+El sistema define tres roles con distintos niveles de acceso:
+
+| Sección | Administrador | Operario | Consulta |
+|---|:---:|:---:|:---:|
+| Dashboard | Sí | Sí | Sí |
+| Galpones | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Lotes de Gallinas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Recolección diaria | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Descartes | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Compras | Sí (CRUD) | No | Sí (consulta) |
+| Proveedores | Sí (CRUD) | No | Sí (consulta) |
+| Informes | Sí | No | Sí |
+| Usuarios | Sí (CRUD) | No | No |
+
+> Los módulos sin backend real todavía muestran el mockup. Los permisos de
+> escritura/lectura dentro de cada sección se aplicarán en el backend cuando
+> cada módulo se implemente. El detalle completo está en `docs/docs-usuarios.md`.
+
+---
 
 ## Estructura del proyecto
 
 ```
 Proyecto-Final/
-├── docs/        Documentación de la materia (anexo, plan de trabajo, arquitectura)
-├── backend/     Django + DRF + PostgreSQL — API REST de Galpones
-└── frontend/    React + Vite — app completa (shell + Galpones funcional + resto visual)
+├── .github/
+│   └── workflows/
+│       └── tests.yml    CI: tests automáticos en cada push
+├── docs/                Documentación del proyecto y de cada feature
+├── backend/             Django + DRF + PostgreSQL — API REST
+└── frontend/            React + Vite — interfaz web
 ```
 
-El modelo `Galpon` (`backend/galpones/models.py`) replica exactamente la tabla `Galpones` del modelo relacional: `idGalpon`, `galpon`, `latitud`, `longitud`, `superficie`, `capacidad`, `estado`, `descripcion`. No se agregó ni se inventó ningún campo.
+### Backend
 
-### Cómo está armado el frontend
+```
+backend/
+├── config/          configuración del proyecto y rutas raíz
+├── usuarios/        modelo Usuario, autenticación JWT, permisos y tests
+├── galpones/        módulo de Galpones
+└── manage.py
+```
 
-- `src/pages/LoginPage.jsx` y `src/pages/AppLayout.jsx` (sidebar): navegación real con `react-router-dom`, sin autenticación real todavía.
-- `src/pages/GalponesPage.jsx`: la única pantalla conectada a la API real (`/api/galpones/`).
-- `src/pages/static/raw/*.html`: el HTML exacto de cada pantalla del mockup (Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Usuarios, Informes, Dashboard), renderizado tal cual por `src/pages/static/StaticPage.jsx`. Cuando se implemente alguno de estos módulos, ese archivo se reemplaza por una página React real (como ya pasó con Galpones) y se lo conecta a su propio endpoint en el backend.
+### Frontend
+
+```
+frontend/src/
+├── api/             cliente HTTP y funciones de la API, una por módulo
+├── config/menu.js   matriz rol × sección — fuente única de verdad
+├── context/         estado de la sesión (AuthContext)
+├── components/      componentes reutilizables
+├── pages/           una pantalla por módulo
+│   └── static/      HTML de los módulos aún no implementados
+└── index.css        estilos del sistema
+```
+
+---
 
 ## 1. Requisitos previos
 
-Instalar en tu computadora (una sola vez):
+Instalar una sola vez:
 
-- **Python 3.10 o superior** — [python.org/downloads](https://www.python.org/downloads/)
+- **Python 3.11 o superior** — [python.org/downloads](https://www.python.org/downloads/)
 - **Node.js 18 o superior** — [nodejs.org](https://nodejs.org/)
-- **PostgreSQL 14 o superior** — [postgresql.org/download](https://www.postgresql.org/download/) (en Mac, la forma más simple es `brew install postgresql@16 && brew services start postgresql@16`)
+- **PostgreSQL 14 o superior** — [postgresql.org/download](https://www.postgresql.org/download/)
 
-Verificá que estén instalados:
+Verificar la instalación:
 
 ```bash
-python3 --version
+python --version
 node --version
 psql --version
 ```
 
 ## 2. Crear la base de datos
 
-Con PostgreSQL corriendo, creá la base y (opcionalmente) un usuario dedicado. Con el usuario `postgres` por defecto alcanza para desarrollo local:
-
-```bash
-createdb granja_avicola
-```
-
-Si te pide usuario/contraseña o querés un usuario propio en vez del `postgres` por defecto:
+Con PostgreSQL en ejecución:
 
 ```sql
--- conectate con: psql postgres
-CREATE USER granja_user WITH PASSWORD 'granja_pass';
-CREATE DATABASE granja_avicola OWNER granja_user;
+CREATE DATABASE granja_avicola;
 ```
 
-## 3. Backend (Django + DRF)
+## 3. Backend
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate          # en Windows: venv\Scripts\activate
+
+python -m venv .venv
+.venv\Scripts\activate           # Windows
+source .venv/bin/activate        # Linux / macOS
+
 pip install -r requirements.txt
 
-cp .env.example .env
-# Editá .env si tu usuario/contraseña/puerto de PostgreSQL son distintos
-# a los valores por defecto (DB_USER=postgres, DB_PASSWORD=postgres, DB_PORT=5432)
+copy .env.example .env           # Windows
+cp .env.example .env             # Linux / macOS
+```
 
+Editar `.env` y completar `DB_PASSWORD` con la contraseña real de PostgreSQL.
+Conviene generar también una `DJANGO_SECRET_KEY` propia:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+Crear las tablas y el primer usuario administrador:
+
+```bash
 python manage.py migrate
-python manage.py createsuperuser   # opcional, para entrar a /admin/
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
-El backend queda corriendo en `http://localhost:8000`. Endpoints disponibles:
+`createsuperuser` solicita nombre de usuario, email, nombre, apellido, DNI y
+contraseña. El usuario creado queda con rol **Administrador** y con acceso al
+panel `/admin/`.
 
-| Método | URL                        | Acción                          |
-|--------|----------------------------|----------------------------------|
-| GET    | `/api/galpones/`           | Listar (soporta `?search=` y `?estado=A/I`) |
-| POST   | `/api/galpones/`           | Crear                            |
-| GET    | `/api/galpones/{id}/`      | Ver detalle                      |
-| PATCH  | `/api/galpones/{id}/`      | Editar                           |
-| DELETE | `/api/galpones/{id}/`      | Eliminar                         |
-| —      | `/admin/`                  | Panel de administración de Django |
+> **La base arranca vacía:** no hay usuarios ni galpones precargados. Todo se
+> carga desde la aplicación o desde el panel de administración.
 
-Ya viene probado end-to-end: crear, listar, editar, validaciones (capacidad/superficie deben ser mayores a 0) y eliminar funcionan correctamente contra PostgreSQL real.
+El backend queda disponible en `http://localhost:8000`.
 
-## 4. Frontend (React + Vite)
+## 4. Frontend
 
-En otra terminal, con el backend corriendo:
+En otra terminal, con el backend en ejecución:
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env    # por defecto ya apunta a http://localhost:8000
+
+copy .env.example .env           # Windows
+cp .env.example .env             # Linux / macOS
+
 npm run dev
 ```
 
-Abrí `http://localhost:5173` en el navegador. Vas a entrar por la pantalla de login (visual, cualquier clic en "Ingresar" te deja pasar) y de ahí al panel completo con el sidebar de siempre. La sección **Galpones** está conectada a la API real: podés crear, ver el detalle, editar y eliminar galpones, y los cambios quedan guardados en PostgreSQL. El resto de las secciones del menú se ven igual que en el mockup pero son solo visuales por ahora.
+Abrir `http://localhost:5173` e iniciar sesión con el usuario creado en el paso
+anterior.
 
-## 5. Qué revisar si algo falla
+## 5. Correr los tests
 
-- **El frontend no carga datos / error de conexión**: confirmá que el backend esté corriendo en el puerto 8000 (`python manage.py runserver`) y que no haya errores en esa terminal.
-- **Error de conexión a la base de datos** al correr `migrate` o `runserver`: revisá que PostgreSQL esté corriendo (`pg_isready`) y que los datos en `backend/.env` coincidan con tu usuario/contraseña real.
-- **CORS bloqueado en la consola del navegador**: el backend ya permite `http://localhost:5173` por defecto (ver `CORS_ALLOWED_ORIGINS` en `backend/.env`); si corrés el frontend en otro puerto, agregalo ahí.
+```bash
+cd backend
+python manage.py test --verbosity=2
+```
 
-## 6. Documentación
+Django crea automáticamente una base de datos temporaria, corre todos los tests
+y la elimina al terminar. No toca la base de desarrollo.
 
-En `docs/` está toda la documentación de la materia:
+```
+Ran 34 tests in ~3s
+OK
+```
 
-- `Plan de Trabajo.pdf`
-- `Anexo 1 Trabajo Final-Piazza Santiago Nicolás-Vargas Antonio Jesús.docx`
-- `AviGest_Documentacion_Arquitectura.docx`
+---
 
-## 7. Próximos pasos
+## Endpoints principales
 
-Funcionalmente este repo cubre únicamente Galpones, tal como pidió el tutor — es lo único con backend real detrás. El resto de los módulos (Lotes, Recolección diaria, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Usuarios, Informes) ya se ven en la app (mismo diseño aprobado), pero son pantallas estáticas sin datos reales. Se van implementando de a uno siguiendo el mismo patrón que Galpones: modelo en `backend/`, endpoints DRF, y reemplazar el `StaticPage` correspondiente por una página React real en `frontend/src/pages/`.
+| Método | Ruta | Descripción | Rol |
+|---|---|---|---|
+| POST | `/api/auth/login/` | Iniciar sesión | — |
+| GET | `/api/auth/me/` | Usuario autenticado | autenticado |
+| POST | `/api/auth/logout/` | Cerrar sesión | autenticado |
+| GET | `/api/galpones/` | Listar galpones (`?search=`, `?estado=`) | autenticado |
+| POST · PATCH · DELETE | `/api/galpones/` | Alta, modificación y baja | Administrador |
+| GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`) | Administrador |
+| POST · PATCH · DELETE | `/api/usuarios/` | Alta, modificación y baja | Administrador |
+| POST | `/api/usuarios/{id}/alta/` y `/baja/` | Alta y baja lógica | Administrador |
+| POST | `/api/usuarios/{id}/restablecer-password/` | Restablecer contraseña | Administrador |
+| — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
+
+Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
+
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## Integración continua (CI)
+
+El proyecto usa **GitHub Actions** para correr los tests automáticamente.
+
+El workflow (`.github/workflows/tests.yml`) se ejecuta en:
+
+- Cualquier `push` a cualquier rama, excepto si los únicos archivos
+  modificados son documentación (`docs/**` o `*.md`).
+- Cualquier Pull Request hacia `develop` o `main` (siempre, sin excepción).
+
+Cada ejecución levanta PostgreSQL como servicio Docker, instala las
+dependencias, aplica las migraciones y corre `python manage.py test`. El
+resultado aparece como ✅ o ❌ en la pestaña Actions de GitHub y en cada
+commit.
+
+**Protección de ramas:** el workflow reporta el resultado pero no bloquea
+automáticamente el merge. Para hacerlo bloqueante hay que configurarlo en
+GitHub (ver sección "Pendientes transversales" al final de este archivo).
+
+**Agregar tests de una nueva feature:** crear `backend/<app>/tests.py` en la
+rama correspondiente. El workflow los descubre y corre automáticamente junto
+con los existentes — el archivo `tests.yml` no necesita modificarse.
+
+---
+
+## Flujo de trabajo con Git
+
+- **`main`** — versión final del proyecto.
+- **`develop`** — rama de integración; de acá se desprenden las features.
+- **`feature/<nombre>`** o **`fix/<nombre>`** — una rama por funcionalidad.
+
+En cada rama se programa, se prueba y se documenta la feature. La documentación
+se agrega como `docs/docs-<feature>.md` e incluye los casos de uso cubiertos y
+las decisiones de diseño tomadas. Al terminar, se integra a `develop` mediante
+un Pull Request.
+
+---
+
+## Documentación
+
+En `docs/`:
+
+| Archivo | Contenido |
+|---|---|
+| `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
+| `modelo-relacional/` | Diagrama y documentación del modelo de datos |
+| `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
+| `Anexo 1 Trabajo Final...docx` | Presentación de la idea de proyecto |
+| `AviGest_Documentacion_Arquitectura.docx` | Documentación de arquitectura |
+
+---
+
+## Problemas frecuentes
+
+**`UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3`**
+No es un problema de codificación sino un fallo de conexión a la base de datos.
+Cuando PostgreSQL está instalado en español, sus mensajes de error no son UTF-8
+y ocultan la causa real. Verificar `DB_PASSWORD` en `.env` y que la base
+`granja_avicola` exista.
+
+**`"vite" no se reconoce como un comando`**
+Faltan las dependencias del frontend: ejecutar `npm install` dentro de
+`frontend/`.
+
+**`ModuleNotFoundError` al ejecutar `manage.py`**
+El entorno virtual no está activo. El prompt debe mostrar `(.venv)`.
+
+**El frontend no carga datos**
+Verificar que el backend esté en ejecución en el puerto 8000 y que el archivo
+`frontend/.env` apunte a `http://localhost:8000`.
+
+**Error de CORS en la consola del navegador**
+El backend autoriza `http://localhost:5173` por defecto. Si el frontend corre en
+otro puerto, agregarlo a `CORS_ALLOWED_ORIGINS` en `backend/.env`.
+
+**Los tests fallan con error de conexión a la base**
+Verificar que PostgreSQL esté corriendo y que `DB_HOST`, `DB_USER` y
+`DB_PASSWORD` en `.env` sean correctos. Los tests usan la misma configuración
+del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
+
+---
+
+## Próximos pasos
+
+1. **`feature/gestion-galpones`** — completar el módulo de Galpones con los
+   pendientes detectados en esta feature:
+   - Ocultar el botón "Nuevo Galpón" para el rol Operario (el backend ya
+     rechaza con 403, pero el botón no debería mostrarse).
+   - Revisar la interfaz de Galpones aplicando el mismo estándar de permisos
+     por rol que se implementó en Usuarios.
+   - Agregar tests automatizados del módulo en `backend/galpones/tests.py`.
+   - Documentar los casos de uso CU09 a CU14 en `docs/docs-galpones.md`.
+
+2. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
+   de transición y vaciado sanitario.
+
+3. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
+   módulo con estructura de cabecera y líneas.
+
+4. **`feature/descartes`** — Descartes (CU15 a CU23).
+
+5. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+
+6. **Informes e indicadores productivos** (CU85 a CU89).
+
+Cada módulo se implementa con el mismo patrón: modelo y migración en el
+backend, endpoints con DRF, permisos por rol, pantalla React, tests en
+`backend/<app>/tests.py`, y documentación en `docs/docs-<feature>.md`.
+
+### Pendientes transversales
+
+Mejoras que aplican a múltiples módulos y conviene implementar cuando haya
+dos o tres modelos funcionales, para aplicarlas de una vez y con consistencia:
+
+**Registro de auditoría.** Agregar una clase base abstracta `ModeloAuditable`
+en `backend/core/models.py` con los campos `creado_por`, `modificado_por`,
+`fecha_creacion` y `fecha_modificacion`. Cada modelo la hereda con una sola
+línea. Permite saber quién cargó cada recolección, quién modificó un lote,
+quién dio de baja un galpón. El momento natural para implementarlo es al
+desarrollar Lotes o Recolección, que son los primeros módulos donde esa
+información tiene valor operativo real.
+
+**Protección de ramas en GitHub.** El workflow de CI ya corre los tests y
+reporta el resultado en cada push. Para que ese resultado sea bloqueante
+(impedir el merge si los tests fallan), hay que activarlo en GitHub:
+Settings → Branches → Branch protection rules → "Require status checks to
+pass before merging" → seleccionar `Django Tests`. Aplicar en `develop` y
+`main`.

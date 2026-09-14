@@ -515,3 +515,243 @@
 .banner-loading{background:var(--gray-100); color:var(--gray-700);}
 .form-error{color:var(--red-500); font-size:12.5px; margin-top:2px;}
 .empty-state{padding:40px 20px; text-align:center; color:var(--gray-500); font-size:14px;}
+
+  /* ===== Autenticación (feature/gestion-usuarios) ===== */
+
+  /* Pantalla de carga mientras se valida el token guardado */
+  .auth-loading{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    gap:10px; color:var(--gray-500); font-size:15px;
+  }
+  .spinner{
+    width:17px; height:17px; border-radius:50%;
+    border:2.5px solid var(--gray-300); border-top-color:var(--green-600);
+    animation:girar .7s linear infinite;
+  }
+  @keyframes girar{to{transform:rotate(360deg);}}
+
+  /* Mensaje de error en formularios */
+  .alert{
+    display:flex; gap:10px; align-items:flex-start;
+    border-radius:10px; padding:12px 14px; font-size:14.5px; line-height:1.5;
+    margin-bottom:16px;
+  }
+  .alert i{margin-top:2px;}
+  .alert-error{background:var(--red-100); color:#8C2F27;}
+  .alert-info{background:var(--green-100); color:var(--green-900);}
+
+  /* Cartel informativo del modal de recupero de contraseña */
+  .modal-card-sm{max-width:440px;}
+  .aviso{
+    display:flex; gap:13px; align-items:flex-start;
+    background:var(--green-100); border:1px solid rgba(18,52,36,0.10);
+    border-radius:12px; padding:16px 17px;
+  }
+  .aviso-icon{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:var(--green-600); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+  .aviso p{font-size:14.5px; line-height:1.55; color:var(--gray-700); margin:0;}
+
+  /* El botón de ingresar se deshabilita mientras se envía el formulario */
+  .btn-primary:disabled{opacity:.65; cursor:not-allowed;}
+
+  /* ===== Correcciones del shell (feature/gestion-usuarios) ===== */
+
+  /* Los enlaces del menú son <a> (NavLink de react-router): sin subrayado. */
+  .sb-item{text-decoration:none;}
+  .sb-item:hover{text-decoration:none;}
+
+  /* La barra lateral no debe estirarse cuando el contenido es más alto que la
+     pantalla: queda fija con su propio scroll. */
+  .sidebar{
+    position:sticky; top:16px; align-self:start;
+    height:calc(100vh - 32px);
+  }
+  .sb-nav{flex:1; overflow-y:auto; min-height:0;}
+  .sb-footer{flex-shrink:0;}
+
+  /* ===== Tarjetas de usuario (feature/gestion-usuarios) ===== */
+
+  .usuario-card{
+    background:#fff; border-radius:16px; border:1px solid rgba(18,52,36,0.08);
+    padding:18px 16px; cursor:pointer; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  }
+  .usuario-card:hover{border-color:var(--green-600);}
+  .usuario-card.card-selected{background:var(--green-100); border-color:var(--green-600);}
+
+  .uc-avatar{
+    width:56px; height:56px; border-radius:50%;
+    background:var(--gray-200); color:var(--gray-500);
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:700; margin-bottom:4px;
+  }
+  .uc-avatar-sm{width:42px; height:42px; font-size:15px; margin:0;}
+  .usuario-card.card-selected .uc-avatar{background:var(--green-600); color:#fff;}
+
+  .uc-nombre{font-size:15.5px; font-weight:700; color:var(--gray-900); line-height:1.25;}
+  .uc-usuario{font-size:13px; color:var(--gray-500);}
+
+  /* Los badges de rol y estado van uno al lado del otro, centrados y alineados. */
+  .uc-badges{
+    display:flex; flex-wrap:wrap; justify-content:center;
+    align-items:center; gap:6px; margin-top:6px;
+  }
+
+  .uc-head-user{display:flex; align-items:center; gap:11px;}
+  .uc-head-user h3{line-height:1.25;}
+  .uc-head-user .sub{font-size:13.5px; color:var(--gray-500); margin-top:2px;}
+
+  .badge-gray{background:var(--gray-200); color:var(--gray-700);}
+
+  /* Segunda fila de acciones del panel de detalle */
+  .detail-actions-sec{padding-top:0; border-top:none;}
+
+  .form-hint{font-size:12.5px; color:var(--gray-500); margin-top:6px; line-height:1.45; display:block;}
+
+  .banner-ok{background:var(--green-100); color:var(--green-900);}
+
+  /* ===== Campo de contraseña con ojo (componente CampoPassword) ===== */
+
+  /* Contenedor propio para que el botón se posicione respecto de él.
+     Funciona igual dentro de .field (login) y de .form-group (modales). */
+  .password-wrap{position:relative;}
+
+  /* Espacio a la derecha para que el texto no quede debajo del ojo. */
+  .password-wrap input{padding-right:42px;}
+
+  /* Solo cuando hay ícono a la izquierda (el candado del login) se deja
+     espacio de ese lado. En los modales no hay ícono. */
+  .password-wrap.tiene-icono > i{
+    position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    color:var(--gray-500); font-size:16px; pointer-events:none;
+  }
+  .password-wrap.tiene-icono input{padding-left:38px;}
+
+  .input-toggle{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:32px; height:32px; border:none; background:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gray-500); font-size:15px; border-radius:7px;
+    transition:color .15s, background .15s;
+  }
+  .input-toggle:hover{color:var(--green-700); background:rgba(46,138,92,0.08);}
+
+  /* `.input-wrap i` posiciona los íconos a la izquierda (el candado). El del
+     ojo va dentro de un botón, así que hay que devolverlo al flujo normal. */
+  .input-toggle i, .password-wrap .input-toggle i{
+    position:static; transform:none; left:auto;
+    color:inherit; font-size:inherit;
+  }
+
+  /* ===== Menú hamburguesa para tablet / celular (fix sidebar invisible) ===== */
+
+  .mobile-topbar-toggle{ display:none; }
+  .sidebar-close{ display:none; }
+  .sidebar-overlay{ display:none; }
+
+  @media(max-width:1100px){
+    #screen-app.active{ padding-top:66px; }
+
+    .mobile-topbar-toggle{
+      display:flex; position:fixed; top:14px; left:14px; z-index:220;
+      width:42px; height:42px; align-items:center; justify-content:center;
+      background:var(--green-900); color:#fff; border:none; border-radius:11px;
+      font-size:18px; box-shadow:0 6px 16px rgba(18,52,36,0.25); cursor:pointer;
+    }
+
+    .sidebar{
+      display:flex; position:fixed; top:0; left:0; height:100vh; width:270px;
+      max-width:82vw; border-radius:0 20px 20px 0; z-index:240;
+      transform:translateX(-100%); transition:transform .25s ease;
+      box-shadow:0 0 0 rgba(0,0,0,0);
+    }
+    .sidebar.open{
+      transform:translateX(0);
+      box-shadow:12px 0 32px rgba(18,52,36,0.28);
+    }
+
+    .sidebar-close{
+      display:flex; position:absolute; top:16px; right:14px;
+      width:30px; height:30px; align-items:center; justify-content:center;
+      background:rgba(255,255,255,0.08); color:#fff; border:none; border-radius:8px;
+      font-size:15px; cursor:pointer;
+    }
+    .sidebar-close:hover{ background:rgba(255,255,255,0.16); }
+
+    .sidebar-overlay{
+      display:block; position:fixed; inset:0; z-index:230;
+      background:rgba(18,52,36,0.45);
+      -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+    }
+  }
+
+  /* ===== Login responsive (fix layout roto en tablet/celular) ===== */
+
+  @media(max-width:900px){
+    #screen-login.active{
+      grid-template-columns:1fr;
+    }
+
+    .login-panel{
+      order:2;
+      padding:36px 24px 48px;
+      align-items:center;
+      text-align:center;
+    }
+    .login-brand{
+      justify-content:center;
+      margin-bottom:22px;
+    }
+    .login-brand .logo-mark{
+      width:64px; height:64px; border-radius:18px; font-size:28px;
+    }
+    .login-brand span{ font-size:22px; }
+    .login-panel h1{
+      font-size:clamp(22px, 6vw, 30px);
+      max-width:100%;
+      margin:0 auto;
+    }
+    .login-panel p{
+      max-width:440px;
+      margin:16px auto 0;
+      font-size:15px;
+    }
+
+    .login-form-wrap{
+      order:1;
+      padding:32px 20px 12px;
+    }
+    .login-form{
+      padding:28px 22px;
+    }
+  }
+
+  @media(max-width:420px){
+    .login-panel{ padding:28px 18px 40px; }
+    .login-form-wrap{ padding:24px 14px 8px; }
+    .login-form{ padding:24px 18px; }
+    .login-panel h1{ font-size:clamp(20px, 6.5vw, 26px); }
+  }
+
+  /* ===== Login en celular: solo logo arriba + tarjeta, sin texto de marketing ===== */
+
+  @media(max-width:600px){
+    .login-panel{
+      order:1;
+      padding:28px 24px 6px;
+    }
+    .login-panel h1,
+    .login-panel p{
+      display:none;
+    }
+    .login-brand{
+      margin-bottom:0;
+    }
+
+    .login-form-wrap{
+      order:2;
+    }
+  }

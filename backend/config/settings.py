@@ -1,4 +1,6 @@
 from pathlib import Path
+from datetime import timedelta
+
 from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,6 +19,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_filters",
     "corsheaders",
+    "usuarios",
     "galpones",
 ]
 
@@ -62,6 +65,10 @@ DATABASES = {
     }
 }
 
+# Modelo de usuario propio (tabla Usuarios del modelo relacional).
+# DEBE definirse antes de la primera migración del proyecto.
+AUTH_USER_MODEL = "usuarios.Usuario"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -80,6 +87,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Todas las peticiones se autentican con un token JWT enviado en el header
+    # Authorization: Bearer <token>.
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+# Configuración de los tokens JWT (djangorestframework-simplejwt).
+SIMPLE_JWT = {
+    # 8 horas: una jornada de trabajo en la granja sin tener que reloguear.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=480),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # La clave primaria del modelo Usuario es id_usuario, no el `id` por defecto.
+    "USER_ID_FIELD": "id_usuario",
+    "USER_ID_CLAIM": "user_id",
+    "SIGNING_KEY": SECRET_KEY,
 }
 
 CORS_ALLOWED_ORIGINS = config(

@@ -27,6 +27,8 @@ class Galpon(models.Model):
     class Meta:
         db_table = "Galpones"
         ordering = ["galpon"]
+        verbose_name = "galpón"
+        verbose_name_plural = "galpones"
 
     def __str__(self):
         return f"{self.galpon} ({self.get_estado_display()})"
