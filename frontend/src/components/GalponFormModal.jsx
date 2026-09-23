@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { listOperarios } from "../api/usuarios";
 
 const emptyForm = {
   galpon: "",
@@ -8,10 +9,12 @@ const emptyForm = {
   capacidad: "",
   estado: "A",
   descripcion: "",
+  operarios_ids: [],
 };
 
 export default function GalponFormModal({ initialData, onClose, onSubmit }) {
   const isEdit = Boolean(initialData);
+
   const [form, setForm] = useState(
     initialData
       ? {
@@ -22,15 +25,34 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
           capacidad: initialData.capacidad,
           estado: initialData.estado,
           descripcion: initialData.descripcion || "",
+          // Precargamos los IDs de los operarios ya asignados
+          operarios_ids: (initialData.operarios || []).map((o) => o.id_usuario),
         }
       : emptyForm
   );
+
+  const [operariosDisponibles, setOperariosDisponibles] = useState([]);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    listOperarios()
+      .then((data) => setOperariosDisponibles(data.results ?? data))
+      .catch(() => setOperariosDisponibles([]));
+  }, []);
 
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+  }
+
+  function toggleOperario(id) {
+    setForm((f) => {
+      const ids = f.operarios_ids.includes(id)
+        ? f.operarios_ids.filter((i) => i !== id)
+        : [...f.operarios_ids, id];
+      return { ...f, operarios_ids: ids };
+    });
   }
 
   async function handleSubmit(e) {
@@ -44,6 +66,7 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
         longitud: form.longitud,
         superficie: form.superficie,
         capacidad: parseInt(form.capacidad, 10),
+        operarios_ids: form.operarios_ids,
       });
     } catch (err) {
       if (err.detail && typeof err.detail === "object") {
@@ -104,6 +127,32 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
               <div className="form-group full">
                 <label>Descripción</label>
                 <textarea name="descripcion" value={form.descripcion} onChange={handleChange} placeholder="Notas sobre el galpón (orientación, equipamiento, etc.)" />
+              </div>
+
+              {/* Selector de operarios asignados */}
+              <div className="form-group full">
+                <label>Operarios asignados</label>
+                {operariosDisponibles.length === 0 ? (
+                  <p className="form-hint">No hay operarios activos registrados.</p>
+                ) : (
+                  <div className="checkbox-group">
+                    {operariosDisponibles.map((op) => (
+                      <label key={op.id_usuario} className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={form.operarios_ids.includes(op.id_usuario)}
+                          onChange={() => toggleOperario(op.id_usuario)}
+                        />
+                        {op.nombre_completo}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {errors.operarios_ids && (
+                  <span className="form-error">
+                    {Array.isArray(errors.operarios_ids) ? errors.operarios_ids.join(" ") : errors.operarios_ids}
+                  </span>
+                )}
               </div>
             </div>
           </div>

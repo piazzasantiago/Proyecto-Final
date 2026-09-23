@@ -34,6 +34,11 @@ export function bajaUsuario(id) {
   return request(`/api/usuarios/${id}/baja/`, { method: "POST" });
 }
 
+/** Lista solo los operarios activos (para asignarlos a galpones) */
+export function listOperarios() {
+  return listUsuarios({ rol: "O", estado: "A" });
+}
+
 /** Restablecer la contraseña de un usuario (solo Administrador) */
 export function restablecerPassword(id, passwordNueva) {
   return request(`/api/usuarios/${id}/restablecer-password/`, {

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { listGalpones, createGalpon, updateGalpon, deleteGalpon } from "../api/galpones";
+import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
+import { useAuth } from "../context/AuthContext";
 
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
@@ -9,6 +10,8 @@ function formatCodigo(id) {
 }
 
 export default function GalponesPage() {
+  const { esAdministrador } = useAuth();
+
   const [galpones, setGalpones] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +71,18 @@ export default function GalponesPage() {
     await fetchGalpones();
   }
 
+  async function handleBaja() {
+    if (!selected) return;
+    await bajaGalpon(selected.id_galpon);
+    await fetchGalpones();
+  }
+
+  async function handleAlta() {
+    if (!selected) return;
+    await altaGalpon(selected.id_galpon);
+    await fetchGalpones();
+  }
+
   return (
     <div className="page active" id="page-galpones">
       <div className="page-header">
@@ -75,9 +90,11 @@ export default function GalponesPage() {
           <h1>Galpones</h1>
           <div className="desc">Administrá las instalaciones donde se alojan los lotes de gallinas ponedoras.</div>
         </div>
-        <button className="btn btn-green" onClick={() => setModalMode("create")}>
-          <i className="fa-solid fa-plus"></i> Nuevo galpón
-        </button>
+        {esAdministrador && (
+          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+            <i className="fa-solid fa-plus"></i> Nuevo galpón
+          </button>
+        )}
       </div>
 
       <div className="toolbar">
@@ -104,7 +121,11 @@ export default function GalponesPage() {
         <div className="page-body-split">
           <div className="card-grid">
             {galpones.length === 0 && (
-              <div className="empty-state">No hay galpones registrados todavía. Creá el primero con "Nuevo galpón".</div>
+              <div className="empty-state">
+                {esAdministrador
+                  ? 'No hay galpones registrados todavía. Creá el primero con "Nuevo galpón".'
+                  : "No tenés galpones asignados."}
+              </div>
             )}
             {galpones.map((g) => (
               <div
@@ -145,21 +166,49 @@ export default function GalponesPage() {
                 <div className="detail-row"><span>Capacidad</span><span>{selected.capacidad.toLocaleString("es-AR")} aves</span></div>
                 <div className="detail-row"><span>Superficie</span><span>{Number(selected.superficie).toLocaleString("es-AR")} m²</span></div>
                 <div className="detail-row"><span>Latitud / Longitud</span><span>{selected.latitud} / {selected.longitud}</span></div>
-                <div className="detail-row" style={{ borderBottom: "none", alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
-                  <span>Descripción</span>
-                  <span style={{ fontWeight: 500, color: "var(--gray-700)", textAlign: "left" }}>
-                    {selected.descripcion || "Sin descripción."}
-                  </span>
+                {selected.descripcion && (
+                  <div className="detail-row" style={{ borderBottom: "none", alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
+                    <span>Descripción</span>
+                    <span style={{ fontWeight: 500, color: "var(--gray-700)", textAlign: "left" }}>
+                      {selected.descripcion}
+                    </span>
+                  </div>
+                )}
+
+                {/* Operarios asignados */}
+                {selected.operarios && selected.operarios.length > 0 && (
+                  <>
+                    <div className="detail-sec-title">Operarios asignados</div>
+                    <div className="chip-group">
+                      {selected.operarios.map((op) => (
+                        <span key={op.id_usuario} className="chip">
+                          <i className="fa-solid fa-user"></i> {op.nombre_completo}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {esAdministrador && (
+                <div className="detail-actions">
+                  <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
+                    <i className="fa-solid fa-pen"></i> Editar
+                  </button>
+                  {selected.estado === "A" ? (
+                    <button className="btn btn-outline btn-warning-ghost" onClick={handleBaja}>
+                      <i className="fa-solid fa-ban"></i> Dar de baja
+                    </button>
+                  ) : (
+                    <button className="btn btn-outline btn-success-ghost" onClick={handleAlta}>
+                      <i className="fa-solid fa-rotate-left"></i> Dar de alta
+                    </button>
+                  )}
+                  <button className="btn btn-outline btn-danger-ghost" onClick={handleDelete}>
+                    <i className="fa-solid fa-trash"></i> Eliminar
+                  </button>
                 </div>
-              </div>
-              <div className="detail-actions">
-                <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
-                  <i className="fa-solid fa-pen"></i> Editar
-                </button>
-                <button className="btn btn-outline btn-danger-ghost" onClick={handleDelete}>
-                  <i className="fa-solid fa-trash"></i> Eliminar
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>
