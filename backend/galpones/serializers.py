@@ -87,8 +87,21 @@ class GalponSerializer(serializers.ModelSerializer):
         return ids
 
     def _sincronizar_operarios(self, galpon, ids):
-        """Reemplaza los operarios asignados al galpón con la lista recibida."""
-        UsuarioDelGalpon.objects.filter(id_galpon=galpon).delete()
+        """Reemplaza los operarios activos asignados al galpón con la lista recibida.
+
+        Solo se tocan las asignaciones de operarios activos. `ids` siempre
+        contiene operarios activos (lo garantiza `validate_operarios_ids`),
+        y el formulario del frontend solo ofrece operarios activos para
+        elegir, así que un operario inactivo nunca puede venir en `ids`.
+        Si no excluyéramos las asignaciones de operarios inactivos de este
+        reemplazo, guardar el galpón sin tocar el selector (p. ej. al editar
+        solo el nombre) borraría también la asignación de cualquier operario
+        que haya sido dado de baja, perdiendo el vínculo que `get_operarios`
+        conserva a propósito para cuando se reactive.
+        """
+        UsuarioDelGalpon.objects.filter(
+            id_galpon=galpon, id_usuario__estado=Usuario.ESTADO_ACTIVO
+        ).delete()
         UsuarioDelGalpon.objects.bulk_create([
             UsuarioDelGalpon(id_usuario_id=uid, id_galpon=galpon)
             for uid in ids
