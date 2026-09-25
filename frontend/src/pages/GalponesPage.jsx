@@ -10,14 +10,16 @@ function formatCodigo(id) {
 }
 
 export default function GalponesPage() {
-  const { esAdministrador } = useAuth();
+  const { esAdministrador, esOperario } = useAuth();
 
   const [galpones, setGalpones] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState("");
+  // Por defecto, los operarios ven solo sus galpones activos; el resto de
+  // los roles arranca sin filtro (ve todos, activos e inactivos).
+  const [estadoFilter, setEstadoFilter] = useState(esOperario ? "A" : "");
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   async function fetchGalpones() {
