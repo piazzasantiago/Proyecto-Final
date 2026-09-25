@@ -8,10 +8,13 @@ Clases de tests:
     BorrarGalponTests       (2)  CU12 – eliminar
     AltaGalponTests         (4)  CU13 – dar de alta
     BajaGalponTests         (4)  CU14 – dar de baja
-    PermisosGalponesTests  (14)  matriz rol × operación
+    PermisosGalponesTests  (18)  matriz rol × operación (incluye alta/baja)
     UsuariosDelGalponTests (10)  asignación de operarios y filtrado por rol
+    OperariosInactivosTests (8)  operario dado de baja: se conserva la
+                                  asignación pero no se lista, y no se pisa
+                                  al editar el galpón
 
-Total: 52 tests
+Total: 65 tests
 """
 
 from django.test import TestCase
@@ -401,6 +404,32 @@ class PermisosGalponesTests(TestCase):
         resp = self.client.post("/api/galpones/", {}, format="json")
         self.assertEqual(resp.status_code, 401)
 
+    # --- Acciones alta/baja: solo Administrador ---
+    def test_operario_no_puede_dar_de_alta(self):
+        self._login(self.operario)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/alta/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_operario_no_puede_dar_de_baja(self):
+        self._login(self.operario)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_consulta_no_puede_dar_de_alta(self):
+        self._login(self.consulta)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/alta/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_consulta_no_puede_dar_de_baja(self):
+        self._login(self.consulta)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_sin_token_no_puede_dar_de_alta(self):
+        self._sin_token()
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/alta/")
+        self.assertEqual(resp.status_code, 401)
+
 
 # ---------------------------------------------------------------------------
 # UsuariosDelGalpon – asignación y filtrado por rol
@@ -514,3 +543,112 @@ class UsuariosDelGalponTests(TestCase):
         token_de(self.client, self.operario1)
         resp = self.client.get(f"/api/galpones/{self.g1.id_galpon}/")
         self.assertEqual(resp.status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# Operarios inactivos: se conserva la asignación, pero no se lista ni se
+# pisa al editar el galpón (ver GalponSerializer.get_operarios y
+# _sincronizar_operarios).
+# ---------------------------------------------------------------------------
+
+class OperariosInactivosTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("adm_oi", rol=Usuario.ROL_ADMINISTRADOR)
+        self.operario = crear_usuario("op_oi", rol=Usuario.ROL_OPERARIO, dni="44444444")
+        self.galpon = crear_galpon("Galpón OI")
+        UsuarioDelGalpon.objects.create(id_usuario=self.operario, id_galpon=self.galpon)
+        token_de(self.client, self.admin)
+
+    def test_operario_activo_aparece_en_detalle(self):
+        resp = self.client.get(f"/api/galpones/{self.galpon.id_galpon}/")
+        ids = [o["id_usuario"] for o in resp.data["operarios"]]
+        self.assertIn(self.operario.id_usuario, ids)
+
+    def test_operario_inactivo_no_aparece_en_detalle(self):
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        resp = self.client.get(f"/api/galpones/{self.galpon.id_galpon}/")
+        ids = [o["id_usuario"] for o in resp.data["operarios"]]
+        self.assertNotIn(self.operario.id_usuario, ids)
+
+    def test_asignacion_persiste_en_bd_tras_baja_de_operario(self):
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        self.client.get(f"/api/galpones/{self.galpon.id_galpon}/")
+        self.assertTrue(
+            UsuarioDelGalpon.objects.filter(id_usuario=self.operario, id_galpon=self.galpon).exists()
+        )
+
+    def test_operario_reactivado_reaparece_en_detalle(self):
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        self.operario.estado = Usuario.ESTADO_ACTIVO
+        self.operario.save()
+        resp = self.client.get(f"/api/galpones/{self.galpon.id_galpon}/")
+        ids = [o["id_usuario"] for o in resp.data["operarios"]]
+        self.assertIn(self.operario.id_usuario, ids)
+
+    def test_no_se_puede_asignar_operario_inactivo(self):
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        otro_galpon = crear_galpon("Galpón OI 2")
+        resp = self.client.patch(
+            f"/api/galpones/{otro_galpon.id_galpon}/",
+            {"operarios_ids": [self.operario.id_usuario]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_editar_galpon_no_borra_asignacion_de_operario_inactivo(self):
+        """
+        Regresión: guardar el formulario de edición sin tocar el selector de
+        operarios (que solo ofrece operarios activos) no debe borrar la
+        asignación de un operario que fue dado de baja.
+        """
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        resp = self.client.patch(
+            f"/api/galpones/{self.galpon.id_galpon}/",
+            {"galpon": "Galpón OI (editado)", "operarios_ids": []},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(
+            UsuarioDelGalpon.objects.filter(id_usuario=self.operario, id_galpon=self.galpon).exists()
+        )
+
+    def test_sincronizar_operarios_reemplaza_solo_activos(self):
+        """
+        Al reemplazar la lista de operarios activos con una nueva, un
+        operario inactivo ya asignado no se ve afectado por el reemplazo.
+        """
+        operario_activo = crear_usuario("op_oi_2", rol=Usuario.ROL_OPERARIO, dni="55555555")
+        self.operario.estado = Usuario.ESTADO_INACTIVO
+        self.operario.save()
+        resp = self.client.patch(
+            f"/api/galpones/{self.galpon.id_galpon}/",
+            {"operarios_ids": [operario_activo.id_usuario]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        asignados = set(
+            UsuarioDelGalpon.objects.filter(id_galpon=self.galpon).values_list("id_usuario_id", flat=True)
+        )
+        self.assertEqual(asignados, {self.operario.id_usuario, operario_activo.id_usuario})
+
+    def test_operario_filtra_por_estado_dentro_de_sus_galpones(self):
+        galpon_inactivo = crear_galpon("Galpón OI Inactivo", estado=Galpon.ESTADO_INACTIVO)
+        UsuarioDelGalpon.objects.create(id_usuario=self.operario, id_galpon=galpon_inactivo)
+        token_de(self.client, self.operario)
+
+        resp_activos = self.client.get("/api/galpones/", {"estado": "A"})
+        ids_activos = [g["id_galpon"] for g in resp_activos.data["results"]]
+        self.assertIn(self.galpon.id_galpon, ids_activos)
+        self.assertNotIn(galpon_inactivo.id_galpon, ids_activos)
+
+        resp_inactivos = self.client.get("/api/galpones/", {"estado": "I"})
+        ids_inactivos = [g["id_galpon"] for g in resp_inactivos.data["results"]]
+        self.assertIn(galpon_inactivo.id_galpon, ids_inactivos)
+        self.assertNotIn(self.galpon.id_galpon, ids_inactivos)
