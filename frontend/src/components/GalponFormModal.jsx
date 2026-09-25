@@ -32,6 +32,7 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
   );
 
   const [operariosDisponibles, setOperariosDisponibles] = useState([]);
+  const [busquedaOperario, setBusquedaOperario] = useState("");
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -135,18 +136,44 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
                 {operariosDisponibles.length === 0 ? (
                   <p className="form-hint">No hay operarios activos registrados.</p>
                 ) : (
-                  <div className="checkbox-group">
-                    {operariosDisponibles.map((op) => (
-                      <label key={op.id_usuario} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={form.operarios_ids.includes(op.id_usuario)}
-                          onChange={() => toggleOperario(op.id_usuario)}
-                        />
-                        {op.nombre_completo}
-                      </label>
-                    ))}
-                  </div>
+                  <>
+                    <div className="chip-picker-search">
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                      <input
+                        type="text"
+                        placeholder="Buscar operario..."
+                        value={busquedaOperario}
+                        onChange={(e) => setBusquedaOperario(e.target.value)}
+                      />
+                    </div>
+                    <div className="chip-group">
+                      {operariosDisponibles
+                        .filter((op) =>
+                          op.nombre_completo
+                            .toLowerCase()
+                            .includes(busquedaOperario.trim().toLowerCase())
+                        )
+                        .map((op) => {
+                          const isSelected = form.operarios_ids.includes(op.id_usuario);
+                          return (
+                            <button
+                              key={op.id_usuario}
+                              type="button"
+                              className={`chip-toggle${isSelected ? " selected" : ""}`}
+                              onClick={() => toggleOperario(op.id_usuario)}
+                            >
+                              <i className={`fa-solid ${isSelected ? "fa-circle-check" : "fa-user"}`}></i>
+                              {op.nombre_completo}
+                            </button>
+                          );
+                        })}
+                    </div>
+                    {operariosDisponibles.filter((op) =>
+                      op.nombre_completo.toLowerCase().includes(busquedaOperario.trim().toLowerCase())
+                    ).length === 0 && (
+                      <p className="form-hint">Ningún operario coincide con la búsqueda.</p>
+                    )}
+                  </>
                 )}
                 {errors.operarios_ids && (
                   <span className="form-error">
