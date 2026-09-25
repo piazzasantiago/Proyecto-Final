@@ -46,7 +46,16 @@ class GalponSerializer(serializers.ModelSerializer):
         read_only_fields = ["id_galpon"]
 
     def get_operarios(self, obj):
-        asignaciones = obj.operarios_asignados.select_related("id_usuario").all()
+        """Solo se listan los operarios actualmente activos.
+
+        La asignación en `UsuarioDelGalpon` se conserva aunque el operario
+        sea dado de baja, para no perder el vínculo si luego se reactiva.
+        Pero mientras está inactivo, no debe aparecer como operario
+        asignado en el detalle del galpón.
+        """
+        asignaciones = obj.operarios_asignados.select_related("id_usuario").filter(
+            id_usuario__estado=Usuario.ESTADO_ACTIVO
+        )
         usuarios = [a.id_usuario for a in asignaciones]
         return OperarioResumenSerializer(usuarios, many=True).data
 
