@@ -201,7 +201,7 @@ export default function GalponesPage() {
                     </button>
                   ) : (
                     <button className="btn btn-outline btn-success-ghost" onClick={handleAlta}>
-                      <i className="fa-solid fa-rotate-left"></i> Dar de alta
+                      <i className="fa-solid fa-rotate-left"></i> Activar galpón
                     </button>
                   )}
                   <button className="btn btn-outline btn-danger-ghost" onClick={handleDelete}>
