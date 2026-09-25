@@ -1,7 +1,7 @@
 # Convención de mensajes de commit
 
 Usamos **Conventional Commits** para que el historial sea parejo entre
-todos los integrantes y quede fácil de leer para el jurado/profesor.
+todos los integrantes y quede fácil de leer.
 
 ## Formato
 
