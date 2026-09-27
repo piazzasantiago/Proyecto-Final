@@ -12,15 +12,17 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y dos
-módulos funcionales de punta a punta: **Galpones** y **Usuarios**.
+El sistema cuenta con **autenticación real y control de acceso por rol**, y tres
+módulos funcionales de punta a punta: **Usuarios**, **Galpones** y (en curso)
+**Lotes de Gallinas**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
 | Autenticación | CU01, CU02 | Funcional |
 | Gestión de Usuarios | CU03 a CU08 | Funcional |
 | Gestión de Galpones | CU09 a CU14 | Funcional |
-| Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Gestión de Lotes | CU42 a CU48 | En desarrollo |
+| Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -72,6 +74,7 @@ backend/
 ├── config/          configuración del proyecto y rutas raíz
 ├── usuarios/        modelo Usuario, autenticación JWT, permisos y tests
 ├── galpones/        módulo de Galpones
+├── lotes/           módulo de Lotes de Gallinas (en desarrollo)
 └── manage.py
 ```
 
@@ -181,7 +184,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 86 tests in ~Xs
+Ran 99 tests in ~Xs
 OK
 ```
 
@@ -205,7 +208,7 @@ python manage.py test galpones
 | POST | `/api/galpones/` | Crear galpón | Administrador |
 | PATCH | `/api/galpones/{id}/` | Modificar galpón | Administrador |
 | DELETE | `/api/galpones/{id}/` | Eliminar galpón | Administrador |
-| POST | `/api/galpones/{id}/alta/` | Dar de alta galpón | Administrador |
+| POST | `/api/galpones/{id}/alta/` | Activar galpón | Administrador |
 | POST | `/api/galpones/{id}/baja/` | Dar de baja galpón | Administrador |
 | GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`) | Administrador |
 | POST | `/api/usuarios/` | Crear usuario | Administrador |
@@ -260,6 +263,9 @@ se agrega como `docs/docs-<feature>.md` e incluye los casos de uso cubiertos y
 las decisiones de diseño tomadas. Al terminar, se integra a `develop` mediante
 un Pull Request.
 
+Los mensajes de commit siguen la convención **Conventional Commits**
+(`tipo(alcance): descripción`). Ver `docs/convencion-commits.md`.
+
 ---
 
 ## Documentación
@@ -270,6 +276,7 @@ En `docs/`:
 |---|---|
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
+| `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
 | `Anexo 1 Trabajo Final...docx` | Presentación de la idea de proyecto |
@@ -309,8 +316,8 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
-   de transición y vaciado sanitario.
+1. **`feature/lotes`** *(en curso)* — Lotes de Gallinas (CU42 a CU48),
+   incluyendo plan de transición y vaciado sanitario.
 
 2. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
    módulo con estructura de cabecera y líneas.
