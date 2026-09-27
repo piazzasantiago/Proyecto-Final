@@ -20,3 +20,13 @@ export function updateGalpon(id, data) {
 export function deleteGalpon(id) {
   return request(`/api/galpones/${id}/`, { method: "DELETE" });
 }
+
+/** CU13 — Dar de Alta Galpón */
+export function altaGalpon(id) {
+  return request(`/api/galpones/${id}/alta/`, { method: "POST" });
+}
+
+/** CU14 — Dar de Baja Galpón */
+export function bajaGalpon(id) {
+  return request(`/api/galpones/${id}/baja/`, { method: "POST" });
+}

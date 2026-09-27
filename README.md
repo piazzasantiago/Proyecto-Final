@@ -19,10 +19,8 @@ módulos funcionales de punta a punta: **Galpones** y **Usuarios**.
 |---|---|---|
 | Autenticación | CU01, CU02 | Funcional |
 | Gestión de Usuarios | CU03 a CU08 | Funcional |
-| Gestión de Galpones | CU09 a CU14 | Funcional — pendientes de la rama `feature/gestion-galpones` |
+| Gestión de Galpones | CU09 a CU14 | Funcional |
 | Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
-
-Los pendientes del módulo Galpones se completan en la rama `feature/gestion-galpones`.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -183,8 +181,15 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 34 tests in ~3s
+Ran 86 tests in ~Xs
 OK
+```
+
+Para correr solo un módulo:
+
+```bash
+python manage.py test usuarios
+python manage.py test galpones
 ```
 
 ---
@@ -197,10 +202,17 @@ OK
 | GET | `/api/auth/me/` | Usuario autenticado | autenticado |
 | POST | `/api/auth/logout/` | Cerrar sesión | autenticado |
 | GET | `/api/galpones/` | Listar galpones (`?search=`, `?estado=`) | autenticado |
-| POST · PATCH · DELETE | `/api/galpones/` | Alta, modificación y baja | Administrador |
+| POST | `/api/galpones/` | Crear galpón | Administrador |
+| PATCH | `/api/galpones/{id}/` | Modificar galpón | Administrador |
+| DELETE | `/api/galpones/{id}/` | Eliminar galpón | Administrador |
+| POST | `/api/galpones/{id}/alta/` | Dar de alta galpón | Administrador |
+| POST | `/api/galpones/{id}/baja/` | Dar de baja galpón | Administrador |
 | GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`) | Administrador |
-| POST · PATCH · DELETE | `/api/usuarios/` | Alta, modificación y baja | Administrador |
-| POST | `/api/usuarios/{id}/alta/` y `/baja/` | Alta y baja lógica | Administrador |
+| POST | `/api/usuarios/` | Crear usuario | Administrador |
+| PATCH | `/api/usuarios/{id}/` | Modificar usuario | Administrador |
+| DELETE | `/api/usuarios/{id}/` | Eliminar usuario | Administrador |
+| POST | `/api/usuarios/{id}/alta/` | Dar de alta usuario | Administrador |
+| POST | `/api/usuarios/{id}/baja/` | Dar de baja usuario | Administrador |
 | POST | `/api/usuarios/{id}/restablecer-password/` | Restablecer contraseña | Administrador |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -257,6 +269,7 @@ En `docs/`:
 | Archivo | Contenido |
 |---|---|
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
+| `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
 | `Anexo 1 Trabajo Final...docx` | Presentación de la idea de proyecto |
@@ -296,26 +309,17 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/gestion-galpones`** — completar el módulo de Galpones con los
-   pendientes detectados en esta feature:
-   - Ocultar el botón "Nuevo Galpón" para el rol Operario (el backend ya
-     rechaza con 403, pero el botón no debería mostrarse).
-   - Revisar la interfaz de Galpones aplicando el mismo estándar de permisos
-     por rol que se implementó en Usuarios.
-   - Agregar tests automatizados del módulo en `backend/galpones/tests.py`.
-   - Documentar los casos de uso CU09 a CU14 en `docs/docs-galpones.md`.
-
-2. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
+1. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
    de transición y vaciado sanitario.
 
-3. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
+2. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
    módulo con estructura de cabecera y líneas.
 
-4. **`feature/descartes`** — Descartes (CU15 a CU23).
+3. **`feature/descartes`** — Descartes (CU15 a CU23).
 
-5. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
 
-6. **Informes e indicadores productivos** (CU85 a CU89).
+5. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en

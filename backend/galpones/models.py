@@ -1,5 +1,7 @@
 from django.db import models
 
+from usuarios.models import Usuario
+
 
 class Galpon(models.Model):
     """
@@ -32,3 +34,36 @@ class Galpon(models.Model):
 
     def __str__(self):
         return f"{self.galpon} ({self.get_estado_display()})"
+
+
+class UsuarioDelGalpon(models.Model):
+    """
+    Corresponde a la tabla 'UsuariosDelGalpon' del modelo relacional:
+    idUsuario INT PK FK -> Usuarios, idGalpon INT PK FK -> Galpones.
+
+    Asocia operarios con los galpones a los que tienen acceso.
+    Solo usuarios con rol Operario (O) pueden ser asignados.
+    """
+
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        db_column="idUsuario",
+        related_name="galpones_asignados",
+        limit_choices_to={"rol": Usuario.ROL_OPERARIO},
+    )
+    id_galpon = models.ForeignKey(
+        Galpon,
+        on_delete=models.CASCADE,
+        db_column="idGalpon",
+        related_name="operarios_asignados",
+    )
+
+    class Meta:
+        db_table = "UsuariosDelGalpon"
+        unique_together = [("id_usuario", "id_galpon")]
+        verbose_name = "operario del galpón"
+        verbose_name_plural = "operarios del galpón"
+
+    def __str__(self):
+        return f"{self.id_usuario} → {self.id_galpon}"
