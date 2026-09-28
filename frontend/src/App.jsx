@@ -7,11 +7,11 @@ import RequireRol from "./components/RequireRol";
 import LoginPage from "./pages/LoginPage";
 import AppLayout from "./pages/AppLayout";
 import GalponesPage from "./pages/GalponesPage";
+import LotesPage from "./pages/LotesPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import StaticPage from "./pages/static/StaticPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
-import lotesHtml from "./pages/static/raw/lotes.html?raw";
 import recoleccionHtml from "./pages/static/raw/recoleccion.html?raw";
 import descartesHtml from "./pages/static/raw/descartes.html?raw";
 import salidasHtml from "./pages/static/raw/salidas.html?raw";
@@ -41,7 +41,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StaticPage html={dashboardHtml} />} />
           <Route path="galpones" element={<GalponesPage />} />
-          <Route path="lotes" element={<StaticPage html={lotesHtml} />} />
+          <Route path="lotes" element={<LotesPage />} />
           <Route path="recoleccion" element={<StaticPage html={recoleccionHtml} />} />
           <Route path="descartes" element={<StaticPage html={descartesHtml} />} />
           <Route path="salidas" element={<StaticPage html={salidasHtml} />} />

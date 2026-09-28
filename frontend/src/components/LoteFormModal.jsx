@@ -1,0 +1,272 @@
+import { useState } from "react";
+import { createLote, updateLote } from "../api/lotes";
+
+const SEMANAS = [1, 2, 3, 4];
+
+function emptyPlan() {
+  return {
+    agua_semana1: "", alimento_semana1: "", horas_luz_semana1: "",
+    agua_semana2: "", alimento_semana2: "", horas_luz_semana2: "",
+    agua_semana3: "", alimento_semana3: "", horas_luz_semana3: "",
+    agua_semana4: "", alimento_semana4: "", horas_luz_semana4: "",
+  };
+}
+
+function initForm(initialData) {
+  if (!initialData) {
+    return {
+      id_galpon_id: "",
+      fecha_ingreso: "",
+      cantidad_inicial: "",
+      observaciones: "",
+      plan_transicion: emptyPlan(),
+    };
+  }
+  const p = initialData.plan_transicion || {};
+  return {
+    id_galpon_id: initialData.galpon?.id_galpon ?? "",
+    fecha_ingreso: initialData.fecha_ingreso ?? "",
+    cantidad_inicial: initialData.cantidad_inicial ?? "",
+    observaciones: initialData.observaciones ?? "",
+    plan_transicion: {
+      agua_semana1: p.agua_semana1 ?? "",
+      alimento_semana1: p.alimento_semana1 ?? "",
+      horas_luz_semana1: p.horas_luz_semana1 ?? "",
+      agua_semana2: p.agua_semana2 ?? "",
+      alimento_semana2: p.alimento_semana2 ?? "",
+      horas_luz_semana2: p.horas_luz_semana2 ?? "",
+      agua_semana3: p.agua_semana3 ?? "",
+      alimento_semana3: p.alimento_semana3 ?? "",
+      horas_luz_semana3: p.horas_luz_semana3 ?? "",
+      agua_semana4: p.agua_semana4 ?? "",
+      alimento_semana4: p.alimento_semana4 ?? "",
+      horas_luz_semana4: p.horas_luz_semana4 ?? "",
+    },
+  };
+}
+
+export default function LoteFormModal({ galpones = [], initialData, onClose, onSubmit, onCreated }) {
+  const isEdit = Boolean(initialData);
+  const [form, setForm] = useState(() => initForm(initialData));
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  }
+
+  function handlePlanChange(e) {
+    const { name, value } = e.target;
+    setForm((f) => ({
+      ...f,
+      plan_transicion: { ...f.plan_transicion, [name]: value },
+    }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setErrors({});
+    try {
+      const payload = {
+        ...form,
+        id_galpon_id: Number(form.id_galpon_id),
+        cantidad_inicial: Number(form.cantidad_inicial),
+        plan_transicion: {
+          agua_semana1: form.plan_transicion.agua_semana1,
+          alimento_semana1: form.plan_transicion.alimento_semana1,
+          horas_luz_semana1: form.plan_transicion.horas_luz_semana1,
+          agua_semana2: form.plan_transicion.agua_semana2,
+          alimento_semana2: form.plan_transicion.alimento_semana2,
+          horas_luz_semana2: form.plan_transicion.horas_luz_semana2,
+          agua_semana3: form.plan_transicion.agua_semana3,
+          alimento_semana3: form.plan_transicion.alimento_semana3,
+          horas_luz_semana3: form.plan_transicion.horas_luz_semana3,
+          agua_semana4: form.plan_transicion.agua_semana4,
+          alimento_semana4: form.plan_transicion.alimento_semana4,
+          horas_luz_semana4: form.plan_transicion.horas_luz_semana4,
+        },
+      };
+
+      let result;
+      if (isEdit) {
+        result = await updateLote(initialData.id_lote, payload);
+      } else {
+        result = await createLote(payload);
+        if (onCreated) onCreated(result.id_lote);
+      }
+      await onSubmit(result);
+    } catch (err) {
+      if (err.detail && typeof err.detail === "object") {
+        setErrors(err.detail);
+      } else {
+        setErrors({ non_field_errors: [err.message || "No se pudo guardar el lote."] });
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay active" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card" style={{ maxWidth: 640 }}>
+        <div className="modal-header">
+          <h3>{isEdit ? "Editar lote" : "Nuevo lote"}</h3>
+          <button className="modal-close" onClick={onClose}><i className="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {errors.non_field_errors && (
+              <div className="banner banner-error">{errors.non_field_errors.join(" ")}</div>
+            )}
+
+            {/* ---- Datos del lote ---- */}
+            <div className="form-row">
+              <div className="form-group full">
+                <label>Galpón</label>
+                <select name="id_galpon_id" value={form.id_galpon_id} onChange={handleChange} required disabled={isEdit}>
+                  <option value="">Seleccioná un galpón activo...</option>
+                  {galpones.map((g) => (
+                    <option key={g.id_galpon} value={g.id_galpon}>
+                      G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon}
+                    </option>
+                  ))}
+                </select>
+                {errors.id_galpon_id && <span className="form-error">{Array.isArray(errors.id_galpon_id) ? errors.id_galpon_id.join(" ") : errors.id_galpon_id}</span>}
+                {isEdit && <span className="form-hint">El galpón no se puede cambiar después de crear el lote.</span>}
+              </div>
+
+              <div className="form-group">
+                <label>Fecha de ingreso</label>
+                <input
+                  name="fecha_ingreso"
+                  type="date"
+                  value={form.fecha_ingreso}
+                  onChange={handleChange}
+                  required
+                  disabled={isEdit}
+                />
+                {errors.fecha_ingreso && <span className="form-error">{errors.fecha_ingreso.join(" ")}</span>}
+                {isEdit && <span className="form-hint">La fecha de ingreso no se puede modificar.</span>}
+              </div>
+
+              <div className="form-group">
+                <label>Cantidad inicial (aves)</label>
+                <input
+                  name="cantidad_inicial"
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={form.cantidad_inicial}
+                  onChange={handleChange}
+                  required
+                  disabled={isEdit}
+                  placeholder="2500"
+                />
+                {errors.cantidad_inicial && <span className="form-error">{Array.isArray(errors.cantidad_inicial) ? errors.cantidad_inicial.join(" ") : errors.cantidad_inicial}</span>}
+              </div>
+
+              <div className="form-group full">
+                <label>Observaciones</label>
+                <textarea
+                  name="observaciones"
+                  value={form.observaciones}
+                  onChange={handleChange}
+                  placeholder="Notas sobre el lote (procedencia, raza, condiciones de ingreso, etc.)"
+                />
+                {errors.observaciones && <span className="form-error">{errors.observaciones.join(" ")}</span>}
+              </div>
+            </div>
+
+            {/* ---- Plan de transición ---- */}
+            <div className="form-lines-title">
+              <span>Plan de transición (4 semanas)</span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table className="plan-table" style={{ minWidth: 460 }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 70 }}>Semana</th>
+                    <th>Agua (L)</th>
+                    <th>Alimento (kg)</th>
+                    <th>Luz (hs)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SEMANAS.map((s) => (
+                    <tr key={s}>
+                      <td style={{ fontWeight: 700, color: "var(--gray-700)" }}>{s}</td>
+                      <td>
+                        <input
+                          className="plan-input"
+                          name={`agua_semana${s}`}
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={form.plan_transicion[`agua_semana${s}`]}
+                          onChange={handlePlanChange}
+                          required
+                          placeholder="4.20"
+                          style={{ width: "100%", padding: "6px 8px", border: "1.5px solid var(--gray-300)", borderRadius: 7, fontSize: 14, fontFamily: "inherit" }}
+                        />
+                        {errors.plan_transicion?.[`agua_semana${s}`] && (
+                          <span className="form-error">{errors.plan_transicion[`agua_semana${s}`].join(" ")}</span>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          className="plan-input"
+                          name={`alimento_semana${s}`}
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={form.plan_transicion[`alimento_semana${s}`]}
+                          onChange={handlePlanChange}
+                          required
+                          placeholder="18.00"
+                          style={{ width: "100%", padding: "6px 8px", border: "1.5px solid var(--gray-300)", borderRadius: 7, fontSize: 14, fontFamily: "inherit" }}
+                        />
+                        {errors.plan_transicion?.[`alimento_semana${s}`] && (
+                          <span className="form-error">{errors.plan_transicion[`alimento_semana${s}`].join(" ")}</span>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          className="plan-input"
+                          name={`horas_luz_semana${s}`}
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max="24"
+                          value={form.plan_transicion[`horas_luz_semana${s}`]}
+                          onChange={handlePlanChange}
+                          required
+                          placeholder="10.00"
+                          style={{ width: "100%", padding: "6px 8px", border: "1.5px solid var(--gray-300)", borderRadius: 7, fontSize: 14, fontFamily: "inherit" }}
+                        />
+                        {errors.plan_transicion?.[`horas_luz_semana${s}`] && (
+                          <span className="form-error">{errors.plan_transicion[`horas_luz_semana${s}`].join(" ")}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <span className="form-hint">
+              La fecha de inicio del plan coincide con la fecha de ingreso del lote. La fecha de fin se calcula automáticamente (28 días después).
+            </span>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn btn-green" disabled={saving}>
+              <i className="fa-solid fa-check"></i> {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear lote"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
