@@ -90,6 +90,13 @@ de baja no puede recibir nuevas aves.
 `cantidad_inicial` debe ser mayor que cero. `cantidad_actual` se inicializa
 igual a `cantidad_inicial` al crear el lote.
 
+### Fecha de ingreso no puede ser futura
+
+`fecha_ingreso` no puede ser posterior a la fecha actual. Se valida tanto en
+el backend (`LoteSerializer.validate_fecha_ingreso`) como en el frontend
+(atributo `max` del input de fecha), con un mensaje personalizado en español
+si el navegador la rechaza por HTML5.
+
 ### Transiciones de estado
 
 Las transiciones de estado solo ocurren a través de los endpoints dedicados
@@ -273,6 +280,11 @@ Modal de dos secciones:
 
 En modo edición, los campos del lote y del plan se pre-cargan con los valores
 actuales.
+
+Los campos requeridos usan `setCustomValidity` para mostrar mensajes de
+validación nativos en español ("Debe seleccionar un galpón", "La fecha de
+ingreso no puede ser una fecha futura") en lugar del mensaje en inglés que
+muestra el navegador por defecto.
 
 ---
 
