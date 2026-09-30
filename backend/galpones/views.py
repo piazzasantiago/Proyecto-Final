@@ -69,11 +69,34 @@ class GalponViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def baja(self, request, pk=None):
-        """CU14 — Dar de baja un galpón (Activo → Inactivo)."""
+        """CU14 — Dar de baja un galpón (Activo → Inactivo).
+
+        No se permite si el galpón tiene un lote activo (Transición o
+        Producción) alojado en este momento: dar de baja no lo reubica ni
+        lo finaliza, así que hacerlo dejaría un lote con aves "vivas" en un
+        galpón marcado como inactivo. El administrador primero debe
+        resolver ese lote (por ejemplo, vaciarlo si terminó su ciclo).
+        """
+        from lotes.models import Lote
+
         galpon = self.get_object()
         if galpon.estado == Galpon.ESTADO_INACTIVO:
             return Response(
                 {"detail": "El galpón ya se encuentra dado de baja."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        lote_activo = galpon.lotes.filter(
+            estado__in=[Lote.ESTADO_TRANSICION, Lote.ESTADO_PRODUCCION]
+        ).first()
+        if lote_activo is not None:
+            return Response(
+                {
+                    "detail": (
+                        f"No se puede dar de baja el galpón porque tiene un lote activo "
+                        f"({lote_activo.codigo}, estado: {lote_activo.get_estado_display()}). "
+                        "Finalizá ese lote antes de dar de baja el galpón."
+                    )
+                },
                 status=status.HTTP_409_CONFLICT,
             )
         galpon.estado = Galpon.ESTADO_INACTIVO

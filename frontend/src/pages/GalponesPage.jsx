@@ -17,7 +17,7 @@ export default function GalponesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [deleteError, setDeleteError] = useState(null);
+  const [actionError, setActionError] = useState(null);
   // Por defecto, los operarios ven solo sus galpones activos; el resto de
   // los roles arranca sin filtro (ve todos, activos e inactivos).
   const [estadoFilter, setEstadoFilter] = useState(esOperario ? "A" : "");
@@ -69,7 +69,7 @@ export default function GalponesPage() {
   async function handleDelete() {
     if (!selected) return;
     if (!confirm(`¿Eliminar el galpón "${selected.galpon}"? Esta acción no se puede deshacer.`)) return;
-    setDeleteError(null);
+    setActionError(null);
     try {
       await deleteGalpon(selected.id_galpon);
       setSelectedId(null);
@@ -78,9 +78,9 @@ export default function GalponesPage() {
       // err.status === 0 → sin red; cualquier otro error es casi siempre
       // el PROTECT de Django porque el galpón tiene lotes asociados.
       if (err.status === 0) {
-        setDeleteError("No se pudo conectar con el servidor.");
+        setActionError("No se pudo conectar con el servidor.");
       } else {
-        setDeleteError(
+        setActionError(
           "No se puede eliminar el galpón porque tiene lotes asociados. " +
           "Finalizá o eliminá los lotes primero."
         );
@@ -90,8 +90,13 @@ export default function GalponesPage() {
 
   async function handleBaja() {
     if (!selected) return;
-    await bajaGalpon(selected.id_galpon);
-    await fetchGalpones();
+    setActionError(null);
+    try {
+      await bajaGalpon(selected.id_galpon);
+      await fetchGalpones();
+    } catch (err) {
+      setActionError(err.message);
+    }
   }
 
   async function handleAlta() {
@@ -148,7 +153,7 @@ export default function GalponesPage() {
               <div
                 key={g.id_galpon}
                 className={`galpon-card ${g.id_galpon === selectedId ? "card-selected" : ""}`}
-                onClick={() => { setSelectedId(g.id_galpon); setDeleteError(null); }}
+                onClick={() => { setSelectedId(g.id_galpon); setActionError(null); }}
               >
                 <div className="gc-top">
                   <div>
@@ -229,10 +234,10 @@ export default function GalponesPage() {
                 )}
               </div>
 
-              {deleteError && (
+              {actionError && (
                 <div className="banner banner-error" style={{ margin: "0 20px 0" }}>
                   <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }}></i>
-                  {deleteError}
+                  {actionError}
                 </div>
               )}
               {esAdministrador && (
