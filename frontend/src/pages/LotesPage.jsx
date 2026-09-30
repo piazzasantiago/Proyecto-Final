@@ -168,13 +168,13 @@ export default function LotesPage() {
       },
       {
         label: "Producción",
-        sub: estado === ESTADO_PRODUCCION ? "en curso" : estado === ESTADO_FINALIZADO ? "completada" : "pendiente",
+        sub: estado === ESTADO_PRODUCCION ? "En curso" : estado === ESTADO_FINALIZADO ? "completada" : "Pendiente",
         done: estado === ESTADO_FINALIZADO,
         current: estado === ESTADO_PRODUCCION,
       },
       {
         label: "Vaciado sanitario",
-        sub: lote.fecha_vaciado ? formatFecha(lote.fecha_vaciado) : "pendiente",
+        sub: lote.fecha_vaciado ? formatFecha(lote.fecha_vaciado) : "Pendiente",
         done: estado === ESTADO_FINALIZADO,
         current: false,
       },
