@@ -182,6 +182,13 @@ class LoteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La cantidad inicial debe ser mayor a 0.")
         return value
 
+    def validate_fecha_ingreso(self, value):
+        if value > datetime.date.today():
+            raise serializers.ValidationError(
+                "La fecha de ingreso no puede ser una fecha futura."
+            )
+        return value
+
     def validate(self, data):
         """
         Valida que el galpón no tenga ya un lote activo (estado T o P).
