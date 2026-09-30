@@ -22,7 +22,6 @@ class LoteViewSet(viewsets.ModelViewSet):
     CU44  PATCH  /api/lotes/{id}/                   modificar
     CU45  DELETE /api/lotes/{id}/                   eliminar
     CU46  POST   /api/lotes/{id}/iniciar-produccion/ Transición → Producción
-    CU47  POST   /api/lotes/{id}/dar-de-baja/        Producción → Finalizado sin vaciar
     CU48  POST   /api/lotes/{id}/vaciar/             cualquier estado → Finalizado + fecha_vaciado
 
     Permisos: leer requiere autenticación con cualquier rol; crear, modificar
