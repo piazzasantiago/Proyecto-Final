@@ -12,21 +12,22 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y dos
-módulos funcionales de punta a punta: **Galpones** y **Usuarios**.
+El sistema cuenta con **autenticación real y control de acceso por rol**, y cuatro
+módulos funcionales de punta a punta: **Usuarios**, **Galpones** y **Lotes de Gallinas**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
 | Autenticación | CU01, CU02 | Funcional |
 | Gestión de Usuarios | CU03 a CU08 | Funcional |
 | Gestión de Galpones | CU09 a CU14 | Funcional |
-| Lotes, Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Gestión de Lotes | CU42 a CU48 | Funcional |
+| Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
 operaciones. Sirven para presentar la aplicación completa mientras se
 implementan los módulos restantes, uno por uno, siguiendo el mismo patrón que
-Galpones y Usuarios.
+Galpones, Usuarios y Lotes.
 
 ### Acceso por rol
 
@@ -72,6 +73,7 @@ backend/
 ├── config/          configuración del proyecto y rutas raíz
 ├── usuarios/        modelo Usuario, autenticación JWT, permisos y tests
 ├── galpones/        módulo de Galpones
+├── lotes/           módulo de Lotes de Gallinas
 └── manage.py
 ```
 
@@ -181,7 +183,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 86 tests in ~Xs
+Ran 149 tests in ~Xs
 OK
 ```
 
@@ -190,6 +192,7 @@ Para correr solo un módulo:
 ```bash
 python manage.py test usuarios
 python manage.py test galpones
+python manage.py test lotes
 ```
 
 ---
@@ -205,7 +208,7 @@ python manage.py test galpones
 | POST | `/api/galpones/` | Crear galpón | Administrador |
 | PATCH | `/api/galpones/{id}/` | Modificar galpón | Administrador |
 | DELETE | `/api/galpones/{id}/` | Eliminar galpón | Administrador |
-| POST | `/api/galpones/{id}/alta/` | Dar de alta galpón | Administrador |
+| POST | `/api/galpones/{id}/alta/` | Activar galpón | Administrador |
 | POST | `/api/galpones/{id}/baja/` | Dar de baja galpón | Administrador |
 | GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`) | Administrador |
 | POST | `/api/usuarios/` | Crear usuario | Administrador |
@@ -214,6 +217,13 @@ python manage.py test galpones
 | POST | `/api/usuarios/{id}/alta/` | Dar de alta usuario | Administrador |
 | POST | `/api/usuarios/{id}/baja/` | Dar de baja usuario | Administrador |
 | POST | `/api/usuarios/{id}/restablecer-password/` | Restablecer contraseña | Administrador |
+| GET | `/api/lotes/` | Listar lotes (`?estado=`, `?id_galpon=`) | autenticado |
+| POST | `/api/lotes/` | Crear lote con plan de transición | Administrador |
+| GET | `/api/lotes/{id}/` | Detalle del lote | autenticado |
+| PATCH | `/api/lotes/{id}/` | Modificar lote o plan | Administrador |
+| DELETE | `/api/lotes/{id}/` | Eliminar lote | Administrador |
+| POST | `/api/lotes/{id}/iniciar-produccion/` | Transición → Producción | Administrador |
+| POST | `/api/lotes/{id}/vaciar/` | Producción/Transición → Finalizado | Administrador |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
@@ -260,6 +270,9 @@ se agrega como `docs/docs-<feature>.md` e incluye los casos de uso cubiertos y
 las decisiones de diseño tomadas. Al terminar, se integra a `develop` mediante
 un Pull Request.
 
+Los mensajes de commit siguen la convención **Conventional Commits**
+(`tipo(alcance): descripción`). Ver `docs/convencion-commits.md`.
+
 ---
 
 ## Documentación
@@ -270,6 +283,8 @@ En `docs/`:
 |---|---|
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
+| `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
+| `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
 | `Anexo 1 Trabajo Final...docx` | Presentación de la idea de proyecto |
@@ -309,17 +324,14 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/lotes`** — Lotes de Gallinas (CU42 a CU48), incluyendo plan
-   de transición y vaciado sanitario.
-
-2. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
+1. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
    módulo con estructura de cabecera y líneas.
 
-3. **`feature/descartes`** — Descartes (CU15 a CU23).
+2. **`feature/descartes`** — Descartes (CU15 a CU23).
 
-4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+3. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
 
-5. **Informes e indicadores productivos** (CU85 a CU89).
+4. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
@@ -334,9 +346,7 @@ dos o tres modelos funcionales, para aplicarlas de una vez y con consistencia:
 en `backend/core/models.py` con los campos `creado_por`, `modificado_por`,
 `fecha_creacion` y `fecha_modificacion`. Cada modelo la hereda con una sola
 línea. Permite saber quién cargó cada recolección, quién modificó un lote,
-quién dio de baja un galpón. El momento natural para implementarlo es al
-desarrollar Lotes o Recolección, que son los primeros módulos donde esa
-información tiene valor operativo real.
+quién dio de baja un galpón.
 
 **Protección de ramas en GitHub.** El workflow de CI ya corre los tests y
 reporta el resultado en cada push. Para que ese resultado sea bloqueante

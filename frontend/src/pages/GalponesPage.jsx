@@ -17,6 +17,7 @@ export default function GalponesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [actionError, setActionError] = useState(null);
   // Por defecto, los operarios ven solo sus galpones activos; el resto de
   // los roles arranca sin filtro (ve todos, activos e inactivos).
   const [estadoFilter, setEstadoFilter] = useState(esOperario ? "A" : "");
@@ -68,15 +69,34 @@ export default function GalponesPage() {
   async function handleDelete() {
     if (!selected) return;
     if (!confirm(`¿Eliminar el galpón "${selected.galpon}"? Esta acción no se puede deshacer.`)) return;
-    await deleteGalpon(selected.id_galpon);
-    setSelectedId(null);
-    await fetchGalpones();
+    setActionError(null);
+    try {
+      await deleteGalpon(selected.id_galpon);
+      setSelectedId(null);
+      await fetchGalpones();
+    } catch (err) {
+      // err.status === 0 → sin red; cualquier otro error es casi siempre
+      // el PROTECT de Django porque el galpón tiene lotes asociados.
+      if (err.status === 0) {
+        setActionError("No se pudo conectar con el servidor.");
+      } else {
+        setActionError(
+          "No se puede eliminar el galpón porque tiene lotes asociados. " +
+          "Finalizá o eliminá los lotes primero."
+        );
+      }
+    }
   }
 
   async function handleBaja() {
     if (!selected) return;
-    await bajaGalpon(selected.id_galpon);
-    await fetchGalpones();
+    setActionError(null);
+    try {
+      await bajaGalpon(selected.id_galpon);
+      await fetchGalpones();
+    } catch (err) {
+      setActionError(err.message);
+    }
   }
 
   async function handleAlta() {
@@ -133,7 +153,7 @@ export default function GalponesPage() {
               <div
                 key={g.id_galpon}
                 className={`galpon-card ${g.id_galpon === selectedId ? "card-selected" : ""}`}
-                onClick={() => setSelectedId(g.id_galpon)}
+                onClick={() => { setSelectedId(g.id_galpon); setActionError(null); }}
               >
                 <div className="gc-top">
                   <div>
@@ -148,6 +168,14 @@ export default function GalponesPage() {
                   <div className="gc-stat"><i className="fa-solid fa-kiwi-bird"></i> {g.capacidad.toLocaleString("es-AR")} aves</div>
                   <div className="gc-stat"><i className="fa-solid fa-ruler-combined"></i> {Number(g.superficie).toLocaleString("es-AR")} m²</div>
                   <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {Number(g.latitud).toFixed(4)}, {Number(g.longitud).toFixed(4)}</div>
+                  {g.lote_actual ? (
+                    <>
+                      <div className="gc-stat"><i className="fa-solid fa-layer-group"></i> {g.lote_actual.codigo}</div>
+                      <div className="gc-stat"><i className="fa-solid fa-chart-simple"></i> {g.lote_actual.estado_display}</div>
+                    </>
+                  ) : (
+                    <div className="gc-stat gc-stat-muted"><i className="fa-solid fa-layer-group"></i> Sin lote asignado</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -177,6 +205,20 @@ export default function GalponesPage() {
                   </div>
                 )}
 
+                {/* Lote actual */}
+                <div className="detail-sec-title">Lote actual</div>
+                {selected.lote_actual ? (
+                  <>
+                    <div className="detail-row"><span>Código</span><span>{selected.lote_actual.codigo}</span></div>
+                    <div className="detail-row"><span>Etapa</span><span>{selected.lote_actual.estado_display}</span></div>
+                    <div className="detail-row"><span>Cantidad actual</span><span>{selected.lote_actual.cantidad_actual.toLocaleString("es-AR")} aves</span></div>
+                  </>
+                ) : (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    Este galpón no tiene un lote activo.
+                  </div>
+                )}
+
                 {/* Operarios asignados */}
                 {selected.operarios && selected.operarios.length > 0 && (
                   <>
@@ -192,6 +234,12 @@ export default function GalponesPage() {
                 )}
               </div>
 
+              {actionError && (
+                <div className="banner banner-error" style={{ margin: "0 20px 0" }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }}></i>
+                  {actionError}
+                </div>
+              )}
               {esAdministrador && (
                 <div className="detail-actions">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>

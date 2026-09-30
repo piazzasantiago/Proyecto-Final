@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "usuarios",
     "galpones",
+    "lotes",
 ]
 
 MIDDLEWARE = [

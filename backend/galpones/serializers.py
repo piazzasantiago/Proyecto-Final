@@ -20,6 +20,12 @@ class GalponSerializer(serializers.ModelSerializer):
     # Lectura: lista de objetos {id_usuario, nombre_completo}
     operarios = serializers.SerializerMethodField()
 
+    # Lectura: el lote en curso del galpón (Transición o Producción), o null
+    # si está vacío. Se importa Lote adentro del método (import diferido) para
+    # no crear una dependencia de import a nivel de módulo entre las apps
+    # galpones y lotes.
+    lote_actual = serializers.SerializerMethodField()
+
     # Escritura: lista de IDs de usuario (operarios a asignar)
     operarios_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -42,8 +48,32 @@ class GalponSerializer(serializers.ModelSerializer):
             "descripcion",
             "operarios",
             "operarios_ids",
+            "lote_actual",
         ]
         read_only_fields = ["id_galpon"]
+
+    def get_lote_actual(self, obj):
+        """Devuelve el lote en curso del galpón (estado Transición o Producción).
+
+        Por regla de negocio (ver LoteSerializer.validate en la app lotes) un
+        galpón tiene a lo sumo un lote activo a la vez, así que alcanza con
+        el primero que aparezca. Si el galpón está vacío (sin lote activo,
+        o todos sus lotes están Finalizados), devuelve null.
+        """
+        from lotes.models import Lote
+
+        lote = obj.lotes.filter(
+            estado__in=[Lote.ESTADO_TRANSICION, Lote.ESTADO_PRODUCCION]
+        ).first()
+        if lote is None:
+            return None
+        return {
+            "id_lote": lote.id_lote,
+            "codigo": lote.codigo,
+            "estado": lote.estado,
+            "estado_display": lote.get_estado_display(),
+            "cantidad_actual": lote.cantidad_actual,
+        }
 
     def get_operarios(self, obj):
         """Solo se listan los operarios actualmente activos.

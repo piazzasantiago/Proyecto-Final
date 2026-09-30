@@ -25,7 +25,11 @@ automatizados.
 
 ### Qué no incluye
 
-- Asociación de galpones con lotes. Esa relación se modela en `feature/lotes`.
+- La gestión de lotes en sí (creación, ciclo de vida T→P→F, plan de
+  transición). Eso se modela en `feature/gestion-lotes` (ver
+  `docs-lotes.md`). Este módulo solo consume esos datos: muestra el
+  `lote_actual` de cada galpón y bloquea la baja de un galpón con lote
+  activo (CU14, flujo 1b).
 
 ---
 
@@ -149,6 +153,11 @@ baja (CU14) en lugar de eliminarlo.
 **Flujos alternativos**
 
 - **1a. El galpón ya está dado de baja:** el sistema lo informa (409 Conflict).
+- **1b. El galpón tiene un lote activo:** si aloja un lote en estado Transición
+  o Producción, el sistema rechaza la baja (409 Conflict) e indica el código
+  y estado del lote que la bloquea. El Administrador debe finalizar ese lote
+  (ver `docs-lotes.md`, endpoint `vaciar`) antes de poder dar de baja el
+  galpón — dar de baja no reubica ni finaliza lotes por sí solo.
 
 **Postcondición:** el galpón queda inactivo pero su registro y asignaciones se
 conservan.
@@ -243,11 +252,24 @@ de la base de datos.
       "descripcion": "",
       "operarios": [
         {"id_usuario": 3, "nombre_completo": "Juan Pérez"}
-      ]
+      ],
+      "lote_actual": {
+        "id_lote": 7,
+        "codigo": "L-2026-007",
+        "estado": "T",
+        "estado_display": "Transición",
+        "cantidad_actual": 2500
+      }
     }
   ]
 }
 ```
+
+**Campo `lote_actual` (solo lectura):** datos del lote en curso alojado en el
+galpón (estado Transición o Producción), o `null` si el galpón está vacío. Se
+resuelve en `GalponSerializer.get_lote_actual` con un import diferido de
+`lotes.models.Lote` para no crear una dependencia de import a nivel de módulo
+entre las apps `galpones` y `lotes` (ver `docs-lotes.md`).
 
 **Campo `operarios_ids` (solo escritura):** lista de IDs de usuarios operarios
 activos a asignar. En un PATCH, si se omite el campo, las asignaciones no cambian.
@@ -260,7 +282,7 @@ activos a asignar. En un PATCH, si se omite el campo, las asignaciones no cambia
 
 ## 6. Tests automatizados
 
-Los tests viven en `backend/galpones/tests.py`. Se organizan en ocho clases
+Los tests viven en `backend/galpones/tests.py`. Se organizan en nueve clases
 independientes; Django crea una base temporaria al principio y la destruye al
 terminar.
 
@@ -273,10 +295,11 @@ terminar.
 | `ModificarGalponTests` | 4 | CU11: modificación parcial, campo inválido, galpón inexistente |
 | `BorrarGalponTests` | 2 | CU12: borrado físico, galpón inexistente |
 | `AltaGalponTests` | 4 | CU13: alta, persistencia, idempotencia (409), galpón inexistente |
-| `BajaGalponTests` | 4 | CU14: baja, persistencia, idempotencia (409), galpón inexistente |
-| `PermisosGalponesTests` | 14 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
+| `BajaGalponTests` | 9 | CU14: baja, persistencia, idempotencia (409), galpón inexistente, y el bloqueo si el galpón tiene un lote activo (Transición o Producción) |
+| `PermisosGalponesTests` | 18 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
 | `UsuariosDelGalponTests` | 10 | Asignación de operarios, validaciones, filtrado por rol en queryset |
-| **Total** | **52** | |
+| `OperariosInactivosTests` | 8 | Un operario dado de baja conserva su asignación pero no se lista, y no se pisa al editar el galpón |
+| **Total** | **70** | |
 
 ### Cómo correrlos
 
@@ -405,5 +428,10 @@ consulta, o usuarios dados de baja.
 
 ## 10. Pendientes
 
-- **Asociación con lotes:** cuando se implemente `feature/lotes`, un galpón
-  dado de baja con lotes activos podría requerir validación adicional.
+- ~~**Asociación con lotes:** cuando se implemente `feature/lotes`, un galpón
+  dado de baja con lotes activos podría requerir validación adicional.~~
+  Resuelto: ahora que `feature/gestion-lotes` existe, CU14 rechaza la baja
+  (409) si el galpón tiene un lote en Transición o Producción (ver flujo
+  alternativo 1b más arriba). El serializer también expone `lote_actual`
+  en la respuesta de `GET /api/galpones/` para mostrarlo en el listado y
+  en el panel de detalle.

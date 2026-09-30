@@ -7,21 +7,25 @@ Clases de tests:
     ModificarGalponTests    (4)  CU11 – modificar
     BorrarGalponTests       (2)  CU12 – eliminar
     AltaGalponTests         (4)  CU13 – dar de alta
-    BajaGalponTests         (4)  CU14 – dar de baja
+    BajaGalponTests         (9)  CU14 – dar de baja (incluye bloqueo si el
+                                  galpón tiene un lote activo)
     PermisosGalponesTests  (18)  matriz rol × operación (incluye alta/baja)
     UsuariosDelGalponTests (10)  asignación de operarios y filtrado por rol
     OperariosInactivosTests (8)  operario dado de baja: se conserva la
                                   asignación pero no se lista, y no se pisa
                                   al editar el galpón
 
-Total: 65 tests
+Total: 70 tests
 """
 
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+import datetime
+
 from usuarios.models import Usuario
+from lotes.models import Lote
 from .models import Galpon, UsuarioDelGalpon
 
 
@@ -41,6 +45,17 @@ def crear_galpon(nombre="Galpón A", estado=Galpon.ESTADO_ACTIVO, **kwargs):
     )
     defaults.update(kwargs)
     return Galpon.objects.create(**defaults)
+
+
+def crear_lote(galpon, estado=Lote.ESTADO_TRANSICION):
+    """Crea un lote asociado a un galpón, sin plan de transición (no lo necesitan estos tests)."""
+    return Lote.objects.create(
+        id_galpon=galpon,
+        fecha_ingreso=datetime.date(2026, 1, 18),
+        cantidad_inicial=2500,
+        cantidad_actual=2500,
+        estado=estado,
+    )
 
 
 def crear_usuario(usuario="testuser", rol=Usuario.ROL_ADMINISTRADOR, estado=Usuario.ESTADO_ACTIVO, **kwargs):
@@ -302,6 +317,34 @@ class BajaGalponTests(TestCase):
     def test_baja_galpon_inexistente(self):
         resp = self.client.post("/api/galpones/9999/baja/")
         self.assertEqual(resp.status_code, 404)
+
+    def test_no_se_puede_dar_de_baja_con_lote_en_transicion(self):
+        crear_lote(self.galpon, estado=Lote.ESTADO_TRANSICION)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertEqual(resp.status_code, 409)
+
+    def test_no_se_puede_dar_de_baja_con_lote_en_produccion(self):
+        crear_lote(self.galpon, estado=Lote.ESTADO_PRODUCCION)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertEqual(resp.status_code, 409)
+
+    def test_mensaje_de_error_incluye_codigo_y_estado_del_lote(self):
+        lote = crear_lote(self.galpon, estado=Lote.ESTADO_TRANSICION)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertIn(lote.codigo, resp.data["detail"])
+        self.assertIn("Transición", resp.data["detail"])
+
+    def test_no_se_modifica_estado_en_bd_si_hay_lote_activo(self):
+        crear_lote(self.galpon, estado=Lote.ESTADO_TRANSICION)
+        self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.galpon.refresh_from_db()
+        self.assertEqual(self.galpon.estado, Galpon.ESTADO_ACTIVO)
+
+    def test_se_puede_dar_de_baja_con_lote_finalizado(self):
+        crear_lote(self.galpon, estado=Lote.ESTADO_FINALIZADO)
+        resp = self.client.post(f"/api/galpones/{self.galpon.id_galpon}/baja/")
+        self.assertEqual(resp.status_code, 200)
+
 
 
 # ---------------------------------------------------------------------------
