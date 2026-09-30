@@ -45,6 +45,8 @@ function initForm(initialData) {
   };
 }
 
+const hoyISO = new Date().toISOString().slice(0, 10);
+
 export default function LoteFormModal({ galpones = [], initialData, onClose, onSubmit, onCreated }) {
   const isEdit = Boolean(initialData);
   const [form, setForm] = useState(() => initForm(initialData));
@@ -53,7 +55,20 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
 
   function handleChange(e) {
     const { name, value } = e.target;
+    e.target.setCustomValidity("");
     setForm((f) => ({ ...f, [name]: value }));
+  }
+
+  function handleGalponInvalid(e) {
+    e.target.setCustomValidity("Debe seleccionar un galpón");
+  }
+
+  function handleFechaIngresoInvalid(e) {
+    e.target.setCustomValidity(
+      e.target.validity.rangeOverflow
+        ? "La fecha de ingreso no puede ser una fecha futura"
+        : "Debe ingresar la fecha de ingreso"
+    );
   }
 
   function handlePlanChange(e) {
@@ -125,7 +140,14 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
             <div className="form-row">
               <div className="form-group full">
                 <label>Galpón</label>
-                <select name="id_galpon_id" value={form.id_galpon_id} onChange={handleChange} required disabled={isEdit}>
+                <select
+                  name="id_galpon_id"
+                  value={form.id_galpon_id}
+                  onChange={handleChange}
+                  onInvalid={handleGalponInvalid}
+                  required
+                  disabled={isEdit}
+                >
                   <option value="">Seleccioná un galpón activo...</option>
                   {galpones.map((g) => (
                     <option key={g.id_galpon} value={g.id_galpon}>
@@ -144,6 +166,8 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
                   type="date"
                   value={form.fecha_ingreso}
                   onChange={handleChange}
+                  onInvalid={handleFechaIngresoInvalid}
+                  max={hoyISO}
                   required
                   disabled={isEdit}
                 />
