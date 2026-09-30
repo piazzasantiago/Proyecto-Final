@@ -326,6 +326,8 @@
   .gc-stats{display:flex; flex-direction:column; gap:6px;}
   .gc-stat{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--gray-700);}
   .gc-stat i{color:var(--green-600); width:14px; text-align:center; font-size:12px;}
+  .gc-stat-muted{color:var(--gray-500);}
+  .gc-stat-muted i{color:var(--gray-400);}
   .gc-postura-row{display:flex; align-items:baseline; justify-content:space-between;}
   .gc-postura-label{font-size:11px; color:var(--gray-500); text-transform:uppercase; letter-spacing:.3px;}
   .gc-postura-value{font-size:19px; font-weight:700; color:var(--gray-900);}

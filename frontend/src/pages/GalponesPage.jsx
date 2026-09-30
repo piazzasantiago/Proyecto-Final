@@ -163,6 +163,14 @@ export default function GalponesPage() {
                   <div className="gc-stat"><i className="fa-solid fa-kiwi-bird"></i> {g.capacidad.toLocaleString("es-AR")} aves</div>
                   <div className="gc-stat"><i className="fa-solid fa-ruler-combined"></i> {Number(g.superficie).toLocaleString("es-AR")} m²</div>
                   <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {Number(g.latitud).toFixed(4)}, {Number(g.longitud).toFixed(4)}</div>
+                  {g.lote_actual ? (
+                    <>
+                      <div className="gc-stat"><i className="fa-solid fa-layer-group"></i> {g.lote_actual.codigo}</div>
+                      <div className="gc-stat"><i className="fa-solid fa-chart-simple"></i> {g.lote_actual.estado_display}</div>
+                    </>
+                  ) : (
+                    <div className="gc-stat gc-stat-muted"><i className="fa-solid fa-layer-group"></i> Sin lote asignado</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -189,6 +197,20 @@ export default function GalponesPage() {
                     <span style={{ fontWeight: 500, color: "var(--gray-700)", textAlign: "left" }}>
                       {selected.descripcion}
                     </span>
+                  </div>
+                )}
+
+                {/* Lote actual */}
+                <div className="detail-sec-title">Lote actual</div>
+                {selected.lote_actual ? (
+                  <>
+                    <div className="detail-row"><span>Código</span><span>{selected.lote_actual.codigo}</span></div>
+                    <div className="detail-row"><span>Etapa</span><span>{selected.lote_actual.estado_display}</span></div>
+                    <div className="detail-row"><span>Cantidad actual</span><span>{selected.lote_actual.cantidad_actual.toLocaleString("es-AR")} aves</span></div>
+                  </>
+                ) : (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    Este galpón no tiene un lote activo.
                   </div>
                 )}
 
