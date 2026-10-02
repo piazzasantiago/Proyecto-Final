@@ -348,6 +348,12 @@
   .pc-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
   .pc-name{font-size:21px; font-weight:800; color:var(--gray-900); line-height:1.2; letter-spacing:-.2px;}
   .pc-desc{font-size:12.5px; color:var(--gray-500); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .pc-stock{
+    display:flex; align-items:baseline; gap:6px; padding-top:10px;
+    border-top:1px solid rgba(18,52,36,0.06); margin-top:auto;
+  }
+  .pc-stock-value{font-size:19px; font-weight:800; color:var(--green-700);}
+  .pc-stock-label{font-size:11.5px; color:var(--gray-500); text-transform:uppercase; letter-spacing:.3px;}
 
   /* Lotes: Kanban por etapa */
   .kanban-cols{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; align-items:start;}

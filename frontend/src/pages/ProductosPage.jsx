@@ -167,6 +167,10 @@ export default function ProductosPage() {
                   <div className="pc-name">{p.producto}</div>
                   {p.descripcion && <div className="pc-desc">{p.descripcion}</div>}
                 </div>
+                <div className="pc-stock">
+                  <span className="pc-stock-value">{p.stock_actual}</span>
+                  <span className="pc-stock-label">en stock</span>
+                </div>
               </div>
             ))}
           </div>
@@ -184,6 +188,7 @@ export default function ProductosPage() {
               <div className="detail-body">
                 <div className="detail-sec-title" style={{ marginTop: 0 }}>Datos del producto</div>
                 <div className="detail-row"><span>Nombre</span><span>{selected.producto}</span></div>
+                <div className="detail-row"><span>Stock actual</span><span>{selected.stock_actual}</span></div>
                 {selected.descripcion && (
                   <div className="detail-row" style={{ borderBottom: "none", alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
                     <span>Descripción</span>

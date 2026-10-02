@@ -3,6 +3,7 @@ import { useState } from "react";
 const emptyForm = {
   producto: "",
   descripcion: "",
+  stock_actual: "0",
 };
 
 export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
@@ -13,6 +14,7 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
       ? {
           producto: initialData.producto,
           descripcion: initialData.descripcion || "",
+          stock_actual: String(initialData.stock_actual ?? 0),
         }
       : emptyForm
   );
@@ -30,7 +32,7 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
     setSaving(true);
     setErrors({});
     try {
-      await onSubmit(form);
+      await onSubmit({ ...form, stock_actual: Number(form.stock_actual) || 0 });
     } catch (err) {
       if (err.detail && typeof err.detail === "object") {
         setErrors(err.detail);
@@ -75,6 +77,22 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
                   onChange={handleChange}
                   placeholder="Notas sobre el producto (opcional)"
                 />
+              </div>
+              <div className="form-group full">
+                <label>Stock actual</label>
+                <input
+                  type="number"
+                  name="stock_actual"
+                  value={form.stock_actual}
+                  onChange={handleChange}
+                  min={0}
+                  step={1}
+                  placeholder="0"
+                />
+                {errors.stock_actual && <span className="form-error">{errors.stock_actual.join(" ")}</span>}
+                <span className="form-hint">
+                  Carga manual: el sistema todavía no la calcula automáticamente a partir de recolecciones y salidas.
+                </span>
               </div>
             </div>
           </div>
