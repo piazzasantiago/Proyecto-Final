@@ -9,8 +9,9 @@ Clases de tests:
     ActivarProductoTests      (4)  CU51 – activar
     DesactivarProductoTests   (4)  CU54 – desactivar
     PermisosProductosTests   (14)  matriz rol × operación (incluye activar/desactivar)
+    StockActualProductoTests  (4)  carga manual de stock_actual (+1 en NuevoProductoTests)
 
-Total: 38 tests
+Total: 43 tests
 """
 
 from django.test import TestCase
@@ -138,6 +139,10 @@ class NuevoProductoTests(TestCase):
         resp = self.client.post("/api/productos/", {"producto": "Huevo Nº1"}, format="json")
         self.assertEqual(resp.status_code, 400)
 
+    def test_stock_actual_por_defecto_cero(self):
+        resp = self.client.post("/api/productos/", {"producto": "Huevo Nº4"}, format="json")
+        self.assertEqual(resp.data["stock_actual"], 0)
+
 
 # ---------------------------------------------------------------------------
 # CU52 – Modificar Producto
@@ -177,6 +182,51 @@ class ModificarProductoTests(TestCase):
     def test_modificar_producto_inexistente(self):
         resp = self.client.patch("/api/productos/9999/", {"producto": "X"}, format="json")
         self.assertEqual(resp.status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# stock_actual – carga manual (mientras no exista Recolecciones/Salidas)
+# ---------------------------------------------------------------------------
+
+class StockActualProductoTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("adminstock", rol=Usuario.ROL_ADMINISTRADOR)
+        token_de(self.client, self.admin)
+        self.producto = crear_producto("Huevo Nº1")
+
+    def test_crear_con_stock_inicial(self):
+        resp = self.client.post(
+            "/api/productos/", {"producto": "Huevo Nº5", "stock_actual": 150}, format="json"
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data["stock_actual"], 150)
+
+    def test_modificar_stock_via_patch(self):
+        resp = self.client.patch(
+            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": 80}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["stock_actual"], 80)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock_actual, 80)
+
+    def test_stock_negativo_rechazado(self):
+        resp = self.client.patch(
+            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": -5}, format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock_actual, 0)
+
+    def test_modificar_stock_no_afecta_otros_campos(self):
+        self.client.patch(
+            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": 42}, format="json"
+        )
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.producto, "Huevo Nº1")
+        self.assertEqual(self.producto.stock_actual, 42)
 
 
 # ---------------------------------------------------------------------------

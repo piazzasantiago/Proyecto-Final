@@ -24,6 +24,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
     Permisos: consultar requiere estar autenticado con cualquier rol; crear,
     modificar y eliminar requiere rol Administrador. Mismo patrón que
     GalponViewSet.
+
+    stock_actual se edita como un campo más (alta/modificación), a cargo
+    del Administrador. Es una carga manual: el sistema todavía no lo
+    calcula automáticamente a partir de Recolecciones y Salidas.
     """
 
     queryset = Producto.objects.all()

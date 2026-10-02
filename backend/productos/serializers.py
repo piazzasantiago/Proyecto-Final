@@ -14,5 +14,6 @@ class ProductoSerializer(serializers.ModelSerializer):
             "descripcion",
             "estado",
             "estado_display",
+            "stock_actual",
         ]
         read_only_fields = ["id_producto", "estado"]

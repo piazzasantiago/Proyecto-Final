@@ -14,6 +14,12 @@ class Producto(models.Model):
     Solo se pueden asignar productos activos a una nueva línea de
     recolección; desactivar un producto no afecta las líneas ya registradas
     con él (mismo criterio que con los operarios inactivos de un galpón).
+
+    stock_actual es, por ahora, una carga manual que hace el Administrador
+    desde esta pantalla. El sistema todavía no calcula el stock en forma
+    automática a partir de Recolecciones y Salidas (como lo describe la
+    Educción de requisitos); cuando esos módulos existan, ese cálculo
+    debería reemplazar a este campo o mantenerlo sincronizado con él.
     """
 
     ESTADO_ACTIVO = "A"
@@ -27,6 +33,7 @@ class Producto(models.Model):
     producto = models.CharField(max_length=80, unique=True)
     descripcion = models.TextField(blank=True, default="")
     estado = models.CharField(max_length=1, choices=ESTADO_CHOICES, default=ESTADO_ACTIVO)
+    stock_actual = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = "Productos"
