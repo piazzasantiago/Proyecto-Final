@@ -143,7 +143,7 @@ export default function ProductosPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="card-grid">
+          <div className="producto-grid">
             {productos.length === 0 && (
               <div className="empty-state">
                 {esAdministrador
@@ -154,22 +154,19 @@ export default function ProductosPage() {
             {productos.map((p) => (
               <div
                 key={p.id_producto}
-                className={`galpon-card ${p.id_producto === selectedId ? "card-selected" : ""}`}
+                className={`producto-card ${p.id_producto === selectedId ? "card-selected" : ""}`}
                 onClick={() => { setSelectedId(p.id_producto); setActionError(null); }}
               >
-                <div className="gc-top">
-                  <div>
-                    <div className="gc-name">{p.producto}</div>
-                  </div>
+                <div className="pc-top">
+                  <div className="pc-icon"><i className="fa-solid fa-egg"></i></div>
                   <span className={`badge ${p.estado === "A" ? "badge-green" : "badge-red"}`}>
                     {p.estado_display}
                   </span>
                 </div>
-                {p.descripcion && (
-                  <div className="gc-stats">
-                    <div className="gc-stat"><i className="fa-solid fa-align-left"></i> {p.descripcion}</div>
-                  </div>
-                )}
+                <div>
+                  <div className="pc-name">{p.producto}</div>
+                  {p.descripcion && <div className="pc-desc">{p.descripcion}</div>}
+                </div>
               </div>
             ))}
           </div>
