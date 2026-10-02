@@ -27,11 +27,11 @@
  *     - Salidas: CRUD completo
  *     - Entradas: CRUD completo
  *     - Materias Primas: solo consulta
- *     - Compras, Proveedores, Informes, Usuarios: sin acceso
+ *     - Compras, Proveedores, Informes, Productos, Usuarios: sin acceso
  *
  *   Consulta:
- *     - Todas las secciones excepto Usuarios: solo consulta (lectura)
- *     - Usuarios: sin acceso
+ *     - Todas las secciones excepto Productos y Usuarios: solo consulta (lectura)
+ *     - Productos, Usuarios: sin acceso
  *
  * Nota: los permisos de escritura (CRUD vs solo consulta) dentro de cada
  * sección se implementan en el backend cuando la sección tenga endpoints
@@ -126,6 +126,12 @@ export const MENU = [
         icono: "fa-chart-simple",
         texto: "Informes",
         roles: ["A", "C"],         // A: acceso · C: acceso · O: sin acceso
+      },
+      {
+        to: "/app/productos",
+        icono: "fa-egg",
+        texto: "Productos",
+        roles: ["A"],              // solo Administrador (CU49-54)
       },
       {
         to: "/app/usuarios",

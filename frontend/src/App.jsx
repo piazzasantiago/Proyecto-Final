@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import AppLayout from "./pages/AppLayout";
 import GalponesPage from "./pages/GalponesPage";
 import LotesPage from "./pages/LotesPage";
+import ProductosPage from "./pages/ProductosPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import StaticPage from "./pages/static/StaticPage";
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="dashboard" element={<StaticPage html={dashboardHtml} />} />
           <Route path="galpones" element={<GalponesPage />} />
           <Route path="lotes" element={<LotesPage />} />
+          <Route path="productos" element={<RequireRol roles={rolesDe("/app/productos")}><ProductosPage /></RequireRol>} />
           <Route path="recoleccion" element={<StaticPage html={recoleccionHtml} />} />
           <Route path="descartes" element={<StaticPage html={descartesHtml} />} />
           <Route path="salidas" element={<StaticPage html={salidasHtml} />} />
