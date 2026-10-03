@@ -101,6 +101,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         return self.rol == self.ROL_ADMINISTRADOR
 
     @property
+    def es_operario(self):
+        return self.rol == self.ROL_OPERARIO
+
+    @property
     def is_active(self):
         """
         Django consulta `is_active` para permitir o bloquear el login.
