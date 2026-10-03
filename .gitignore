@@ -11,3 +11,6 @@ Thumbs.db
 # Por si algo se corre desde la raíz
 .env
 *.log
+
+# Mensajes para corregir commits
+msg.txt

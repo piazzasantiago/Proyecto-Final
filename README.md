@@ -187,7 +187,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 149 tests in ~Xs
+Ran 197 tests in ~Xs
 OK
 ```
 
@@ -197,6 +197,7 @@ Para correr solo un módulo:
 python manage.py test usuarios
 python manage.py test galpones
 python manage.py test lotes
+python manage.py test productos
 ```
 
 ---
@@ -334,9 +335,15 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 2. **`feature/descartes`** — Descartes (CU15 a CU23).
 
-3. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+3. **`feature/salidas`** — Registro de salidas de productos de la granja
+   (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
+   una `Salida` con N `LineaSalida` (producto + cantidad). Depende de que
+   existan Recolecciones y Descartes, ya que el stock real de cada producto
+   se calcula como `recolecciones − descartes − salidas`.
 
-4. **Informes e indicadores productivos** (CU85 a CU89).
+4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+
+5. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
