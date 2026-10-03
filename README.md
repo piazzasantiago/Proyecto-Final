@@ -12,8 +12,9 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y cuatro
-módulos funcionales de punta a punta: **Usuarios**, **Galpones** y **Lotes de Gallinas**.
+El sistema cuenta con **autenticación real y control de acceso por rol**, y cinco
+módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
+Gallinas** y **Productos**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -21,13 +22,14 @@ módulos funcionales de punta a punta: **Usuarios**, **Galpones** y **Lotes de G
 | Gestión de Usuarios | CU03 a CU08 | Funcional |
 | Gestión de Galpones | CU09 a CU14 | Funcional |
 | Gestión de Lotes | CU42 a CU48 | Funcional |
+| Gestión de Productos | CU49 a CU54 | Funcional |
 | Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
 operaciones. Sirven para presentar la aplicación completa mientras se
 implementan los módulos restantes, uno por uno, siguiendo el mismo patrón que
-Galpones, Usuarios y Lotes.
+Galpones, Usuarios, Lotes y Productos.
 
 ### Acceso por rol
 
@@ -43,6 +45,7 @@ El sistema define tres roles con distintos niveles de acceso:
 | Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
+| Productos | Sí (CRUD) | No | Sí (consulta) |
 | Compras | Sí (CRUD) | No | Sí (consulta) |
 | Proveedores | Sí (CRUD) | No | Sí (consulta) |
 | Informes | Sí | No | Sí |
@@ -74,6 +77,7 @@ backend/
 ├── usuarios/        modelo Usuario, autenticación JWT, permisos y tests
 ├── galpones/        módulo de Galpones
 ├── lotes/           módulo de Lotes de Gallinas
+├── productos/       módulo de Productos
 └── manage.py
 ```
 
@@ -183,7 +187,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 149 tests in ~Xs
+Ran 197 tests in ~Xs
 OK
 ```
 
@@ -193,6 +197,7 @@ Para correr solo un módulo:
 python manage.py test usuarios
 python manage.py test galpones
 python manage.py test lotes
+python manage.py test productos
 ```
 
 ---
@@ -284,6 +289,7 @@ En `docs/`:
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
+| `docs-productos.md` | Gestión de productos, activar/desactivar, stock manual y tests (CU49 a CU54) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -329,9 +335,15 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 2. **`feature/descartes`** — Descartes (CU15 a CU23).
 
-3. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+3. **`feature/salidas`** — Registro de salidas de productos de la granja
+   (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
+   una `Salida` con N `LineaSalida` (producto + cantidad). Depende de que
+   existan Recolecciones y Descartes, ya que el stock real de cada producto
+   se calcula como `recolecciones − descartes − salidas`.
 
-4. **Informes e indicadores productivos** (CU85 a CU89).
+4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+
+5. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en

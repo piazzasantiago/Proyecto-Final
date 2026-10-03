@@ -28,6 +28,7 @@
  *     - Entradas: CRUD completo
  *     - Materias Primas: solo consulta
  *     - Compras, Proveedores, Informes, Usuarios: sin acceso
+ *     - Productos: sin acceso
  *
  *   Consulta:
  *     - Todas las secciones excepto Usuarios: solo consulta (lectura)
@@ -126,6 +127,12 @@ export const MENU = [
         icono: "fa-chart-simple",
         texto: "Informes",
         roles: ["A", "C"],         // A: acceso · C: acceso · O: sin acceso
+      },
+      {
+        to: "/app/productos",
+        icono: "fa-egg",
+        texto: "Productos",
+        roles: ["A", "C"],         // A: CRUD completo · C: solo consulta (CU49-54)
       },
       {
         to: "/app/usuarios",
