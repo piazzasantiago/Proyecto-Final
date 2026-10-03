@@ -10,10 +10,10 @@ import GalponesPage from "./pages/GalponesPage";
 import LotesPage from "./pages/LotesPage";
 import ProductosPage from "./pages/ProductosPage";
 import UsuariosPage from "./pages/UsuariosPage";
+import RecoleccionesPage from "./pages/RecoleccionesPage";
 import StaticPage from "./pages/static/StaticPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
-import recoleccionHtml from "./pages/static/raw/recoleccion.html?raw";
 import descartesHtml from "./pages/static/raw/descartes.html?raw";
 import salidasHtml from "./pages/static/raw/salidas.html?raw";
 import entradasHtml from "./pages/static/raw/entradas.html?raw";
@@ -44,7 +44,7 @@ function App() {
           <Route path="galpones" element={<GalponesPage />} />
           <Route path="lotes" element={<LotesPage />} />
           <Route path="productos" element={<RequireRol roles={rolesDe("/app/productos")}><ProductosPage /></RequireRol>} />
-          <Route path="recoleccion" element={<StaticPage html={recoleccionHtml} />} />
+          <Route path="recoleccion" element={<RecoleccionesPage />} />
           <Route path="descartes" element={<StaticPage html={descartesHtml} />} />
           <Route path="salidas" element={<StaticPage html={salidasHtml} />} />
           <Route path="entradas" element={<StaticPage html={entradasHtml} />} />
