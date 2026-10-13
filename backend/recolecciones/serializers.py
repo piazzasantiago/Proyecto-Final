@@ -8,6 +8,10 @@ from productos.models import Producto
 from .models import LineaRecoleccion, Recoleccion
 
 
+# Tope por línea: evita valores absurdos y desbordes del entero de la base.
+CANTIDAD_MAX = 1_000_000
+
+
 # ── Resúmenes de objetos relacionados ────────────────────────────────────────
 
 class GalponResumenSerializer(serializers.ModelSerializer):
@@ -50,7 +54,7 @@ class LineaRecoleccionSerializer(serializers.ModelSerializer):
         write_only=True,
     )
 
-    cantidad = serializers.IntegerField(min_value=1)
+    cantidad = serializers.IntegerField(min_value=1, max_value=CANTIDAD_MAX)
 
     class Meta:
         model = LineaRecoleccion

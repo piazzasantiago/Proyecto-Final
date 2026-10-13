@@ -3,6 +3,8 @@ import { createRecoleccion, updateRecoleccion } from "../api/recolecciones";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
+// Debe coincidir con CANTIDAD_MAX del serializer.
+const CANTIDAD_MAX = 1000000;
 
 function emptyLinea() {
   return { id_producto_id: "", cantidad: "" };
@@ -82,6 +84,8 @@ export default function RecoleccionFormModal({
     e.target.setCustomValidity(
       v.valueMissing
         ? "Debe ingresar la cantidad"
+        : v.rangeOverflow
+        ? "La cantidad no puede superar 1.000.000"
         : "La cantidad debe ser un número entero mayor o igual a 1 (sin decimales)"
     );
   }
@@ -298,6 +302,7 @@ export default function RecoleccionFormModal({
                           type="number"
                           step="1"
                           min="1"
+                          max={CANTIDAD_MAX}
                           value={linea.cantidad}
                           onChange={(e) => handleLineaChange(index, e)}
                           onInvalid={handleCantidadInvalid}

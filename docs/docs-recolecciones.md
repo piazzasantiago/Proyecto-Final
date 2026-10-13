@@ -134,8 +134,9 @@ la versión de DRF instalada.
 - **Edición de recolección finalizada:** intentar editar una recolección en
   estado `F` devuelve HTTP 400.
 - **Finalizar recolección ya finalizada:** devuelve HTTP 400.
-- **Cantidad positiva:** cada línea debe tener `cantidad >= 1`; un valor cero o
-  negativo devuelve HTTP 400.
+- **Cantidad entre 1 y 1.000.000:** cada línea debe tener `cantidad >= 1` y no
+  superar 1.000.000; un valor cero, negativo o por encima del tope devuelve
+  HTTP 400.
 - **Fecha y hora no futura:** `fecha` no puede ser posterior al momento actual,
   al crear ni al editar; devuelve HTTP 400. El formulario también limita el
   campo al momento actual y muestra el aviso en español.
@@ -211,7 +212,7 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
 
 ## Tests
 
-Se implementaron **54 tests** en `backend/recolecciones/tests.py`, organizados
+Se implementaron **57 tests** en `backend/recolecciones/tests.py`, organizados
 en 10 clases:
 
 | Clase | Tests | Qué verifica |
@@ -223,7 +224,7 @@ en 10 clases:
 | `FinalizarRecoleccionTests` | 5 | Finalizar exitoso, persistencia en base, idempotencia (ya finalizada → 400), 404 en inexistente, respuesta incluye lote |
 | `PermisosRecoleccionTests` | 10 | Matriz completa: Admin puede crear/listar/eliminar; Operario puede crear/listar pero no eliminar; Consulta solo lista; sin token → 401 |
 | `LoteFKTests` | 3 | FK guardada al crear, FK no cambia cuando el lote del galpón cambia, galpón sin lote activo devuelve 400 |
-| `ValidacionesCantidadYGalponTests` | 5 | Cantidad negativa o cero → 400, cantidad 1 válida, no se puede cambiar el galpón al editar, reenviar el mismo galpón es válido |
+| `ValidacionesCantidadYGalponTests` | 8 | Cantidad negativa o cero → 400, cantidad 1 y 1.000.000 válidas, sobre el tope o enorme → 400 (no 500), no se puede cambiar el galpón al editar, reenviar el mismo galpón es válido |
 | `FechaRecoleccionTests` | 4 | Fecha de mañana o hora futura del mismo día → 400, fecha pasada válida, no se puede editar la fecha a una futura |
 | `ObservacionesRecoleccionTests` | 3 | 500 caracteres es válido, 501 → 400, no se puede editar a más de 500 |
 
@@ -247,7 +248,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 54 tests |
+| `recolecciones/tests.py` | Nuevo: 57 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |

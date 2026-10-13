@@ -9,11 +9,11 @@ Clases de tests:
     FinalizarRecoleccionTests     (5)  CU-REC-FIN – finalizar recolección
     PermisosRecoleccionTests     (10)  matriz rol × operación
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
-    ValidacionesCantidadYGalponTests (5)  cantidad >= 1 y galpón inmutable al editar
+    ValidacionesCantidadYGalponTests (8)  cantidad entre 1 y 1.000.000, galpón inmutable al editar
     FechaRecoleccionTests         (4)  la fecha y hora no puede ser futura
     ObservacionesRecoleccionTests (3)  máximo de 500 caracteres
 
-Total: 54 tests
+Total: 57 tests
 """
 
 import datetime
@@ -644,6 +644,26 @@ class ValidacionesCantidadYGalponTests(TestCase):
             "/api/recolecciones/", self._payload_con_cantidad(1), format="json"
         )
         self.assertEqual(resp.status_code, 201)
+
+    def test_cantidad_en_el_tope_es_valida(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(1_000_000), format="json"
+        )
+        self.assertEqual(resp.status_code, 201)
+
+    def test_cantidad_sobre_el_tope_devuelve_400(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(1_000_001), format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_cantidad_enorme_devuelve_400_y_no_500(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(99999999999), format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Recoleccion.objects.count(), 0)
 
     def test_no_se_puede_cambiar_el_galpon_al_editar(self):
         rec = crear_recoleccion(self.galpon, self.lote, self.producto)
