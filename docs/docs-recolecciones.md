@@ -134,6 +134,21 @@ la versión de DRF instalada.
 - **Edición de recolección finalizada:** intentar editar una recolección en
   estado `F` devuelve HTTP 400.
 - **Finalizar recolección ya finalizada:** devuelve HTTP 400.
+- **Cantidad positiva:** cada línea debe tener `cantidad >= 1`; un valor cero o
+  negativo devuelve HTTP 400.
+- **Fecha y hora no futura:** `fecha` no puede ser posterior al momento actual,
+  al crear ni al editar; devuelve HTTP 400. El formulario también limita el
+  campo al momento actual y muestra el aviso en español.
+- **Galpón inmutable:** una vez creada la recolección no se puede cambiar el
+  galpón (HTTP 400). Reenviar el mismo galpón es válido.
+
+### Lote en Transición
+
+Se puede registrar una recolección con el lote del galpón en **Transición** (`T`)
+o en **Producción** (`P`). Es una decisión deliberada: según la Educción de
+requisitos, en la etapa de transición las gallinas "no son productivas, aunque
+eventualmente pueden dejar huevos pequeños", y esos huevos se registran como
+cualquier otro. No se bloquea ni se muestra aviso.
 
 ---
 
@@ -194,8 +209,8 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
 
 ## Tests
 
-Se implementaron **42 tests** en `backend/recolecciones/tests.py`, organizados
-en 7 clases:
+Se implementaron **51 tests** en `backend/recolecciones/tests.py`, organizados
+en 9 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
@@ -206,6 +221,8 @@ en 7 clases:
 | `FinalizarRecoleccionTests` | 5 | Finalizar exitoso, persistencia en base, idempotencia (ya finalizada → 400), 404 en inexistente, respuesta incluye lote |
 | `PermisosRecoleccionTests` | 10 | Matriz completa: Admin puede crear/listar/eliminar; Operario puede crear/listar pero no eliminar; Consulta solo lista; sin token → 401 |
 | `LoteFKTests` | 3 | FK guardada al crear, FK no cambia cuando el lote del galpón cambia, galpón sin lote activo devuelve 400 |
+| `ValidacionesCantidadYGalponTests` | 5 | Cantidad negativa o cero → 400, cantidad 1 válida, no se puede cambiar el galpón al editar, reenviar el mismo galpón es válido |
+| `FechaRecoleccionTests` | 4 | Fecha de mañana o hora futura del mismo día → 400, fecha pasada válida, no se puede editar la fecha a una futura |
 
 Ejecutar:
 
@@ -227,7 +244,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 42 tests |
+| `recolecciones/tests.py` | Nuevo: 51 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |
@@ -279,18 +296,8 @@ La última columna de la tabla (`RecoleccionesPage.jsx`) muestra un ícono
 el ícono no aporta funcionalidad y genera confusión visual. Simplemente
 eliminar la columna `<th></th>` y la `<td>` con el ícono.
 
-### 3. Definir si se puede editar el galpón de una recolección existente
+### ~~3. Definir si se puede editar el galpón de una recolección existente~~
 
-Al editar una recolección en estado Pendiente, no está definido si el campo
-`id_galpon` puede cambiarse. Las implicancias son:
-
-- Si se permite: `perform_create` no inyecta `id_lote` en el update, así que
-  habría que re-detectar el lote activo del nuevo galpón y actualizar `id_lote`
-  también. Esto complejiza el serializer.
-- Si no se permite: agregar validación en `update()` (o en el serializer) que
-  rechace cambios en `id_galpon` con HTTP 400.
-
-La opción más simple y consistente con el modelo de negocio es **no permitir
-cambiar el galpón** una vez creada la recolección: si se equivocaron de galpón,
-se elimina y se crea de nuevo. Esta decisión se debe confirmar con el tutor
-antes de implementarla.
+Resuelto: no se puede cambiar el galpón de una recolección existente. El
+serializer rechaza el cambio con HTTP 400 (ver "Validaciones del backend"). Si
+se equivocaron de galpón, se elimina la recolección y se crea de nuevo.
