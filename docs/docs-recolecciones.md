@@ -29,8 +29,8 @@ La recolección sigue el patrón **cabecera + líneas** ya establecido en el
 proyecto:
 
 - **`Recoleccion`** (cabecera): una por día y por galpón. Registra el galpón,
-  el lote activo en ese momento, la fecha y hora, el estado y observaciones
-  opcionales.
+  el lote activo en ese momento, la fecha y hora, el estado, el usuario que
+  cargó la recolección y observaciones opcionales.
 - **`LineaRecoleccion`** (líneas): una por cada tipo de producto recolectado.
   Registra el producto, la cantidad y el galpón (redundante con la cabecera,
   pero útil para consultas futuras por producto y galpón sin pasar por la
@@ -43,6 +43,7 @@ proyecto:
 | `id_recoleccion` | PK | Identificador |
 | `id_galpon` | FK → Galpon | Galpón donde se realizó la recolección |
 | `id_lote` | FK → Lote | Lote activo al momento de crear la recolección (ver decisión de diseño) |
+| `id_usuario` | FK → Usuario | Usuario que registró la recolección (ver decisión de diseño) |
 | `fecha` | DateTimeField | Fecha y hora de la recolección |
 | `estado` | CHAR(1) | `P` = Pendiente, `F` = Finalizada |
 | `observaciones` | TextField | Texto libre, opcional |
@@ -101,6 +102,35 @@ Se implementó la **Opción B**. El campo `id_lote` se llena automáticamente en
 `perform_create` del ViewSet, sin que el cliente tenga que enviarlo. Si el
 galpón no tiene un lote activo (`T` o `P`), la API rechaza la creación con HTTP
 400 y un mensaje descriptivo.
+
+---
+
+## Decisión de diseño: FK `id_usuario` en `Recoleccion`
+
+### Problema
+
+Cuando un operario o administrador carga una recolección, queda registrado quién
+fue el responsable de esa carga. Este dato es necesario para trazabilidad y
+auditoría operativa.
+
+### Decisión
+
+Se agregó el campo `id_usuario` (FK a `Usuario`) en `Recoleccion`. Al igual que
+`id_lote`, se inyecta automáticamente en `perform_create` del ViewSet a partir
+del usuario autenticado (`request.user`), sin que el cliente deba enviarlo.
+
+El campo es `nullable` para mantener compatibilidad con recolecciones históricas
+creadas antes de esta migración, donde `id_usuario` quedará en `NULL` y se
+muestra como `—` en la interfaz.
+
+La exposición en la API se hace mediante `UsuarioResumenSerializer` (campos
+`id_usuario`, `nombre_completo`, `usuario`), anidado como campo de solo lectura
+en `RecoleccionSerializer`. El campo `nombre_completo` es una propiedad del
+modelo `Usuario` que concatena `nombre` y `apellido`.
+
+En la interfaz, la columna **"Cargado por"** aparece tanto en la tabla de
+recolecciones como en el panel de detalle, mostrando `nombre_completo` si está
+disponible, o el nombre de usuario como fallback.
 
 ---
 
@@ -198,7 +228,8 @@ cualquier otro. No se bloquea ni se muestra aviso.
 }
 ```
 
-El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
+Los campos `id_lote` e `id_usuario` no se envían: la API los detecta e inyecta
+automáticamente.
 
 ### Ejemplo de respuesta
 
@@ -207,6 +238,11 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
   "id_recoleccion": 7,
   "galpon": { "id_galpon": 1, "galpon": "Galpón Norte" },
   "lote": { "id_lote": 3, "codigo": "L-2026-003" },
+  "usuario": {
+    "id_usuario": 2,
+    "nombre_completo": "Juan Pérez",
+    "usuario": "jperez"
+  },
   "fecha": "2026-06-15T08:00:00Z",
   "estado": "P",
   "estado_display": "Pendiente",
@@ -263,14 +299,16 @@ python manage.py test recolecciones --verbosity=2
 
 | Archivo | Cambio |
 |---|---|
-| `recolecciones/models.py` | Nuevo: modelos `Recoleccion` y `LineaRecoleccion` |
+| `recolecciones/models.py` | Nuevo: modelos `Recoleccion` y `LineaRecoleccion`; agrega FK `id_usuario` |
 | `recolecciones/migrations/0001_initial.py` | Migración inicial |
 | `recolecciones/migrations/0002_recoleccion_id_lote.py` | Agrega FK `id_lote` |
-| `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
-| `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
+| `recolecciones/migrations/0003_recoleccion_id_usuario.py` | Agrega FK `id_usuario` |
+| `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` y `UsuarioResumenSerializer` |
+| `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` (inyecta `id_lote` e `id_usuario`) y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
 | `recolecciones/tests.py` | Nuevo: 74 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
+| `usuarios/migrations/0002_alter_usuario_options.py` | Sincroniza opciones de Meta (`verbose_name`, `verbose_name_plural`) |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |
 
@@ -279,50 +317,5 @@ python manage.py test recolecciones --verbosity=2
 | Archivo | Cambio |
 |---|---|
 | `src/api/recolecciones.js` | Nuevo: `listRecolecciones`, `createRecoleccion`, `updateRecoleccion`, `deleteRecoleccion`, `finalizarRecoleccion` |
-| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle y filtros |
+| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle y filtros; incluye columna y fila de detalle "Cargado por" |
 | `src/components/RecoleccionFormModal.jsx` | Nuevo: modal de alta y edición con gestión dinámica de líneas |
-
----
-
-## Pendientes de la feature
-
-Los siguientes puntos quedaron identificados para resolver antes de integrar a
-`develop` o en un `fix/` posterior:
-
-### 1. Permitir al Operario eliminar recolecciones en estado Pendiente
-
-Actualmente solo el Administrador puede eliminar recolecciones (endpoint
-`DELETE`). La regla de negocio a definir es si el Operario debería poder
-eliminar las que él mismo creó mientras están en estado `P`, pero no las
-finalizadas.
-
-Para implementarlo, cambiar `get_permissions` en `RecoleccionViewSet`:
-
-```python
-def get_permissions(self):
-    if self.action in ("list", "retrieve"):
-        return [IsAuthenticated()]
-    if self.action == "destroy":
-        # Opción actual: solo Admin
-        return [EsAdministrador()]
-        # Opción propuesta: Admin siempre; Operario solo si está PENDIENTE
-        # (la restricción por estado se aplica en perform_destroy o has_object_permission)
-    return [EsAdministradorOOperario()]
-```
-
-La lógica de estado (`solo PENDIENTE para Operario`) se implementa mejor en
-`has_object_permission` dentro de una clase de permiso específica, para no
-mezclar validación de negocio con la lógica de permisos del ViewSet.
-
-### 2. Quitar el ícono de "ojito" en la tabla de recolecciones
-
-La última columna de la tabla (`RecoleccionesPage.jsx`) muestra un ícono
-`fa-eye` decorativo. Dado que el detalle se despliega al hacer clic en la fila,
-el ícono no aporta funcionalidad y genera confusión visual. Simplemente
-eliminar la columna `<th></th>` y la `<td>` con el ícono.
-
-### ~~3. Definir si se puede editar el galpón de una recolección existente~~
-
-Resuelto: no se puede cambiar el galpón de una recolección existente. El
-serializer rechaza el cambio con HTTP 400 (ver "Validaciones del backend"). Si
-se equivocaron de galpón, se elimina la recolección y se crea de nuevo.
