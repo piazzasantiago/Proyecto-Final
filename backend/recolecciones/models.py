@@ -3,6 +3,7 @@ from django.db import models
 from galpones.models import Galpon
 from lotes.models import Lote
 from productos.models import Producto
+from usuarios.models import Usuario
 
 
 class Recoleccion(models.Model):
@@ -18,6 +19,9 @@ class Recoleccion(models.Model):
 
     Un galpón debe tener un lote activo (estado T o P) para poder registrar una
     recolección; si no lo tiene, la API devuelve 400.
+
+    El campo id_usuario registra quién cargó la recolección (se inyecta
+    automáticamente desde request.user en perform_create).
 
     El campo estado refleja el ciclo de vida de la recolección:
         P (Pendiente): recién creada, editable.
@@ -42,6 +46,14 @@ class Recoleccion(models.Model):
         Lote,
         on_delete=models.PROTECT,
         db_column="idLote",
+        related_name="recolecciones",
+        null=True,
+        blank=True,
+    )
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.PROTECT,
+        db_column="idUsuario",
         related_name="recolecciones",
         null=True,
         blank=True,
