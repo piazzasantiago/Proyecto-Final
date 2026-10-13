@@ -49,6 +49,8 @@ class LineaRecoleccionSerializer(serializers.ModelSerializer):
         write_only=True,
     )
 
+    cantidad = serializers.IntegerField(min_value=1)
+
     class Meta:
         model = LineaRecoleccion
         fields = [
@@ -131,6 +133,13 @@ class RecoleccionSerializer(serializers.ModelSerializer):
         return recoleccion
 
     def update(self, instance, validated_data):
+        # El lote se fija al crear según el galpón; si el galpón cambiara, el
+        # lote quedaría desfasado. Por eso el galpón no se puede modificar.
+        nuevo_galpon = validated_data.pop("id_galpon", None)
+        if nuevo_galpon is not None and nuevo_galpon != instance.id_galpon:
+            raise serializers.ValidationError(
+                {"id_galpon_id": "No se puede cambiar el galpón de una recolección existente."}
+            )
         lineas_data = validated_data.pop("lineas", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

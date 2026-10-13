@@ -90,7 +90,7 @@ class LineaRecoleccion(models.Model):
         db_column="idProducto",
         related_name="lineas_recoleccion",
     )
-    cantidad = models.IntegerField()
+    cantidad = models.PositiveIntegerField()
 
     class Meta:
         db_table = "LineasRecoleccion"

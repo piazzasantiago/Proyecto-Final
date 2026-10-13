@@ -9,8 +9,9 @@ Clases de tests:
     FinalizarRecoleccionTests     (5)  CU-REC-FIN – finalizar recolección
     PermisosRecoleccionTests     (10)  matriz rol × operación
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
+    ValidacionesCantidadYGalponTests (5)  cantidad >= 1 y galpón inmutable al editar
 
-Total: 42 tests
+Total: 47 tests
 """
 
 import datetime
@@ -598,3 +599,68 @@ class LoteFKTests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+
+
+# ---------------------------------------------------------------------------
+# Cantidad positiva y galpón inmutable al editar
+# ---------------------------------------------------------------------------
+
+class ValidacionesCantidadYGalponTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_valid")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon("Galpón A")
+        self.otro_galpon = crear_galpon("Galpón B")
+        self.lote = crear_lote(self.galpon)
+        self.otro_lote = crear_lote(self.otro_galpon)
+        self.producto = crear_producto()
+
+    def _payload_con_cantidad(self, cantidad):
+        payload = payload_recoleccion(self.galpon, self.producto)
+        payload["lineas"][0]["cantidad"] = cantidad
+        return payload
+
+    def test_cantidad_negativa_devuelve_400(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(-50), format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_cantidad_cero_devuelve_400(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(0), format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_cantidad_uno_es_valida(self):
+        resp = self.client.post(
+            "/api/recolecciones/", self._payload_con_cantidad(1), format="json"
+        )
+        self.assertEqual(resp.status_code, 201)
+
+    def test_no_se_puede_cambiar_el_galpon_al_editar(self):
+        rec = crear_recoleccion(self.galpon, self.lote, self.producto)
+        resp = self.client.patch(
+            f"/api/recolecciones/{rec.id_recoleccion}/",
+            {"id_galpon_id": self.otro_galpon.id_galpon},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        rec.refresh_from_db()
+        self.assertEqual(rec.id_galpon, self.galpon)
+        self.assertEqual(rec.id_lote, self.lote)
+
+    def test_reenviar_el_mismo_galpon_al_editar_es_valido(self):
+        rec = crear_recoleccion(self.galpon, self.lote, self.producto)
+        resp = self.client.patch(
+            f"/api/recolecciones/{rec.id_recoleccion}/",
+            {"id_galpon_id": self.galpon.id_galpon, "observaciones": "ok"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        rec.refresh_from_db()
+        self.assertEqual(rec.observaciones, "ok")
