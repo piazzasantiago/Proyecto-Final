@@ -14,8 +14,9 @@ Clases de tests:
     ObservacionesRecoleccionTests (3)  máximo de 500 caracteres
     UnaRecoleccionPorDiaTests     (7)  un galpón admite una sola recolección por día
     ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
+    StockDeProductosTests         (6)  el stock de Productos suma recolecciones finalizadas
 
-Total: 68 tests
+Total: 74 tests
 """
 
 import datetime
@@ -905,4 +906,81 @@ class ProductoDesactivadoTests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+
+
+# ---------------------------------------------------------------------------
+# El stock de Productos suma las recolecciones finalizadas
+# ---------------------------------------------------------------------------
+
+class StockDeProductosTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_stock")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto("Huevo Nº1")
+        self.otro = crear_producto("Huevo Nº2")
+
+    def _stock(self, producto):
+        resp = self.client.get(f"/api/productos/{producto.id_producto}/")
+        self.assertEqual(resp.status_code, 200)
+        return resp.data
+
+    def _recoleccion(self, dia, producto, cantidad, estado):
+        rec = Recoleccion.objects.create(
+            id_galpon=self.galpon,
+            id_lote=self.lote,
+            fecha=datetime.datetime(2026, 6, dia, 8, 0, tzinfo=timezone.get_current_timezone()),
+            estado=estado,
+        )
+        LineaRecoleccion.objects.create(
+            id_recoleccion=rec, id_galpon=self.galpon, id_producto=producto, cantidad=cantidad
+        )
+        return rec
+
+    def test_sin_recolecciones_el_stock_es_el_inicial(self):
+        Producto.objects.filter(pk=self.producto.pk).update(stock_inicial=30)
+        datos = self._stock(self.producto)
+        self.assertEqual(datos["stock_inicial"], 30)
+        self.assertEqual(datos["stock_recolectado"], 0)
+        self.assertEqual(datos["stock_actual"], 30)
+
+    def test_una_recoleccion_pendiente_no_suma(self):
+        self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_PENDIENTE)
+        datos = self._stock(self.producto)
+        self.assertEqual(datos["stock_recolectado"], 0)
+        self.assertEqual(datos["stock_actual"], 0)
+
+    def test_una_recoleccion_finalizada_suma(self):
+        Producto.objects.filter(pk=self.producto.pk).update(stock_inicial=30)
+        self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_FINALIZADA)
+        datos = self._stock(self.producto)
+        self.assertEqual(datos["stock_recolectado"], 100)
+        self.assertEqual(datos["stock_actual"], 130)
+
+    def test_al_finalizar_por_la_api_el_stock_sube(self):
+        rec = self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_PENDIENTE)
+        self.assertEqual(self._stock(self.producto)["stock_actual"], 0)
+        resp = self.client.post(f"/api/recolecciones/{rec.id_recoleccion}/finalizar/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._stock(self.producto)["stock_actual"], 100)
+
+    def test_suma_varias_recolecciones_y_separa_por_producto(self):
+        self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_FINALIZADA)
+        self._recoleccion(11, self.producto, 50, Recoleccion.ESTADO_FINALIZADA)
+        self._recoleccion(12, self.otro, 7, Recoleccion.ESTADO_FINALIZADA)
+        self.assertEqual(self._stock(self.producto)["stock_actual"], 150)
+        self.assertEqual(self._stock(self.otro)["stock_actual"], 7)
+        resp = self.client.get("/api/productos/")
+        por_nombre = {p["producto"]: p["stock_actual"] for p in resp.data["results"]}
+        self.assertEqual(por_nombre, {"Huevo Nº1": 150, "Huevo Nº2": 7})
+
+    def test_al_borrar_una_recoleccion_finalizada_el_stock_baja(self):
+        rec = self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_FINALIZADA)
+        self.assertEqual(self._stock(self.producto)["stock_actual"], 100)
+        resp = self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
+        self.assertEqual(resp.status_code, 204)
+        self.assertEqual(self._stock(self.producto)["stock_actual"], 0)
 

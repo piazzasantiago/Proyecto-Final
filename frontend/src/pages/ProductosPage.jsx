@@ -188,7 +188,9 @@ export default function ProductosPage() {
               <div className="detail-body">
                 <div className="detail-sec-title" style={{ marginTop: 0 }}>Datos del producto</div>
                 <div className="detail-row"><span>Nombre</span><span>{selected.producto}</span></div>
-                <div className="detail-row"><span>Stock actual</span><span>{selected.stock_actual}</span></div>
+                <div className="detail-row"><span>Stock actual</span><span><strong>{selected.stock_actual}</strong></span></div>
+                <div className="detail-row"><span>Stock inicial / ajuste</span><span>{selected.stock_inicial}</span></div>
+                <div className="detail-row"><span>Recolectado (finalizadas)</span><span>{selected.stock_recolectado}</span></div>
                 {selected.descripcion && (
                   <div className="detail-row" style={{ borderBottom: "none", alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
                     <span>Descripción</span>

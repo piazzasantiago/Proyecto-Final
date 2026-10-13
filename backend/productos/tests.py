@@ -9,9 +9,9 @@ Clases de tests:
     ActivarProductoTests      (4)  CU51 – activar
     DesactivarProductoTests   (4)  CU54 – desactivar
     PermisosProductosTests   (14)  matriz rol × operación (incluye activar/desactivar)
-    StockActualProductoTests  (4)  carga manual de stock_actual (+1 en NuevoProductoTests)
+    StockActualProductoTests  (5)  stock_inicial editable y stock_actual de solo lectura (+1 en NuevoProductoTests)
 
-Total: 43 tests
+Total: 44 tests
 """
 
 from django.test import TestCase
@@ -139,8 +139,10 @@ class NuevoProductoTests(TestCase):
         resp = self.client.post("/api/productos/", {"producto": "Huevo Nº1"}, format="json")
         self.assertEqual(resp.status_code, 400)
 
-    def test_stock_actual_por_defecto_cero(self):
+    def test_stock_por_defecto_cero(self):
         resp = self.client.post("/api/productos/", {"producto": "Huevo Nº4"}, format="json")
+        self.assertEqual(resp.data["stock_inicial"], 0)
+        self.assertEqual(resp.data["stock_recolectado"], 0)
         self.assertEqual(resp.data["stock_actual"], 0)
 
 
@@ -185,7 +187,7 @@ class ModificarProductoTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# stock_actual – carga manual (mientras no exista Recolecciones/Salidas)
+# stock_inicial (carga manual) y stock_actual (calculado, solo lectura)
 # ---------------------------------------------------------------------------
 
 class StockActualProductoTests(TestCase):
@@ -198,35 +200,45 @@ class StockActualProductoTests(TestCase):
 
     def test_crear_con_stock_inicial(self):
         resp = self.client.post(
-            "/api/productos/", {"producto": "Huevo Nº5", "stock_actual": 150}, format="json"
+            "/api/productos/", {"producto": "Huevo Nº5", "stock_inicial": 150}, format="json"
         )
         self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data["stock_inicial"], 150)
         self.assertEqual(resp.data["stock_actual"], 150)
 
-    def test_modificar_stock_via_patch(self):
+    def test_modificar_stock_inicial_via_patch(self):
         resp = self.client.patch(
-            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": 80}, format="json"
+            f"/api/productos/{self.producto.id_producto}/", {"stock_inicial": 80}, format="json"
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data["stock_actual"], 80)
+        self.assertEqual(resp.data["stock_inicial"], 80)
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock_actual, 80)
+        self.assertEqual(self.producto.stock_inicial, 80)
 
     def test_stock_negativo_rechazado(self):
         resp = self.client.patch(
-            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": -5}, format="json"
+            f"/api/productos/{self.producto.id_producto}/", {"stock_inicial": -5}, format="json"
         )
         self.assertEqual(resp.status_code, 400)
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock_actual, 0)
+        self.assertEqual(self.producto.stock_inicial, 0)
 
     def test_modificar_stock_no_afecta_otros_campos(self):
         self.client.patch(
-            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": 42}, format="json"
+            f"/api/productos/{self.producto.id_producto}/", {"stock_inicial": 42}, format="json"
         )
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.producto, "Huevo Nº1")
-        self.assertEqual(self.producto.stock_actual, 42)
+        self.assertEqual(self.producto.stock_inicial, 42)
+
+    def test_stock_actual_es_de_solo_lectura(self):
+        resp = self.client.patch(
+            f"/api/productos/{self.producto.id_producto}/", {"stock_actual": 999}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["stock_actual"], 0)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock_inicial, 0)
 
 
 # ---------------------------------------------------------------------------

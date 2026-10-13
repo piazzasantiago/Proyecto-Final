@@ -16,23 +16,23 @@ de `feature/gestion-recolecciones` referenciará uno de estos productos.
 
 - CRUD completo de productos (nombre, descripción, estado).
 - Activar / desactivar como acciones dedicadas (no vía `PATCH` del estado).
-- Campo `stock_actual`: carga manual del stock disponible, editable por el
-  Administrador.
+- Stock: `stock_inicial` (carga manual del Administrador) más lo recolectado en
+  recolecciones finalizadas. La API expone `stock_recolectado` y `stock_actual`
+  como campos calculados de solo lectura.
 - Acceso de solo lectura para el rol Consulta.
-- Tests automatizados del módulo (43 tests en 8 clases).
+- Tests automatizados del módulo (44 tests en 8 clases).
 - Interfaz React con tarjetas compactas y panel de detalle; botones de acción
   visibles solo para el rol Administrador.
 
 ### Qué no incluye
 
-- El cálculo automático del stock a partir de recolecciones y salidas. La
-  Educción de requisitos describe el stock disponible como "recolecciones
-  menos salidas", pero ninguno de esos dos módulos existe todavía. Mientras
-  tanto, `stock_actual` es un campo que carga el Administrador a mano (ver
-  sección 10, Pendientes).
-- La asignación de un producto a una línea de recolección. Eso se modela en
-  `feature/gestion-recolecciones`, que consumirá los productos activos de
-  este módulo.
+- Los descuentos de stock por descartes y salidas. La Educción de requisitos
+  describe el stock disponible como recolecciones menos descartes menos
+  salidas; hoy se suman las recolecciones, pero esos dos módulos todavía no
+  existen (ver sección 10, Pendientes).
+- La carga de las recolecciones. Eso se modela en `feature/gestion-recolecciones`
+  (ver `docs-recolecciones.md`), que consume los productos activos de este
+  módulo y aporta el stock recolectado.
 
 ---
 
@@ -116,12 +116,17 @@ sucede con Galpones.
 | `producto` | VARCHAR(80) | Obligatorio, único |
 | `descripcion` | TEXT | Opcional |
 | `estado` | CHAR(1) | A (Activo), I (Inactivo) — default A |
-| `stock_actual` | INTEGER | Obligatorio ≥ 0 — default 0 |
+| `stock_inicial` | INTEGER | Obligatorio ≥ 0 — default 0 (stock de partida o ajuste manual) |
 
 **Propiedad calculada (no es columna):**
 
 - `estado_display` — texto legible del estado (`"Activo"` / `"Inactivo"`),
   incluido en todas las respuestas de la API.
+- `stock_recolectado` — suma de las cantidades de las líneas de recolecciones
+  **finalizadas** de ese producto.
+- `stock_actual` — `stock_inicial + stock_recolectado`. No se guarda: se calcula
+  en cada consulta, así que no puede desfasarse (por ejemplo, si se borra una
+  recolección finalizada, el stock baja solo).
 
 ---
 
@@ -152,6 +157,8 @@ sucede con Galpones.
       "descripcion": "Huevos de más de 63 gramos",
       "estado": "A",
       "estado_display": "Activo",
+      "stock_inicial": 50,
+      "stock_recolectado": 100,
       "stock_actual": 150
     }
   ]
@@ -162,9 +169,15 @@ sucede con Galpones.
 pero modificarlo con `PATCH` no tiene efecto; los cambios de estado solo
 ocurren a través de `activar`/`desactivar`.
 
-**Campo `stock_actual` (editable):** a diferencia de `estado`, se puede
-escribir tanto al crear como al modificar. Es un entero sin signo
-(`PositiveIntegerField`); un valor negativo devuelve `400`.
+**Campo `stock_inicial` (editable):** se puede escribir al crear y al
+modificar. Es un entero sin signo (`PositiveIntegerField`); un valor negativo
+devuelve `400`.
+
+**Campos `stock_recolectado` y `stock_actual` (solo lectura):** se calculan
+(ver sección 4). Enviarlos en un `POST`/`PATCH` no tiene efecto. El listado los
+obtiene con una sola consulta (anotación en `get_queryset`), sin una consulta
+por producto. Solo cuentan las recolecciones en estado Finalizada; las
+pendientes no suman.
 
 ---
 
@@ -185,8 +198,8 @@ terminar.
 | `ActivarProductoTests` | 4 | CU51: activación, persistencia, idempotencia (409), producto inexistente |
 | `DesactivarProductoTests` | 4 | CU54: desactivación, persistencia, idempotencia (409), producto inexistente |
 | `PermisosProductosTests` | 14 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
-| `StockActualProductoTests` | 4 | Carga de stock al crear, modificación vía `PATCH`, rechazo de valores negativos, aislamiento de otros campos |
-| **Total** | **43** | |
+| `StockActualProductoTests` | 5 | `stock_inicial` al crear y vía `PATCH`, rechazo de negativos, aislamiento de otros campos, `stock_actual` de solo lectura |
+| **Total** | **44** | |
 
 ### Cómo correrlos
 
@@ -217,8 +230,9 @@ backend/
     ├── admin.py          ProductoAdmin
     ├── migrations/
     │   ├── 0001_initial.py
-    │   └── 0002_producto_stock_actual.py
-    └── tests.py          43 tests en 8 clases
+    │   ├── 0002_producto_stock_actual.py
+    │   └── 0003_rename_stock_actual_producto_stock_inicial.py
+    └── tests.py          44 tests en 8 clases
 ```
 
 ### Frontend
@@ -263,14 +277,26 @@ vacío. Se creó una clase propia (`.producto-card`, sin `aspect-ratio`
 forzado) con el nombre en tipografía grande (21px, peso 800) y un ícono
 distintivo, en lugar de adaptar el estilo pensado para otra entidad.
 
-### 8.4 `stock_actual` como carga manual
+### 8.4 Stock calculado, no guardado
 
-El dominio describe el stock disponible como un valor calculado
-(recolecciones acumuladas menos salidas), pero ninguno de esos dos módulos
-existe todavía. En lugar de esperar a tenerlos para mostrar algo en esta
-pantalla, se agregó `stock_actual` como un campo más que el Administrador
-edita a mano, dejando aclarado en el modelo y en la vista que es temporal
-(ver sección 10, Pendientes).
+El dominio describe el stock disponible como un valor calculado (recolecciones
+menos descartes menos salidas). Primero se agregó `stock_actual` como un campo
+manual mientras no existían esos módulos; al construirse Recolecciones se pasó a
+calcularlo: el campo guardado se renombró a `stock_inicial` (stock de partida o
+ajuste) y el stock que muestra la API es `stock_inicial` más lo recolectado en
+recolecciones **finalizadas**.
+
+Se eligió calcularlo en lugar de sumar al finalizar porque así no hay nada que
+mantener sincronizado: borrar una recolección finalizada, o cualquier otro
+cambio, se refleja solo, y cuando existan Descartes y Salidas bastará con
+restarlos en el mismo cálculo. Las recolecciones pendientes no suman: solo la
+finalización confirma que los huevos están contados.
+
+Dependencia entre apps: `productos` no importa `recolecciones` a nivel de
+módulo (es `recolecciones` la que depende de `productos`); el cálculo usa
+imports diferidos dentro de `ProductoViewSet.get_queryset` y
+`ProductoSerializer`, igual que `galpones` con `lotes`. Los tests que combinan
+ambos módulos viven en `recolecciones/tests.py` (`StockDeProductosTests`).
 
 ### 8.5 Consulta con acceso de solo lectura
 
@@ -289,8 +315,8 @@ catálogo sin ninguna acción disponible.
 
 **Backend**
 
-- 43 tests en verde; suite completa del proyecto (`galpones`, `lotes`,
-  `productos`, `usuarios`) en 197/197.
+- 44 tests en verde; suite completa del proyecto (`galpones`, `lotes`,
+  `productos`, `recolecciones`, `usuarios`) en 272/272.
 - Los tres roles pueden listar y ver el detalle de productos.
 - Operario y Consulta reciben 403 al intentar crear, modificar, borrar o
   cambiar el estado de un producto.
@@ -298,7 +324,9 @@ catálogo sin ninguna acción disponible.
 - Activar y desactivar devuelven 409 si el producto ya está en el estado
   solicitado.
 - Un nombre duplicado devuelve 400.
-- Un `stock_actual` negativo devuelve 400 y no modifica el valor en base.
+- Un `stock_inicial` negativo devuelve 400 y no modifica el valor en base.
+- `stock_actual` suma lo recolectado en recolecciones finalizadas; las pendientes
+  no suman, finalizar por la API lo hace subir y borrar una finalizada lo baja.
 
 **Frontend**
 
@@ -306,18 +334,17 @@ catálogo sin ninguna acción disponible.
   Activar/Desactivar, Eliminar) no aparecen para Operario ni Consulta.
 - Consulta ve la sección en el menú y puede navegar a `/app/productos` en
   solo lectura.
-- El formulario incluye el campo de stock con una aclaración de que es
-  carga manual.
-- Cada tarjeta muestra el stock actual en grande junto con el nombre.
+- El formulario incluye "Stock inicial / ajuste", con una aclaración de que el
+  stock actual suma además lo recolectado.
+- Cada tarjeta muestra el stock actual en grande junto con el nombre; el panel
+  de detalle desglosa stock actual, stock inicial y recolectado.
 
 ---
 
 ## 10. Pendientes
 
-- **Cálculo automático de stock:** cuando existan `feature/gestion-recolecciones`
-  y la sección de Salidas, `stock_actual` debería calcularse como
-  recolecciones acumuladas menos salidas, en lugar de (o además de) la
-  carga manual actual.
+- **Descartes y Salidas:** cuando existan, el stock actual debe restar descartes
+  y salidas además de sumar las recolecciones finalizadas (ver sección 8.4).
 - **Relación con Línea de Recolección:** cada línea de recolección deberá
   referenciar un producto activo. Falta decidir si el borrado de un producto
   (CU53) debe bloquearse cuando tiene líneas asociadas, como ya ocurre con

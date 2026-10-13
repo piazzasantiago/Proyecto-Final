@@ -1,3 +1,5 @@
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -25,18 +27,40 @@ class ProductoViewSet(viewsets.ModelViewSet):
     modificar y eliminar requiere rol Administrador. Mismo patrón que
     GalponViewSet.
 
-    stock_actual se edita como un campo más (alta/modificación), a cargo
-    del Administrador. Es una carga manual: el sistema todavía no lo
-    calcula automáticamente a partir de Recolecciones y Salidas.
+    Stock: stock_inicial se edita como un campo más (alta/modificación), a
+    cargo del Administrador. stock_recolectado y stock_actual son de solo
+    lectura y se calculan: stock_actual = stock_inicial + lo recolectado en
+    recolecciones finalizadas.
     """
 
-    queryset = Producto.objects.all()
+    queryset = Producto.objects.all()  # get_queryset() agrega el stock recolectado
     serializer_class = ProductoSerializer
     permission_classes = [LecturaAutenticados_EscrituraAdministrador]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["estado"]
     search_fields = ["producto", "descripcion"]
     ordering_fields = ["producto"]
+
+    def get_queryset(self):
+        """
+        Anota cada producto con lo recolectado en recolecciones FINALIZADAS
+        (stock_recolectado), para calcular el stock actual sin una consulta
+        por producto.
+        """
+        # Import diferido: recolecciones depende de productos, no al revés.
+        from recolecciones.models import Recoleccion
+
+        return Producto.objects.annotate(
+            stock_recolectado=Coalesce(
+                Sum(
+                    "lineas_recoleccion__cantidad",
+                    filter=Q(
+                        lineas_recoleccion__id_recoleccion__estado=Recoleccion.ESTADO_FINALIZADA
+                    ),
+                ),
+                0,
+            )
+        )
 
     def update(self, request, *args, **kwargs):
         producto = self.get_object()

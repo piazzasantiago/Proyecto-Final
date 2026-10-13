@@ -154,6 +154,15 @@ la versión de DRF instalada.
 - **Galpón inmutable:** una vez creada la recolección no se puede cambiar el
   galpón (HTTP 400). Reenviar el mismo galpón es válido.
 
+### Impacto en el stock de Productos
+
+El stock de cada producto (ver `docs-productos.md`) suma lo recolectado en
+recolecciones **finalizadas**: al pasar una recolección a Finalizada, la cantidad
+de cada una de sus líneas se incorpora al `stock_actual` del producto. Las
+pendientes no suman. No se guarda nada al finalizar: el stock se calcula en cada
+consulta, de modo que borrar una recolección finalizada (solo el Administrador)
+lo baja automáticamente.
+
 ### Lote en Transición
 
 Se puede registrar una recolección con el lote del galpón en **Transición** (`T`)
@@ -221,8 +230,8 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
 
 ## Tests
 
-Se implementaron **68 tests** en `backend/recolecciones/tests.py`, organizados
-en 12 clases:
+Se implementaron **74 tests** en `backend/recolecciones/tests.py`, organizados
+en 13 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
@@ -238,6 +247,7 @@ en 12 clases:
 | `ObservacionesRecoleccionTests` | 3 | 500 caracteres es válido, 501 → 400, no se puede editar a más de 500 |
 | `UnaRecoleccionPorDiaTests` | 7 | Segunda recolección del mismo día y galpón → 400, otro galpón u otro día válidos, la finalizada también cuenta, medianoche (días distintos), editar dentro del mismo día, mover la fecha a un día ocupado → 400 |
 | `ProductoDesactivadoTests` | 4 | Conservar un producto desactivado al editar, sumar uno activo, no agregar uno inactivo nuevo, no crear con inactivo |
+| `StockDeProductosTests` | 6 | El stock de Productos: sin recolecciones es el inicial, las pendientes no suman, las finalizadas sí, finalizar por la API lo sube, suma varias y separa por producto, borrar una finalizada lo baja |
 
 Ejecutar:
 
@@ -259,7 +269,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 68 tests |
+| `recolecciones/tests.py` | Nuevo: 74 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |

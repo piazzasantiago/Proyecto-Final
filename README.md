@@ -189,7 +189,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 265 tests in ~Xs
+Ran 272 tests in ~Xs
 OK
 ```
 
@@ -298,7 +298,7 @@ En `docs/`:
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
-| `docs-productos.md` | Gestión de productos, activar/desactivar, stock manual y tests (CU49 a CU54) |
+| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado y tests (CU49 a CU54) |
 | `docs-recolecciones.md` | Recolección diaria, estructura cabecera-líneas, FK a lote, estados y tests (CU24 a CU32) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
