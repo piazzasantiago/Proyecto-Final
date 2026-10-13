@@ -29,6 +29,10 @@ function formatGalpon(rec) {
   return id ? `G-${String(id).padStart(2, "0")} · ${nombre}` : nombre;
 }
 
+function formatUsuario(rec) {
+  return rec.usuario?.nombre_completo || rec.usuario?.usuario || "—";
+}
+
 export default function RecoleccionesPage() {
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
@@ -199,7 +203,7 @@ export default function RecoleccionesPage() {
                     <th>Estado</th>
                     <th>Ítems</th>
                     <th>Total uds.</th>
-                    <th></th>
+                    <th>Cargado por</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,9 +236,7 @@ export default function RecoleccionesPage() {
                         </td>
                         <td>{(rec.lineas ?? []).length}</td>
                         <td>{totalUnidades(rec).toLocaleString("es-AR")}</td>
-                        <td>
-                          <i className="fa-solid fa-eye" style={{ color: "var(--gray-400)" }}></i>
-                        </td>
+                        <td>{formatUsuario(rec)}</td>
                       </tr>
                     );
                   })}
@@ -279,6 +281,10 @@ export default function RecoleccionesPage() {
                 <div className="detail-row">
                   <span>Estado</span>
                   <span>{selected.estado_display}</span>
+                </div>
+                <div className="detail-row">
+                  <span>Cargado por</span>
+                  <span>{formatUsuario(selected)}</span>
                 </div>
                 {selected.observaciones && (
                   <div
