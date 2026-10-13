@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from galpones.models import Galpon
@@ -97,6 +98,14 @@ class RecoleccionSerializer(serializers.ModelSerializer):
         read_only_fields = ["id_recoleccion", "estado"]
 
     # ── Validaciones ──────────────────────────────────────────────────────────
+
+    def validate_fecha(self, value):
+        """Una recolección registra algo que ya ocurrió: no admite fecha/hora futura."""
+        if value > timezone.now():
+            raise serializers.ValidationError(
+                "La fecha y hora de la recolección no puede ser futura."
+            )
+        return value
 
     def validate_lineas(self, lineas):
         if not lineas:

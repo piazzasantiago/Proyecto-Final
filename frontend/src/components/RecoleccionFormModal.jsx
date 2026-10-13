@@ -5,6 +5,14 @@ function emptyLinea() {
   return { id_producto_id: "", cantidad: "" };
 }
 
+// Fecha y hora actuales en horario local, con el formato que espera el input
+// datetime-local (AAAA-MM-DDTHH:mm). Se usa como máximo permitido.
+function ahoraLocal() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
 function initForm(initialData) {
   if (!initialData) {
     return {
@@ -48,9 +56,12 @@ export default function RecoleccionFormModal({
   // Mensajes de validación nativos en español (el navegador los muestra en
   // inglés por defecto).
   function handleFechaInvalid(e) {
+    const v = e.target.validity;
     e.target.setCustomValidity(
-      e.target.validity.valueMissing
+      v.valueMissing
         ? "Debe ingresar la fecha y hora de la recolección"
+        : v.rangeOverflow
+        ? "La fecha y hora de la recolección no puede ser futura"
         : "La fecha y hora no es válida. Completá día, mes, año, hora y minutos."
     );
   }
@@ -178,6 +189,7 @@ export default function RecoleccionFormModal({
                   value={form.fecha}
                   onChange={handleChange}
                   onInvalid={handleFechaInvalid}
+                  max={ahoraLocal()}
                   required
                 />
                 {errors.fecha && (

@@ -10,13 +10,15 @@ Clases de tests:
     PermisosRecoleccionTests     (10)  matriz rol × operación
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
     ValidacionesCantidadYGalponTests (5)  cantidad >= 1 y galpón inmutable al editar
+    FechaRecoleccionTests         (4)  la fecha y hora no puede ser futura
 
-Total: 47 tests
+Total: 51 tests
 """
 
 import datetime
 
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from galpones.models import Galpon, UsuarioDelGalpon
@@ -664,3 +666,53 @@ class ValidacionesCantidadYGalponTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         rec.refresh_from_db()
         self.assertEqual(rec.observaciones, "ok")
+
+
+# ---------------------------------------------------------------------------
+# La fecha y hora de la recolección no puede ser futura
+# ---------------------------------------------------------------------------
+
+class FechaRecoleccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_fecha")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto()
+
+    def _crear_con_fecha(self, fecha):
+        payload = payload_recoleccion(self.galpon, self.producto, fecha=fecha.isoformat())
+        return self.client.post("/api/recolecciones/", payload, format="json")
+
+    def test_fecha_de_manana_devuelve_400(self):
+        manana = timezone.localtime() + datetime.timedelta(days=1)
+        resp = self._crear_con_fecha(manana.replace(tzinfo=None))
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("fecha", resp.data)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_hora_futura_del_mismo_dia_devuelve_400(self):
+        dentro_de_un_rato = timezone.localtime() + datetime.timedelta(hours=2)
+        resp = self._crear_con_fecha(dentro_de_un_rato.replace(tzinfo=None))
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_fecha_pasada_es_valida(self):
+        ayer = timezone.localtime() - datetime.timedelta(days=1)
+        resp = self._crear_con_fecha(ayer.replace(tzinfo=None))
+        self.assertEqual(resp.status_code, 201)
+
+    def test_no_se_puede_editar_la_fecha_a_una_futura(self):
+        rec = crear_recoleccion(self.galpon, self.lote, self.producto)
+        manana = timezone.localtime() + datetime.timedelta(days=1)
+        resp = self.client.patch(
+            f"/api/recolecciones/{rec.id_recoleccion}/",
+            {"fecha": manana.replace(tzinfo=None).isoformat()},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        rec.refresh_from_db()
+        self.assertEqual(rec.fecha.year, 2026)
+        self.assertEqual(rec.fecha.month, 6)
