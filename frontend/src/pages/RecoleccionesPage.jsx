@@ -360,8 +360,8 @@ export default function RecoleccionesPage() {
                     className="detail-actions"
                     style={{ color: "var(--gray-500)", fontSize: 13 }}
                   >
-                    <i className="fa-solid fa-lock"></i> Recolección finalizada —
-                    solo lectura
+                    <i className="fa-solid fa-lock"></i> Recolección finalizada. No se
+                    puede editar.
                     {esAdministrador && (
                       <button
                         className="btn btn-outline btn-danger-ghost"

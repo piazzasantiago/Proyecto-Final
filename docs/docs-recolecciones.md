@@ -139,6 +139,8 @@ la versión de DRF instalada.
 - **Fecha y hora no futura:** `fecha` no puede ser posterior al momento actual,
   al crear ni al editar; devuelve HTTP 400. El formulario también limita el
   campo al momento actual y muestra el aviso en español.
+- **Observaciones:** máximo 500 caracteres; más devuelve HTTP 400. El formulario
+  limita el campo y muestra un contador.
 - **Galpón inmutable:** una vez creada la recolección no se puede cambiar el
   galpón (HTTP 400). Reenviar el mismo galpón es válido.
 
@@ -209,8 +211,8 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
 
 ## Tests
 
-Se implementaron **51 tests** en `backend/recolecciones/tests.py`, organizados
-en 9 clases:
+Se implementaron **54 tests** en `backend/recolecciones/tests.py`, organizados
+en 10 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
@@ -223,6 +225,7 @@ en 9 clases:
 | `LoteFKTests` | 3 | FK guardada al crear, FK no cambia cuando el lote del galpón cambia, galpón sin lote activo devuelve 400 |
 | `ValidacionesCantidadYGalponTests` | 5 | Cantidad negativa o cero → 400, cantidad 1 válida, no se puede cambiar el galpón al editar, reenviar el mismo galpón es válido |
 | `FechaRecoleccionTests` | 4 | Fecha de mañana o hora futura del mismo día → 400, fecha pasada válida, no se puede editar la fecha a una futura |
+| `ObservacionesRecoleccionTests` | 3 | 500 caracteres es válido, 501 → 400, no se puede editar a más de 500 |
 
 Ejecutar:
 
@@ -244,7 +247,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 51 tests |
+| `recolecciones/tests.py` | Nuevo: 54 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |

@@ -11,8 +11,9 @@ Clases de tests:
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
     ValidacionesCantidadYGalponTests (5)  cantidad >= 1 y galpón inmutable al editar
     FechaRecoleccionTests         (4)  la fecha y hora no puede ser futura
+    ObservacionesRecoleccionTests (3)  máximo de 500 caracteres
 
-Total: 51 tests
+Total: 54 tests
 """
 
 import datetime
@@ -716,3 +717,39 @@ class FechaRecoleccionTests(TestCase):
         rec.refresh_from_db()
         self.assertEqual(rec.fecha.year, 2026)
         self.assertEqual(rec.fecha.month, 6)
+
+
+# ---------------------------------------------------------------------------
+# Observaciones: máximo 500 caracteres
+# ---------------------------------------------------------------------------
+
+class ObservacionesRecoleccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_obs")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto()
+
+    def test_observaciones_de_500_caracteres_es_valida(self):
+        payload = payload_recoleccion(self.galpon, self.producto, observaciones="a" * 500)
+        resp = self.client.post("/api/recolecciones/", payload, format="json")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_observaciones_de_501_caracteres_devuelve_400(self):
+        payload = payload_recoleccion(self.galpon, self.producto, observaciones="a" * 501)
+        resp = self.client.post("/api/recolecciones/", payload, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("observaciones", resp.data)
+        self.assertEqual(Recoleccion.objects.count(), 0)
+
+    def test_no_se_puede_editar_observaciones_a_mas_de_500(self):
+        rec = crear_recoleccion(self.galpon, self.lote, self.producto)
+        resp = self.client.patch(
+            f"/api/recolecciones/{rec.id_recoleccion}/",
+            {"observaciones": "a" * 501},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)

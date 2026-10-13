@@ -96,6 +96,7 @@ class RecoleccionSerializer(serializers.ModelSerializer):
             "lineas",
         ]
         read_only_fields = ["id_recoleccion", "estado"]
+        extra_kwargs = {"observaciones": {"max_length": 500}}
 
     # ── Validaciones ──────────────────────────────────────────────────────────
 

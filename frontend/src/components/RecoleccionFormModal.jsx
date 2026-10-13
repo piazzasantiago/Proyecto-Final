@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { createRecoleccion, updateRecoleccion } from "../api/recolecciones";
 
+// Debe coincidir con el max_length de `observaciones` en el serializer.
+const OBSERVACIONES_MAX = 500;
+
 function emptyLinea() {
   return { id_producto_id: "", cantidad: "" };
 }
@@ -66,8 +69,26 @@ export default function RecoleccionFormModal({
     );
   }
 
+  function handleGalponInvalid(e) {
+    e.target.setCustomValidity("Debe seleccionar un galpón");
+  }
+
+  function handleProductoInvalid(e) {
+    e.target.setCustomValidity("Debe seleccionar un producto");
+  }
+
+  function handleCantidadInvalid(e) {
+    const v = e.target.validity;
+    e.target.setCustomValidity(
+      v.valueMissing
+        ? "Debe ingresar la cantidad"
+        : "La cantidad debe ser un número entero mayor o igual a 1 (sin decimales)"
+    );
+  }
+
   function handleLineaChange(index, e) {
     const { name, value } = e.target;
+    e.target.setCustomValidity("");
     setForm((f) => {
       const lineas = f.lineas.map((l, i) =>
         i === index ? { ...l, [name]: value } : l
@@ -157,6 +178,7 @@ export default function RecoleccionFormModal({
                   name="id_galpon_id"
                   value={form.id_galpon_id}
                   onChange={handleChange}
+                  onInvalid={handleGalponInvalid}
                   required
                   disabled={isEdit}
                 >
@@ -203,8 +225,12 @@ export default function RecoleccionFormModal({
                   name="observaciones"
                   value={form.observaciones}
                   onChange={handleChange}
+                  maxLength={OBSERVACIONES_MAX}
                   placeholder="Notas sobre la recolección (opcional)"
                 />
+                <span className="form-hint">
+                  {form.observaciones.length}/{OBSERVACIONES_MAX} caracteres
+                </span>
                 {errors.observaciones && (
                   <span className="form-error">
                     {errors.observaciones.join(" ")}
@@ -220,6 +246,9 @@ export default function RecoleccionFormModal({
 
             {errors.lineas && typeof errors.lineas === "string" && (
               <div className="banner banner-error">{errors.lineas}</div>
+            )}
+            {Array.isArray(errors.lineas) && typeof errors.lineas[0] === "string" && (
+              <div className="banner banner-error">{errors.lineas.join(" ")}</div>
             )}
 
             <div style={{ overflowX: "auto" }}>
@@ -239,6 +268,7 @@ export default function RecoleccionFormModal({
                           name="id_producto_id"
                           value={linea.id_producto_id}
                           onChange={(e) => handleLineaChange(index, e)}
+                          onInvalid={handleProductoInvalid}
                           required
                           style={{
                             width: "100%",
@@ -270,6 +300,7 @@ export default function RecoleccionFormModal({
                           min="1"
                           value={linea.cantidad}
                           onChange={(e) => handleLineaChange(index, e)}
+                          onInvalid={handleCantidadInvalid}
                           required
                           placeholder="0"
                           style={{
