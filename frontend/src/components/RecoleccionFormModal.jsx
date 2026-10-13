@@ -41,7 +41,18 @@ export default function RecoleccionFormModal({
 
   function handleChange(e) {
     const { name, value } = e.target;
+    e.target.setCustomValidity("");
     setForm((f) => ({ ...f, [name]: value }));
+  }
+
+  // Mensajes de validación nativos en español (el navegador los muestra en
+  // inglés por defecto).
+  function handleFechaInvalid(e) {
+    e.target.setCustomValidity(
+      e.target.validity.valueMissing
+        ? "Debe ingresar la fecha y hora de la recolección"
+        : "La fecha y hora no es válida. Completá día, mes, año, hora y minutos."
+    );
   }
 
   function handleLineaChange(index, e) {
@@ -166,6 +177,7 @@ export default function RecoleccionFormModal({
                   type="datetime-local"
                   value={form.fecha}
                   onChange={handleChange}
+                  onInvalid={handleFechaInvalid}
                   required
                 />
                 {errors.fecha && (
