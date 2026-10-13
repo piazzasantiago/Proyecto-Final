@@ -189,7 +189,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 254 tests in ~Xs
+Ran 265 tests in ~Xs
 OK
 ```
 

@@ -129,8 +129,17 @@ la versión de DRF instalada.
   devuelve HTTP 400.
 - **Producto duplicado:** no se puede repetir el mismo producto en dos líneas
   de la misma recolección; devuelve HTTP 400.
-- **Producto inactivo:** solo se aceptan productos con `estado = A`; devuelve
-  HTTP 400.
+- **Producto inactivo:** al crear, o al agregar un producto nuevo a una
+  recolección existente, solo se aceptan productos con `estado = A`; devuelve
+  HTTP 400. Una recolección que se edita **conserva** los productos que ya tenía
+  aunque se hayan desactivado después (desactivar un producto no afecta lo ya
+  registrado). El formulario los muestra marcados como "(inactivo)".
+- **Una recolección por día y galpón:** un galpón no puede tener dos
+  recolecciones en el mismo día (se cuenta el día en horario local, sin importar
+  la hora ni el estado). Al crear o al cambiar la fecha de una recolección, si
+  ese día ya está ocupado devuelve HTTP 400. La regla se valida en el serializer;
+  no hay un constraint en la base, así que dos pedidos simultáneos podrían
+  colarse (poco probable con el uso previsto).
 - **Edición de recolección finalizada:** intentar editar una recolección en
   estado `F` devuelve HTTP 400.
 - **Finalizar recolección ya finalizada:** devuelve HTTP 400.
@@ -212,8 +221,8 @@ El campo `id_lote` no se envía: la API lo detecta e inyecta automáticamente.
 
 ## Tests
 
-Se implementaron **57 tests** en `backend/recolecciones/tests.py`, organizados
-en 10 clases:
+Se implementaron **68 tests** en `backend/recolecciones/tests.py`, organizados
+en 12 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
@@ -227,6 +236,8 @@ en 10 clases:
 | `ValidacionesCantidadYGalponTests` | 8 | Cantidad negativa o cero → 400, cantidad 1 y 1.000.000 válidas, sobre el tope o enorme → 400 (no 500), no se puede cambiar el galpón al editar, reenviar el mismo galpón es válido |
 | `FechaRecoleccionTests` | 4 | Fecha de mañana o hora futura del mismo día → 400, fecha pasada válida, no se puede editar la fecha a una futura |
 | `ObservacionesRecoleccionTests` | 3 | 500 caracteres es válido, 501 → 400, no se puede editar a más de 500 |
+| `UnaRecoleccionPorDiaTests` | 7 | Segunda recolección del mismo día y galpón → 400, otro galpón u otro día válidos, la finalizada también cuenta, medianoche (días distintos), editar dentro del mismo día, mover la fecha a un día ocupado → 400 |
+| `ProductoDesactivadoTests` | 4 | Conservar un producto desactivado al editar, sumar uno activo, no agregar uno inactivo nuevo, no crear con inactivo |
 
 Ejecutar:
 
@@ -248,7 +259,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 57 tests |
+| `recolecciones/tests.py` | Nuevo: 68 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
 | `config/urls.py` | Registra el router de recolecciones |

@@ -145,12 +145,18 @@ export default function RecoleccionFormModal({
     }
   }
 
-  // Productos activos + el que ya estaba elegido en edición (por si fue desactivado)
+  // Productos activos + los que ya tenía la recolección en edición, aunque se
+  // hayan desactivado después (el listado `productos` solo trae activos).
   function productosDisponibles(lineaActual) {
     const idActual = Number(lineaActual.id_producto_id);
-    return productos.filter(
-      (p) => p.estado === "A" || p.id_producto === idActual
-    );
+    const lista = [...productos];
+    (initialData?.lineas ?? []).forEach((l) => {
+      const p = l.producto;
+      if (p && !lista.some((x) => x.id_producto === p.id_producto)) {
+        lista.push({ id_producto: p.id_producto, producto: p.producto, estado: "I" });
+      }
+    });
+    return lista.filter((p) => p.estado === "A" || p.id_producto === idActual);
   }
 
   return (
@@ -287,6 +293,7 @@ export default function RecoleccionFormModal({
                           {productosDisponibles(linea).map((p) => (
                             <option key={p.id_producto} value={p.id_producto}>
                               {p.producto}
+                              {p.estado !== "A" ? " (inactivo)" : ""}
                             </option>
                           ))}
                         </select>

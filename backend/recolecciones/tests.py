@@ -12,8 +12,10 @@ Clases de tests:
     ValidacionesCantidadYGalponTests (8)  cantidad entre 1 y 1.000.000, galpón inmutable al editar
     FechaRecoleccionTests         (4)  la fecha y hora no puede ser futura
     ObservacionesRecoleccionTests (3)  máximo de 500 caracteres
+    UnaRecoleccionPorDiaTests     (7)  un galpón admite una sola recolección por día
+    ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
 
-Total: 57 tests
+Total: 68 tests
 """
 
 import datetime
@@ -488,7 +490,7 @@ class PermisosRecoleccionTests(TestCase):
         self._login(self.admin)
         resp = self.client.post(
             "/api/recolecciones/",
-            payload_recoleccion(self.galpon, self.producto),
+            payload_recoleccion(self.galpon, self.producto, fecha="2026-06-16T08:00:00"),
             format="json",
         )
         self.assertEqual(resp.status_code, 201)
@@ -497,7 +499,7 @@ class PermisosRecoleccionTests(TestCase):
         self._login(self.operario)
         resp = self.client.post(
             "/api/recolecciones/",
-            payload_recoleccion(self.galpon, self.producto),
+            payload_recoleccion(self.galpon, self.producto, fecha="2026-06-16T08:00:00"),
             format="json",
         )
         self.assertEqual(resp.status_code, 201)
@@ -773,3 +775,134 @@ class ObservacionesRecoleccionTests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+
+
+# ---------------------------------------------------------------------------
+# Una sola recolección por día en cada galpón
+# ---------------------------------------------------------------------------
+
+class UnaRecoleccionPorDiaTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_dia")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon("Galpón A")
+        self.otro_galpon = crear_galpon("Galpón B")
+        self.lote = crear_lote(self.galpon)
+        self.otro_lote = crear_lote(self.otro_galpon)
+        self.producto = crear_producto()
+        self.rec = crear_recoleccion(self.galpon, self.lote, self.producto)  # 15/06/2026 08:00
+
+    def _crear(self, galpon, fecha):
+        return self.client.post(
+            "/api/recolecciones/",
+            payload_recoleccion(galpon, self.producto, fecha=fecha),
+            format="json",
+        )
+
+    def test_segunda_recoleccion_del_mismo_dia_y_galpon_devuelve_400(self):
+        resp = self._crear(self.galpon, "2026-06-15T18:30:00")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("fecha", resp.data)
+        self.assertEqual(Recoleccion.objects.filter(id_galpon=self.galpon).count(), 1)
+
+    def test_otro_galpon_el_mismo_dia_es_valido(self):
+        resp = self._crear(self.otro_galpon, "2026-06-15T08:00:00")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_mismo_galpon_en_otro_dia_es_valido(self):
+        resp = self._crear(self.galpon, "2026-06-16T08:00:00")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_la_recoleccion_finalizada_tambien_cuenta(self):
+        Recoleccion.objects.filter(pk=self.rec.pk).update(estado=Recoleccion.ESTADO_FINALIZADA)
+        resp = self._crear(self.galpon, "2026-06-15T12:00:00")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_dias_distintos_aunque_esten_a_minutos_de_distancia(self):
+        # 23:50 del 15 y 00:10 del 16 (horario local) son días distintos.
+        Recoleccion.objects.filter(pk=self.rec.pk).update(
+            fecha=datetime.datetime(2026, 6, 15, 23, 50, tzinfo=timezone.get_current_timezone())
+        )
+        resp = self._crear(self.galpon, "2026-06-16T00:10:00")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_editar_la_propia_recoleccion_dentro_del_mismo_dia_es_valido(self):
+        resp = self.client.patch(
+            f"/api/recolecciones/{self.rec.id_recoleccion}/",
+            {"fecha": "2026-06-15T17:00:00", "observaciones": "ajuste de hora"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+
+    def test_no_se_puede_mover_la_fecha_a_un_dia_ocupado(self):
+        segunda = crear_recoleccion(self.galpon, self.lote, self.producto)
+        Recoleccion.objects.filter(pk=segunda.pk).update(
+            fecha=datetime.datetime(2026, 6, 20, 8, 0, tzinfo=timezone.get_current_timezone())
+        )
+        resp = self.client.patch(
+            f"/api/recolecciones/{segunda.id_recoleccion}/",
+            {"fecha": "2026-06-15T10:00:00"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("fecha", resp.data)
+
+
+# ---------------------------------------------------------------------------
+# Productos desactivados después de registrar la recolección
+# ---------------------------------------------------------------------------
+
+class ProductoDesactivadoTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_desact")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto("Huevo Nº1")
+        self.otro = crear_producto("Huevo Nº2")
+        self.rec = crear_recoleccion(self.galpon, self.lote, self.producto)
+        Producto.objects.filter(pk=self.producto.pk).update(estado=Producto.ESTADO_INACTIVO)
+
+    def _patch_lineas(self, lineas):
+        return self.client.patch(
+            f"/api/recolecciones/{self.rec.id_recoleccion}/",
+            {"lineas": lineas},
+            format="json",
+        )
+
+    def test_se_puede_conservar_el_producto_desactivado_al_editar(self):
+        resp = self._patch_lineas([{"id_producto_id": self.producto.id_producto, "cantidad": 7}])
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.rec.lineas.get().cantidad, 7)
+
+    def test_se_puede_conservar_el_desactivado_y_sumar_uno_activo(self):
+        resp = self._patch_lineas([
+            {"id_producto_id": self.producto.id_producto, "cantidad": 7},
+            {"id_producto_id": self.otro.id_producto, "cantidad": 3},
+        ])
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.rec.lineas.count(), 2)
+
+    def test_no_se_puede_agregar_un_producto_desactivado_nuevo(self):
+        nuevo_inactivo = crear_producto("Huevo Nº3", estado=Producto.ESTADO_INACTIVO)
+        resp = self._patch_lineas([
+            {"id_producto_id": self.producto.id_producto, "cantidad": 7},
+            {"id_producto_id": nuevo_inactivo.id_producto, "cantidad": 2},
+        ])
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self.rec.lineas.count(), 1)
+
+    def test_no_se_puede_crear_una_recoleccion_con_producto_desactivado(self):
+        otro_galpon = crear_galpon("Galpón B")
+        crear_lote(otro_galpon)
+        resp = self.client.post(
+            "/api/recolecciones/",
+            payload_recoleccion(otro_galpon, self.producto),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+

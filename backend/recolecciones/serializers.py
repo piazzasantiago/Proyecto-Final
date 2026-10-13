@@ -48,8 +48,11 @@ class LineaRecoleccionSerializer(serializers.ModelSerializer):
         allow_null=True,
         default=None,
     )
+    # Se acepta cualquier producto existente; que esté activo (o que ya
+    # estuviera en la recolección que se edita) se valida en
+    # RecoleccionSerializer.validate().
     id_producto_id = serializers.PrimaryKeyRelatedField(
-        queryset=Producto.objects.filter(estado=Producto.ESTADO_ACTIVO),
+        queryset=Producto.objects.all(),
         source="id_producto",
         write_only=True,
     )
@@ -120,8 +123,21 @@ class RecoleccionSerializer(serializers.ModelSerializer):
         return lineas
 
     def validate(self, data):
-        """Cada producto debe aparecer como máximo una vez por recolección."""
+        """
+        - Cada producto debe aparecer como máximo una vez por recolección.
+        - Solo se pueden agregar productos activos. Una recolección que se edita
+          conserva los productos que ya tenía aunque se hayan desactivado
+          después: desactivar un producto no afecta lo ya registrado.
+        - Un galpón admite una sola recolección por día.
+        """
         lineas = data.get("lineas", [])
+
+        inactivos_permitidos = set()
+        if self.instance is not None:
+            inactivos_permitidos = set(
+                self.instance.lineas.values_list("id_producto_id", flat=True)
+            )
+
         productos_vistos = set()
         for linea in lineas:
             producto = linea["id_producto"]
@@ -130,7 +146,31 @@ class RecoleccionSerializer(serializers.ModelSerializer):
                     f"El producto '{producto.producto}' aparece más de una vez en las líneas."
                 )
             productos_vistos.add(producto.id_producto)
+            if (
+                producto.estado != Producto.ESTADO_ACTIVO
+                and producto.id_producto not in inactivos_permitidos
+            ):
+                raise serializers.ValidationError(
+                    {"lineas": f"El producto '{producto.producto}' está inactivo y no se puede agregar."}
+                )
+
+        self._validar_una_recoleccion_por_dia(data)
         return data
+
+    def _validar_una_recoleccion_por_dia(self, data):
+        """Un galpón no puede tener dos recolecciones en el mismo día (horario local)."""
+        galpon = data.get("id_galpon") or (self.instance.id_galpon if self.instance else None)
+        fecha = data.get("fecha") or (self.instance.fecha if self.instance else None)
+        if galpon is None or fecha is None:
+            return
+        dia = timezone.localtime(fecha).date()
+        otras = Recoleccion.objects.filter(id_galpon=galpon, fecha__date=dia)
+        if self.instance is not None:
+            otras = otras.exclude(pk=self.instance.pk)
+        if otras.exists():
+            raise serializers.ValidationError(
+                {"fecha": "Este galpón ya tiene una recolección registrada para ese día."}
+            )
 
     # ── Escritura ─────────────────────────────────────────────────────────────
 
