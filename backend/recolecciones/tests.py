@@ -3,7 +3,7 @@ Tests automatizados del módulo Recolecciones.
 
 Clases de tests:
     BuscarRecoleccionTests        (5)  listar, filtrar, detalle
-    CrearRecoleccionTests         (9)  CU-REC-CREATE – crear recolección con líneas
+    CrearRecoleccionTests        (10)  CU-REC-CREATE – crear recolección con líneas
     EditarRecoleccionTests        (6)  CU-REC-EDIT – editar recolección pendiente
     BorrarRecoleccionTests        (4)  CU-REC-DEL – eliminar
     FinalizarRecoleccionTests     (5)  CU-REC-FIN – finalizar recolección
@@ -16,7 +16,7 @@ Clases de tests:
     ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
     StockDeProductosTests         (6)  el stock de Productos suma recolecciones finalizadas
 
-Total: 74 tests
+Total: 75 tests
 """
 
 import datetime
@@ -232,6 +232,17 @@ class CrearRecoleccionTests(TestCase):
         self.assertEqual(resp.status_code, 201)
         self.assertIsNotNone(resp.data["lote"])
         self.assertEqual(resp.data["lote"]["id_lote"], self.lote.id_lote)
+
+    def test_usuario_asignado_automaticamente(self):
+        """Al crear, id_usuario debe quedar seteado con el usuario autenticado."""
+        resp = self.client.post(
+            "/api/recolecciones/",
+            payload_recoleccion(self.galpon, self.producto),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertIsNotNone(resp.data["usuario"])
+        self.assertEqual(resp.data["usuario"]["id_usuario"], self.admin.id_usuario)
 
     def test_linea_creada(self):
         self.client.post(
