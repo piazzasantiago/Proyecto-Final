@@ -4,6 +4,7 @@ from rest_framework import serializers
 from galpones.models import Galpon
 from lotes.models import Lote
 from productos.models import Producto
+from usuarios.models import Usuario
 
 from .models import LineaRecoleccion, Recoleccion
 
@@ -30,6 +31,14 @@ class ProductoResumenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
         fields = ["id_producto", "producto"]
+
+
+class UsuarioResumenSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Usuario
+        fields = ["id_usuario", "nombre_completo", "usuario"]
 
 
 # ── Líneas ────────────────────────────────────────────────────────────────────
@@ -77,6 +86,7 @@ class LineaRecoleccionSerializer(serializers.ModelSerializer):
 class RecoleccionSerializer(serializers.ModelSerializer):
     galpon = GalponResumenSerializer(source="id_galpon", read_only=True)
     lote = LoteResumenSerializer(source="id_lote", read_only=True)
+    usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     lineas = LineaRecoleccionSerializer(many=True, read_only=False)
 
@@ -96,6 +106,7 @@ class RecoleccionSerializer(serializers.ModelSerializer):
             "galpon",
             "id_galpon_id",
             "lote",          # read-only; se asigna en perform_create de la vista
+            "usuario",       # read-only; se asigna en perform_create de la vista
             "fecha",
             "estado",
             "estado_display",
@@ -176,7 +187,7 @@ class RecoleccionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        id_lote llega inyectado por RecoleccionViewSet.perform_create().
+        id_lote e id_usuario llegan inyectados por RecoleccionViewSet.perform_create().
         El galpón de cada línea se copia desde la cabecera.
         """
         lineas_data = validated_data.pop("lineas")

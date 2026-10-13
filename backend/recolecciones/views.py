@@ -23,7 +23,7 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
     """
 
     queryset = (
-        Recoleccion.objects.select_related("id_galpon", "id_lote")
+        Recoleccion.objects.select_related("id_galpon", "id_lote", "id_usuario")
         .prefetch_related("lineas__id_producto", "lineas__id_galpon")
         .all()
     )
@@ -49,13 +49,14 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
             qs = qs.filter(estado=estado)
         return qs
 
-    # ── Creación: detecta el lote activo e inyecta id_lote ───────────────────
+    # ── Creación: detecta el lote activo e inyecta id_lote e id_usuario ──────
 
     def perform_create(self, serializer):
         """
         Busca el lote activo (estado T o P) del galpón de la recolección.
         Si no existe, devuelve 400 (no tiene sentido registrar una recolección
         sin un lote en curso).
+        También registra el usuario autenticado como responsable de la carga.
         """
         galpon = serializer.validated_data.get("id_galpon")
         if galpon is None:
@@ -81,7 +82,7 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
                 }
             )
 
-        serializer.save(id_lote=lote)
+        serializer.save(id_lote=lote, id_usuario=self.request.user)
 
     # ── Edición: bloquea recolecciones finalizadas ────────────────────────────
 
