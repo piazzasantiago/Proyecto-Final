@@ -473,3 +473,116 @@ class StockMateriaPrimaTests(TestCase):
         self.assertEqual(float(resp.data["stock_actual"]), 0)
         self.mp.refresh_from_db()
         self.assertEqual(float(self.mp.stock_inicial), 0)
+
+
+class NombreUnidadValidacionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_val", rol=Usuario.ROL_ADMINISTRADOR)
+        token_de(self.client, self.admin)
+
+    def test_nombre_duplicado_distinta_capitalizacion(self):
+        crear_materia_prima("Maíz")
+        for nombre in ["maíz", "MAÍZ", "  Maíz  "]:
+            resp = self.client.post(
+                "/api/materias-primas/", {"materia_prima": nombre}, format="json"
+            )
+            self.assertEqual(resp.status_code, 400, nombre)
+            self.assertIn("materia_prima", resp.data)
+
+    def test_editar_mismo_nombre_cambiando_capitalizacion(self):
+        mp = crear_materia_prima("Maíz")
+        resp = self.client.patch(
+            f"/api/materias-primas/{mp.pk}/", {"materia_prima": "MAÍZ"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200)
+
+    def test_editar_a_nombre_de_otra_materia_prima(self):
+        crear_materia_prima("Maíz")
+        otra = crear_materia_prima("Soja")
+        resp = self.client.patch(
+            f"/api/materias-primas/{otra.pk}/", {"materia_prima": "maíz"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_nombre_se_guarda_sin_espacios_en_los_bordes(self):
+        resp = self.client.post(
+            "/api/materias-primas/", {"materia_prima": "  Sal  "}, format="json"
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data["materia_prima"], "Sal")
+
+    def test_unidad_fuera_del_combo_es_rechazada(self):
+        resp = self.client.post(
+            "/api/materias-primas/",
+            {"materia_prima": "Algo", "unidad": "banana"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("unidad", resp.data)
+
+    def test_todas_las_unidades_del_combo_son_aceptadas(self):
+        from .serializers import UNIDADES_VALIDAS
+
+        for i, unidad in enumerate(UNIDADES_VALIDAS):
+            resp = self.client.post(
+                "/api/materias-primas/",
+                {"materia_prima": f"MP {i}", "unidad": unidad},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 201, unidad)
+
+    def test_nombre_duplicado_ignorando_tildes(self):
+        crear_materia_prima("Maíz")
+        for nombre in ["Maiz", "MAIZ", "Máiz", "maíz  "]:
+            resp = self.client.post(
+                "/api/materias-primas/", {"materia_prima": nombre}, format="json"
+            )
+            self.assertEqual(resp.status_code, 400, nombre)
+
+    def test_espacios_internos_se_colapsan(self):
+        resp = self.client.post(
+            "/api/materias-primas/", {"materia_prima": "Sal   gruesa"}, format="json"
+        )
+        self.assertEqual(resp.data["materia_prima"], "Sal gruesa")
+
+
+class SimilaresTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_sim", rol=Usuario.ROL_ADMINISTRADOR)
+        token_de(self.client, self.admin)
+        self.maiz = crear_materia_prima("Maíz")
+        crear_materia_prima("Maíz amarillo", estado=MateriaPrima.ESTADO_INACTIVO)
+        crear_materia_prima("Soja")
+
+    def buscar(self, **params):
+        return self.client.get("/api/materias-primas/similares/", params)
+
+    def test_exacta_ignora_tildes_y_mayusculas(self):
+        resp = self.buscar(nombre="MAIZ")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data[0]["materia_prima"], "Maíz")
+        self.assertTrue(resp.data[0]["exacta"])
+
+    def test_parecidas_se_marcan_no_exactas(self):
+        resp = self.buscar(nombre="maiz")
+        self.assertEqual([r["exacta"] for r in resp.data], [True, False])
+        self.assertEqual(resp.data[1]["estado"], "I")
+
+    def test_sin_coincidencias(self):
+        self.assertEqual(self.buscar(nombre="Avena").data, [])
+
+    def test_nombre_vacio(self):
+        self.assertEqual(self.buscar(nombre="  ").data, [])
+
+    def test_excluir_la_propia(self):
+        resp = self.buscar(nombre="Maíz", excluir=self.maiz.pk)
+        self.assertEqual([r["materia_prima"] for r in resp.data], ["Maíz amarillo"])
+
+    def test_requiere_autenticacion(self):
+        resp = APIClient().get("/api/materias-primas/similares/", {"nombre": "Maíz"})
+        self.assertEqual(resp.status_code, 401)
+
