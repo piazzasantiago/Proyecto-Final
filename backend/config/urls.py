@@ -7,4 +7,5 @@ urlpatterns = [
     path("api/", include("galpones.urls")),
     path("api/", include("lotes.urls")),
     path("api/", include("productos.urls")),
+    path("api/", include("recolecciones.urls")),
 ]

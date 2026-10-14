@@ -3,7 +3,7 @@ import { useState } from "react";
 const emptyForm = {
   producto: "",
   descripcion: "",
-  stock_actual: "0",
+  stock_inicial: "0",
 };
 
 export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
@@ -14,7 +14,7 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
       ? {
           producto: initialData.producto,
           descripcion: initialData.descripcion || "",
-          stock_actual: String(initialData.stock_actual ?? 0),
+          stock_inicial: String(initialData.stock_inicial ?? 0),
         }
       : emptyForm
   );
@@ -32,7 +32,7 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
     setSaving(true);
     setErrors({});
     try {
-      await onSubmit({ ...form, stock_actual: Number(form.stock_actual) || 0 });
+      await onSubmit({ ...form, stock_inicial: Number(form.stock_inicial) || 0 });
     } catch (err) {
       if (err.detail && typeof err.detail === "object") {
         setErrors(err.detail);
@@ -79,19 +79,20 @@ export default function ProductoFormModal({ initialData, onClose, onSubmit }) {
                 />
               </div>
               <div className="form-group full">
-                <label>Stock actual</label>
+                <label>Stock inicial / ajuste</label>
                 <input
                   type="number"
-                  name="stock_actual"
-                  value={form.stock_actual}
+                  name="stock_inicial"
+                  value={form.stock_inicial}
                   onChange={handleChange}
                   min={0}
                   step={1}
                   placeholder="0"
                 />
-                {errors.stock_actual && <span className="form-error">{errors.stock_actual.join(" ")}</span>}
+                {errors.stock_inicial && <span className="form-error">{errors.stock_inicial.join(" ")}</span>}
                 <span className="form-hint">
-                  Carga manual: el sistema todavía no la calcula automáticamente a partir de recolecciones y salidas.
+                  Stock de partida o ajuste manual. El stock actual suma además lo
+                  recolectado en recolecciones finalizadas.
                 </span>
               </div>
             </div>

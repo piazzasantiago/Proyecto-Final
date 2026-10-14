@@ -12,9 +12,9 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y cinco
+El sistema cuenta con **autenticación real y control de acceso por rol**, y seis
 módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
-Gallinas** y **Productos**.
+Gallinas**, **Productos** y **Recolección diaria**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -23,13 +23,18 @@ Gallinas** y **Productos**.
 | Gestión de Galpones | CU09 a CU14 | Funcional |
 | Gestión de Lotes | CU42 a CU48 | Funcional |
 | Gestión de Productos | CU49 a CU54 | Funcional |
-| Recolección, Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Recolección diaria | CU24 a CU32 | Funcional |
+| Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+
+El módulo de Recolección diaria registra además el **usuario responsable de la
+carga** (`id_usuario`) en cada recolección, visible como columna "Cargado por"
+en la tabla y en el panel de detalle.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
 operaciones. Sirven para presentar la aplicación completa mientras se
 implementan los módulos restantes, uno por uno, siguiendo el mismo patrón que
-Galpones, Usuarios, Lotes y Productos.
+los módulos ya funcionales.
 
 ### Acceso por rol
 
@@ -78,6 +83,7 @@ backend/
 ├── galpones/        módulo de Galpones
 ├── lotes/           módulo de Lotes de Gallinas
 ├── productos/       módulo de Productos
+├── recolecciones/   módulo de Recolección diaria
 └── manage.py
 ```
 
@@ -187,7 +193,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 197 tests in ~Xs
+Ran 277 tests in ~Xs
 OK
 ```
 
@@ -198,6 +204,7 @@ python manage.py test usuarios
 python manage.py test galpones
 python manage.py test lotes
 python manage.py test productos
+python manage.py test recolecciones
 ```
 
 ---
@@ -229,6 +236,12 @@ python manage.py test productos
 | DELETE | `/api/lotes/{id}/` | Eliminar lote | Administrador |
 | POST | `/api/lotes/{id}/iniciar-produccion/` | Transición → Producción | Administrador |
 | POST | `/api/lotes/{id}/vaciar/` | Producción/Transición → Finalizado | Administrador |
+| GET | `/api/recolecciones/` | Listar recolecciones (`?id_galpon=`, `?estado=`) | autenticado |
+| POST | `/api/recolecciones/` | Crear recolección con líneas | Adm. / Operario |
+| GET | `/api/recolecciones/{id}/` | Detalle de recolección | autenticado |
+| PATCH | `/api/recolecciones/{id}/` | Modificar recolección PENDIENTE | Adm. / Operario |
+| DELETE | `/api/recolecciones/{id}/` | Eliminar recolección | Administrador |
+| POST | `/api/recolecciones/{id}/finalizar/` | Marcar recolección como Finalizada | Adm. / Operario |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
@@ -289,7 +302,8 @@ En `docs/`:
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
-| `docs-productos.md` | Gestión de productos, activar/desactivar, stock manual y tests (CU49 a CU54) |
+| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado y tests (CU49 a CU54) |
+| `docs-recolecciones.md` | Recolección diaria, estructura cabecera-líneas, FK a lote, FK a usuario ("Cargado por"), estados y tests (CU24 a CU32) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -330,10 +344,15 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/recoleccion`** — Recolección diaria (CU24 a CU32), primer
-   módulo con estructura de cabecera y líneas.
+1. **`feature/materias-primas`** — Gestión de materias primas (alimento,
+   vacunas, insumos, etc.). Debe implementarse **antes** que Descartes porque
+   los descartes pueden registrarse contra tres entidades distintas: gallinas
+   de un lote, productos y materias primas. Las dos primeras ya existen;
+   Materias Primas es el eslabón que falta para poder modelar Descartes de
+   forma completa.
 
-2. **`feature/descartes`** — Descartes (CU15 a CU23).
+2. **`feature/descartes`** — Descartes (CU15 a CU23). Depende de que existan
+   Lotes ✅, Productos ✅ y Materias Primas ✅.
 
 3. **`feature/salidas`** — Registro de salidas de productos de la granja
    (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
@@ -341,7 +360,7 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
    existan Recolecciones y Descartes, ya que el stock real de cada producto
    se calcula como `recolecciones − descartes − salidas`.
 
-4. Módulos de insumos: Entradas, Materias Primas, Compras y Proveedores.
+4. Módulos de insumos: Entradas, Compras y Proveedores.
 
 5. **Informes e indicadores productivos** (CU85 a CU89).
 
@@ -354,11 +373,12 @@ backend, endpoints con DRF, permisos por rol, pantalla React, tests en
 Mejoras que aplican a múltiples módulos y conviene implementar cuando haya
 dos o tres modelos funcionales, para aplicarlas de una vez y con consistencia:
 
-**Registro de auditoría.** Agregar una clase base abstracta `ModeloAuditable`
+**Registro de auditoría.** El módulo de Recolección ya registra el usuario
+responsable de la carga en el campo `id_usuario`. Para los demás módulos,
+una opción escalable es agregar una clase base abstracta `ModeloAuditable`
 en `backend/core/models.py` con los campos `creado_por`, `modificado_por`,
 `fecha_creacion` y `fecha_modificacion`. Cada modelo la hereda con una sola
-línea. Permite saber quién cargó cada recolección, quién modificó un lote,
-quién dio de baja un galpón.
+línea. Permite saber quién modificó un lote, quién dio de baja un galpón, etc.
 
 **Protección de ramas en GitHub.** El workflow de CI ya corre los tests y
 reporta el resultado en cada push. Para que ese resultado sea bloqueante

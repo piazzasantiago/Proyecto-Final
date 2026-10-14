@@ -16,6 +16,38 @@ class EsAdministrador(BasePermission):
         return bool(usuario and usuario.is_authenticated and usuario.es_administrador)
 
 
+class EsOperario(BasePermission):
+    """
+    Solo los usuarios con rol Operario pueden acceder.
+    """
+
+    message = "Se requiere rol Operario para realizar esta operación."
+
+    def has_permission(self, request, view):
+        usuario = request.user
+        return bool(usuario and usuario.is_authenticated and usuario.es_operario)
+
+
+class EsAdministradorOOperario(BasePermission):
+    """
+    Permite acceso a Administradores y Operarios.
+
+    Se usa en los módulos donde ambos roles pueden escribir (ej: recolecciones).
+    Reemplaza el uso de EsAdministrador() | EsOperario(), que requiere DRF >= 3.9
+    con soporte de OperandHolder y no siempre está disponible.
+    """
+
+    message = "Se requiere rol Administrador u Operario para realizar esta operación."
+
+    def has_permission(self, request, view):
+        usuario = request.user
+        return bool(
+            usuario
+            and usuario.is_authenticated
+            and (usuario.es_administrador or usuario.es_operario)
+        )
+
+
 class LecturaAutenticados_EscrituraAdministrador(BasePermission):
     """
     Implementa la matriz rol x caso de uso de los módulos productivos:
