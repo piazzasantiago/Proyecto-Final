@@ -12,9 +12,9 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y seis
+El sistema cuenta con **autenticación real y control de acceso por rol**, y siete
 módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
-Gallinas**, **Productos** y **Recolección diaria**.
+Gallinas**, **Productos**, **Recolección diaria** y **Materias Primas**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -24,7 +24,8 @@ Gallinas**, **Productos** y **Recolección diaria**.
 | Gestión de Lotes | CU42 a CU48 | Funcional |
 | Gestión de Productos | CU49 a CU54 | Funcional |
 | Recolección diaria | CU24 a CU32 | Funcional |
-| Descartes, Salidas, Entradas, Materias Primas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Gestión de Materias Primas | CU55 a CU60 | Funcional |
+| Descartes, Salidas, Entradas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
 El módulo de Recolección diaria registra además el **usuario responsable de la
 carga** (`id_usuario`) en cada recolección, visible como columna "Cargado por"
@@ -84,6 +85,7 @@ backend/
 ├── lotes/           módulo de Lotes de Gallinas
 ├── productos/       módulo de Productos
 ├── recolecciones/   módulo de Recolección diaria
+├── materias_primas/ módulo de Materias Primas
 └── manage.py
 ```
 
@@ -205,6 +207,7 @@ python manage.py test galpones
 python manage.py test lotes
 python manage.py test productos
 python manage.py test recolecciones
+python manage.py test materias_primas
 ```
 
 ---
@@ -242,6 +245,12 @@ python manage.py test recolecciones
 | PATCH | `/api/recolecciones/{id}/` | Modificar recolección PENDIENTE | Adm. / Operario |
 | DELETE | `/api/recolecciones/{id}/` | Eliminar recolección | Administrador |
 | POST | `/api/recolecciones/{id}/finalizar/` | Marcar recolección como Finalizada | Adm. / Operario |
+| GET | `/api/materias-primas/` | Listar materias primas (`?search=`, `?estado=`) | autenticado |
+| POST | `/api/materias-primas/` | Crear materia prima | Administrador |
+| PATCH | `/api/materias-primas/{id}/` | Modificar materia prima | Administrador |
+| DELETE | `/api/materias-primas/{id}/` | Eliminar materia prima | Administrador |
+| POST | `/api/materias-primas/{id}/activar/` | Activar materia prima | Administrador |
+| POST | `/api/materias-primas/{id}/desactivar/` | Desactivar materia prima | Administrador |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
@@ -304,6 +313,7 @@ En `docs/`:
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
 | `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado y tests (CU49 a CU54) |
 | `docs-recolecciones.md` | Recolección diaria, estructura cabecera-líneas, FK a lote, FK a usuario ("Cargado por"), estados y tests (CU24 a CU32) |
+| `docs-materias-primas.md` | Gestión de materias primas, alerta de stock mínimo, stock calculado provisional y tests (CU55 a CU60) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -344,15 +354,8 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/materias-primas`** — Gestión de materias primas (alimento,
-   vacunas, insumos, etc.). Debe implementarse **antes** que Descartes porque
-   los descartes pueden registrarse contra tres entidades distintas: gallinas
-   de un lote, productos y materias primas. Las dos primeras ya existen;
-   Materias Primas es el eslabón que falta para poder modelar Descartes de
-   forma completa.
-
-2. **`feature/descartes`** — Descartes (CU15 a CU23). Depende de que existan
-   Lotes ✅, Productos ✅ y Materias Primas ✅.
+1. **`feature/descartes`** — Descartes (CU15 a CU23). Depende de Lotes ✅,
+   Productos ✅ y Materias Primas ✅ — todos ya implementados.
 
 3. **`feature/salidas`** — Registro de salidas de productos de la granja
    (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
