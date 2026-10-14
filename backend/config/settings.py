@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "lotes",
     "productos",
     "recolecciones",
+    "materias_primas",
 ]
 
 MIDDLEWARE = [
