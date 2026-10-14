@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { buscarSimilares } from "../api/materias-primas";
 
 const emptyForm = {
   materia_prima: "",
@@ -25,6 +26,33 @@ export default function MateriaPrimaFormModal({ initialData, onClose, onSubmit }
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [similares, setSimilares] = useState([]);
+
+  // Avisa mientras se escribe si ya existe un nombre igual o parecido
+  // (ignora mayúsculas y tildes). El backend vuelve a validarlo al guardar.
+  useEffect(() => {
+    const nombre = form.materia_prima.trim();
+    if (!nombre) {
+      setSimilares([]);
+      return undefined;
+    }
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      try {
+        const data = await buscarSimilares(nombre, initialData?.id_materia_prima);
+        if (!cancelado) setSimilares(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelado) setSimilares([]);
+      }
+    }, 300);
+    return () => {
+      cancelado = true;
+      clearTimeout(t);
+    };
+  }, [form.materia_prima, initialData]);
+
+  const duplicada = similares.find((s) => s.exacta);
+  const parecidas = similares.filter((s) => !s.exacta);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -77,6 +105,17 @@ export default function MateriaPrimaFormModal({ initialData, onClose, onSubmit }
                   maxLength={80}
                   placeholder="Ej: Balanceado postura"
                 />
+                {duplicada && (
+                  <span className="form-error">
+                    Ya existe "{duplicada.materia_prima}"
+                    {duplicada.estado === "I" ? " (inactiva)" : ""}. No se puede repetir el nombre.
+                  </span>
+                )}
+                {!duplicada && parecidas.length > 0 && (
+                  <span className="form-hint">
+                    Ojo, ya existe algo parecido: {parecidas.map((p) => `"${p.materia_prima}"`).join(", ")}.
+                  </span>
+                )}
                 {errors.materia_prima && (
                   <span className="form-error">{errors.materia_prima.join(" ")}</span>
                 )}
@@ -100,6 +139,7 @@ export default function MateriaPrimaFormModal({ initialData, onClose, onSubmit }
                   <option value="L">L</option>
                   <option value="mL">mL</option>
                   <option value="unid.">unid.</option>
+                  <option value="dosis">dosis</option>
                   <option value="bolsa">bolsa</option>
                   <option value="saco">saco</option>
                 </select>

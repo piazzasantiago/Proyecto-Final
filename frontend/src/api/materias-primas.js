@@ -30,3 +30,10 @@ export function activarMateriaPrima(id) {
 export function desactivarMateriaPrima(id) {
   return request(`/api/materias-primas/${id}/desactivar/`, { method: "POST" });
 }
+
+/** Materias primas con nombre igual o parecido (ignora mayúsculas y tildes). */
+export function buscarSimilares(nombre, excluirId) {
+  const params = new URLSearchParams({ nombre });
+  if (excluirId) params.set("excluir", excluirId);
+  return request(`/api/materias-primas/similares/?${params.toString()}`);
+}
