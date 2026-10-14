@@ -24,7 +24,7 @@ materias primas.
 - Alerta visual en la tarjeta y en el panel de detalle cuando
   `stock_actual < stock_minimo`.
 - Acceso de solo lectura para los roles Operario y Consulta.
-- Tests automatizados del módulo (44 tests en 8 clases).
+- Tests automatizados del módulo (58 tests en 10 clases).
 - Interfaz React con tarjetas compactas y panel de detalle; botones de acción
   visibles solo para el rol Administrador.
 - Script standalone `seed_materias_primas.py` (raíz del repo) para poblar la
@@ -44,7 +44,7 @@ materias primas.
 
 **Actor:** Administrador.
 
-Crea una materia prima con nombre (único, hasta 100 caracteres), unidad de
+Crea una materia prima con nombre (único, hasta 80 caracteres), unidad de
 medida, stock mínimo y stock inicial. La descripción es opcional. El estado
 inicial siempre es Activo.
 
@@ -112,9 +112,9 @@ solo se renderizan cuando `esAdministrador` es verdadero.
 | Campo | Tipo | Restricciones |
 |---|---|---|
 | `id_materia_prima` | AutoField | Clave primaria |
-| `materia_prima` | VARCHAR(100) | Obligatorio, único |
+| `materia_prima` | VARCHAR(80) | Obligatorio, único sin distinguir mayúsculas ni tildes (ver 5.1) |
 | `descripcion` | TEXT | Opcional |
-| `unidad` | VARCHAR(20) | Obligatorio (kg, g, L, mL, unid., bolsa, saco, etc.) |
+| `unidad` | VARCHAR(20) | Obligatorio; una de: kg, g, L, mL, unid., dosis, bolsa, saco (default kg) |
 | `estado` | CHAR(1) | A (Activo), I (Inactivo) — default A |
 | `stock_minimo` | DecimalField(10,2) | Obligatorio ≥ 0 — default 0 |
 | `stock_inicial` | DecimalField(10,2) | Obligatorio ≥ 0 — default 0 (stock de partida o ajuste manual) |
@@ -139,8 +139,31 @@ solo se renderizan cuando `esAdministrador` es verdadero.
 | CU60 | DELETE | `/api/materias-primas/{id}/` | Administrador |
 | CU58 | POST | `/api/materias-primas/{id}/activar/` | Administrador |
 | CU59 | POST | `/api/materias-primas/{id}/desactivar/` | Administrador |
+| — | GET | `/api/materias-primas/similares/?nombre=…[&excluir=ID]` | autenticado |
 
 **Filtros de CU56:** `?search=` (nombre o descripción), `?estado=A|I`
+
+### 5.1 Validaciones de nombre y unidad
+
+- **Nombre único sin distinguir mayúsculas ni tildes:** `Maíz`, `maíz`, `MAIZ` y
+  `Máiz` se consideran el mismo nombre. Los espacios de los bordes se descartan
+  y los repetidos se colapsan. Si ya existe, responde 400 indicando cuál
+  (`Ya existe una materia prima con ese nombre ("Maíz").`). Al modificar, se
+  excluye la propia materia prima, así que puede cambiar solo su capitalización.
+  La comparación se hace en la capa de serializer (no es una restricción de la
+  base de datos) usando `normalizacion.normalizar_nombre()`.
+- **Unidad de medida:** solo se aceptan las opciones del combo del formulario
+  (`UNIDADES_VALIDAS` en `serializers.py`: kg, g, L, mL, unid., dosis, bolsa,
+  saco). Cualquier otro valor responde 400. Si una materia prima ya tuviera
+  guardada otra unidad, puede conservarla al editarla. La validación está en el
+  serializer, por lo que no requiere migración.
+- **Aviso de similares:** `GET /api/materias-primas/similares/?nombre=maiz`
+  devuelve hasta 5 materias primas con nombre igual (`exacta: true`) o parecido
+  (uno contiene al otro, `exacta: false`), ignorando mayúsculas y tildes.
+  `?excluir=ID` omite una materia prima (se usa al editar). El formulario lo
+  consulta mientras se escribe (con 300 ms de espera): si hay coincidencia
+  exacta muestra un error en rojo, y si solo hay parecidas, un aviso suave. El
+  backend vuelve a validar al guardar.
 
 **Respuesta de ejemplo (CU56):**
 
@@ -177,7 +200,7 @@ en un `POST`/`PATCH` no tiene efecto.
 
 ## 6. Tests automatizados
 
-Los tests viven en `backend/materias_primas/tests.py`. Se organizan en ocho
+Los tests viven en `backend/materias_primas/tests.py`. Se organizan en diez
 clases independientes.
 
 ### Estructura
@@ -192,7 +215,9 @@ clases independientes.
 | `DesactivarMateriaPrimaTests` | 4 | CU59: desactivación, persistencia, idempotencia (409), materia prima inexistente |
 | `PermisosMateriaPrimaTests` | 14 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
 | `StockMateriaPrimaTests` | 4 | `stock_minimo` y `stock_inicial` al crear y vía `PATCH`, rechazo de negativos, `stock_actual` de solo lectura |
-| **Total** | **44** | |
+| `NombreUnidadValidacionTests` | 8 | Nombre duplicado ignorando mayúsculas y tildes, espacios, edición del propio nombre o al de otra, unidad fuera del combo, todas las unidades del combo |
+| `SimilaresTests` | 6 | Endpoint `similares`: exacta con tildes/mayúsculas, parecidas, sin coincidencias, nombre vacío, `excluir`, requiere autenticación |
+| **Total** | **58** | |
 
 ### Cómo correrlos
 
@@ -223,7 +248,7 @@ backend/
     ├── admin.py          MateriaPrimaAdmin
     ├── migrations/
     │   └── 0001_initial.py
-    └── tests.py          44 tests en 8 clases
+    └── tests.py          58 tests en 10 clases
 ```
 
 ### Frontend
@@ -306,14 +331,15 @@ romper la paleta del sistema.
 
 **Backend**
 
-- 44 tests del módulo en verde.
-- Suite completa del proyecto en verde (321 tests).
+- 58 tests del módulo en verde.
+- Suite completa del proyecto en verde (331 tests).
 - Los tres roles pueden listar y ver el detalle de materias primas.
 - Operario recibe 403 al intentar crear, modificar, borrar o cambiar el estado.
 - Sin token, la API responde 401.
 - Activar y desactivar devuelven 409 si la materia prima ya está en el estado
   solicitado.
-- Un nombre duplicado devuelve 400.
+- Un nombre duplicado devuelve 400, aunque difiera en mayúsculas o tildes.
+- Una unidad fuera de las opciones del combo devuelve 400.
 - Un `stock_minimo` o `stock_inicial` negativo devuelve 400.
 
 **Frontend**
@@ -322,7 +348,9 @@ romper la paleta del sistema.
   Dar de alta/baja, Eliminar) no aparecen para Operario ni Consulta.
 - La alerta de stock bajo aparece en la tarjeta y en el panel de detalle cuando
   corresponde.
-- El formulario incluye selector de unidad (kg, g, L, mL, unid., bolsa, saco)
+- El formulario avisa mientras se escribe el nombre si ya existe uno igual
+  (error) o parecido (aviso), sin distinguir mayúsculas ni tildes.
+- El formulario incluye selector de unidad (kg, g, L, mL, unid., dosis, bolsa, saco)
   y campos decimales para stock mínimo e inicial.
 
 ---

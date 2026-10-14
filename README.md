@@ -251,6 +251,7 @@ python manage.py test materias_primas
 | DELETE | `/api/materias-primas/{id}/` | Eliminar materia prima | Administrador |
 | POST | `/api/materias-primas/{id}/activar/` | Activar materia prima | Administrador |
 | POST | `/api/materias-primas/{id}/desactivar/` | Desactivar materia prima | Administrador |
+| GET | `/api/materias-primas/similares/` | Nombres iguales o parecidos (ayuda del formulario) | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
