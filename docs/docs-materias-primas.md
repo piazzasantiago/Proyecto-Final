@@ -40,20 +40,20 @@ materias primas.
 
 ## 2. Casos de uso
 
-### CU55 – Nueva Materia Prima
+### CU55 – Buscar Materia Prima
+
+**Actor:** cualquier usuario autenticado.
+
+Lista las materias primas con búsqueda por nombre/descripción (`?search=`) y
+filtro por estado (`?estado=A|I`).
+
+### CU56 – Nueva Materia Prima
 
 **Actor:** Administrador.
 
 Crea una materia prima con nombre (único, hasta 80 caracteres), unidad de
 medida, stock mínimo y stock inicial. La descripción es opcional. El estado
 inicial siempre es Activo.
-
-### CU56 – Buscar Materia Prima
-
-**Actor:** cualquier usuario autenticado.
-
-Lista las materias primas con búsqueda por nombre/descripción (`?search=`) y
-filtro por estado (`?estado=A|I`).
 
 ### CU57 – Modificar Materia Prima
 
@@ -62,21 +62,7 @@ filtro por estado (`?estado=A|I`).
 Modifica nombre, descripción, unidad, stock mínimo o stock inicial. El estado
 no se puede cambiar por este medio.
 
-### CU58 – Activar Materia Prima
-
-**Actor:** Administrador.
-
-Pasa una materia prima de Inactiva a Activa. Devuelve `409` si ya estaba
-activa.
-
-### CU59 – Desactivar Materia Prima
-
-**Actor:** Administrador.
-
-Pasa una materia prima de Activa a Inactiva. Devuelve `409` si ya estaba
-inactiva. Desactivar no afecta los registros históricos ya asociados.
-
-### CU60 – Borrar Materia Prima
+### CU58 – Borrar Materia Prima
 
 **Actor:** Administrador.
 
@@ -84,18 +70,32 @@ Elimina la materia prima físicamente. Si tiene registros asociados (Compras,
 Descartes), el borrado se rechaza con `409` y el mensaje indica que debe
 desactivarse en su lugar.
 
+### CU59 – Dar de Alta Materia Prima
+
+**Actor:** Administrador.
+
+Pasa una materia prima de Inactiva a Activa. Devuelve `409` si ya estaba
+activa.
+
+### CU60 – Dar de Baja Materia Prima
+
+**Actor:** Administrador.
+
+Pasa una materia prima de Activa a Inactiva. Devuelve `409` si ya estaba
+inactiva. Desactivar no afecta los registros históricos ya asociados.
+
 ---
 
 ## 3. Matriz rol × caso de uso
 
 | Caso de uso | Administrador | Operario | Consulta |
 |---|:---:|:---:|:---:|
-| CU55 Nueva Materia Prima | Sí | No | No |
-| CU56 Buscar Materia Prima | Sí | Sí | Sí |
+| CU55 Buscar Materia Prima | Sí | Sí | Sí |
+| CU56 Nueva Materia Prima | Sí | No | No |
 | CU57 Modificar Materia Prima | Sí | No | No |
-| CU58 Activar Materia Prima | Sí | No | No |
-| CU59 Desactivar Materia Prima | Sí | No | No |
-| CU60 Borrar Materia Prima | Sí | No | No |
+| CU58 Borrar Materia Prima | Sí | No | No |
+| CU59 Dar de Alta Materia Prima | Sí | No | No |
+| CU60 Dar de Baja Materia Prima | Sí | No | No |
 
 **Implementación:** el permiso `LecturaAutenticados_EscrituraAdministrador`
 (definido en `usuarios/permissions.py`) aplica a todas las rutas del ViewSet.
@@ -132,16 +132,16 @@ solo se renderizan cuando `esAdministrador` es verdadero.
 
 | Caso de uso | Método | Ruta | Rol |
 |---|---|---|---|
-| CU56 | GET | `/api/materias-primas/` | autenticado |
-| CU56 (detalle) | GET | `/api/materias-primas/{id}/` | autenticado |
-| CU55 | POST | `/api/materias-primas/` | Administrador |
+| CU55 | GET | `/api/materias-primas/` | autenticado |
+| CU55 (detalle) | GET | `/api/materias-primas/{id}/` | autenticado |
+| CU56 | POST | `/api/materias-primas/` | Administrador |
 | CU57 | PATCH | `/api/materias-primas/{id}/` | Administrador |
-| CU60 | DELETE | `/api/materias-primas/{id}/` | Administrador |
-| CU58 | POST | `/api/materias-primas/{id}/activar/` | Administrador |
-| CU59 | POST | `/api/materias-primas/{id}/desactivar/` | Administrador |
+| CU58 | DELETE | `/api/materias-primas/{id}/` | Administrador |
+| CU59 | POST | `/api/materias-primas/{id}/activar/` | Administrador |
+| CU60 | POST | `/api/materias-primas/{id}/desactivar/` | Administrador |
 | — | GET | `/api/materias-primas/similares/?nombre=…[&excluir=ID]` | autenticado |
 
-**Filtros de CU56:** `?search=` (nombre o descripción), `?estado=A|I`
+**Filtros de CU55:** `?search=` (nombre o descripción), `?estado=A|I`
 
 ### 5.1 Validaciones de nombre y unidad
 
@@ -165,7 +165,7 @@ solo se renderizan cuando `esAdministrador` es verdadero.
   exacta muestra un error en rojo, y si solo hay parecidas, un aviso suave. El
   backend vuelve a validar al guardar.
 
-**Respuesta de ejemplo (CU56):**
+**Respuesta de ejemplo (CU55):**
 
 ```json
 {
@@ -207,12 +207,12 @@ clases independientes.
 
 | Clase | Tests | Qué cubre |
 |---|:---:|---|
-| `BuscarMateriaPrimaTests` | 6 | CU56: listado, búsqueda por nombre y descripción, filtros por estado |
-| `NuevaMateriaPrimaTests` | 6 | CU55: alta válida, estado por defecto, descripción opcional, nombre duplicado (400), decimales en stock |
+| `BuscarMateriaPrimaTests` | 6 | CU55: listado, búsqueda por nombre y descripción, filtros por estado |
+| `NuevaMateriaPrimaTests` | 6 | CU56: alta válida, estado por defecto, descripción opcional, nombre duplicado (400), decimales en stock |
 | `ModificarMateriaPrimaTests` | 4 | CU57: modificación parcial, inmutabilidad del estado vía `PATCH`, materia prima inexistente |
-| `BorrarMateriaPrimaTests` | 2 | CU60: borrado físico, materia prima inexistente |
-| `ActivarMateriaPrimaTests` | 4 | CU58: activación, persistencia, idempotencia (409), materia prima inexistente |
-| `DesactivarMateriaPrimaTests` | 4 | CU59: desactivación, persistencia, idempotencia (409), materia prima inexistente |
+| `BorrarMateriaPrimaTests` | 2 | CU58: borrado físico, materia prima inexistente |
+| `ActivarMateriaPrimaTests` | 4 | CU59: alta (activación), persistencia, idempotencia (409), materia prima inexistente |
+| `DesactivarMateriaPrimaTests` | 4 | CU60: baja (desactivación), persistencia, idempotencia (409), materia prima inexistente |
 | `PermisosMateriaPrimaTests` | 14 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
 | `StockMateriaPrimaTests` | 4 | `stock_minimo` y `stock_inicial` al crear y vía `PATCH`, rechazo de negativos, `stock_actual` de solo lectura |
 | `NombreUnidadValidacionTests` | 8 | Nombre duplicado ignorando mayúsculas y tildes, espacios, edición del propio nombre o al de otra, unidad fuera del combo, todas las unidades del combo |
@@ -361,7 +361,7 @@ romper la paleta del sistema.
   compras registradas para la materia prima.
 - **Descartes:** cuando el módulo exista, `stock_actual` debe restar los
   descartes asociados.
-- **Relación con Descartes:** el borrado de una materia prima (CU60) deberá
+- **Relación con Descartes:** el borrado de una materia prima (CU58) deberá
   bloquearse cuando tenga descartes asociados, igual que el borrado de un
   galpón con lotes. El backend ya devuelve error en ese caso; el mensaje en el
   frontend indica desactivar como alternativa.

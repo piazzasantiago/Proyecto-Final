@@ -21,12 +21,12 @@ export function deleteMateriaPrima(id) {
   return request(`/api/materias-primas/${id}/`, { method: "DELETE" });
 }
 
-/** CU58 — Activar Materia Prima */
+/** CU59 — Dar de Alta (activar) Materia Prima */
 export function activarMateriaPrima(id) {
   return request(`/api/materias-primas/${id}/activar/`, { method: "POST" });
 }
 
-/** CU59 — Desactivar Materia Prima */
+/** CU60 — Dar de Baja (desactivar) Materia Prima */
 export function desactivarMateriaPrima(id) {
   return request(`/api/materias-primas/${id}/desactivar/`, { method: "POST" });
 }
