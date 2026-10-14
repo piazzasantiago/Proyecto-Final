@@ -11,13 +11,13 @@ import LotesPage from "./pages/LotesPage";
 import ProductosPage from "./pages/ProductosPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import RecoleccionesPage from "./pages/RecoleccionesPage";
+import MateriaPrimasPage from "./pages/MateriaPrimasPage";
 import StaticPage from "./pages/static/StaticPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
 import descartesHtml from "./pages/static/raw/descartes.html?raw";
 import salidasHtml from "./pages/static/raw/salidas.html?raw";
 import entradasHtml from "./pages/static/raw/entradas.html?raw";
-import materiasPrimasHtml from "./pages/static/raw/materias-primas.html?raw";
 import comprasHtml from "./pages/static/raw/compras.html?raw";
 import proveedoresHtml from "./pages/static/raw/proveedores.html?raw";
 import informesHtml from "./pages/static/raw/informes.html?raw";
@@ -45,10 +45,10 @@ function App() {
           <Route path="lotes" element={<LotesPage />} />
           <Route path="productos" element={<RequireRol roles={rolesDe("/app/productos")}><ProductosPage /></RequireRol>} />
           <Route path="recoleccion" element={<RecoleccionesPage />} />
+          <Route path="materias-primas" element={<RequireRol roles={rolesDe("/app/materias-primas")}><MateriaPrimasPage /></RequireRol>} />
           <Route path="descartes" element={<StaticPage html={descartesHtml} />} />
           <Route path="salidas" element={<StaticPage html={salidasHtml} />} />
           <Route path="entradas" element={<StaticPage html={entradasHtml} />} />
-          <Route path="materias-primas" element={<StaticPage html={materiasPrimasHtml} />} />
           <Route path="compras" element={<RequireRol roles={rolesDe("/app/compras")}><StaticPage html={comprasHtml} /></RequireRol>} />
           <Route path="proveedores" element={<RequireRol roles={rolesDe("/app/proveedores")}><StaticPage html={proveedoresHtml} /></RequireRol>} />
           <Route path="informes" element={<RequireRol roles={rolesDe("/app/informes")}><StaticPage html={informesHtml} /></RequireRol>} />
