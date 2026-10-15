@@ -12,10 +12,10 @@ import ProductosPage from "./pages/ProductosPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import RecoleccionesPage from "./pages/RecoleccionesPage";
 import MateriaPrimasPage from "./pages/MateriaPrimasPage";
+import DescartesPage from "./pages/DescartesPage";
 import StaticPage from "./pages/static/StaticPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
-import descartesHtml from "./pages/static/raw/descartes.html?raw";
 import salidasHtml from "./pages/static/raw/salidas.html?raw";
 import entradasHtml from "./pages/static/raw/entradas.html?raw";
 import comprasHtml from "./pages/static/raw/compras.html?raw";
@@ -46,7 +46,7 @@ function App() {
           <Route path="productos" element={<RequireRol roles={rolesDe("/app/productos")}><ProductosPage /></RequireRol>} />
           <Route path="recoleccion" element={<RecoleccionesPage />} />
           <Route path="materias-primas" element={<RequireRol roles={rolesDe("/app/materias-primas")}><MateriaPrimasPage /></RequireRol>} />
-          <Route path="descartes" element={<StaticPage html={descartesHtml} />} />
+          <Route path="descartes" element={<DescartesPage />} />
           <Route path="salidas" element={<StaticPage html={salidasHtml} />} />
           <Route path="entradas" element={<StaticPage html={entradasHtml} />} />
           <Route path="compras" element={<RequireRol roles={rolesDe("/app/compras")}><StaticPage html={comprasHtml} /></RequireRol>} />
