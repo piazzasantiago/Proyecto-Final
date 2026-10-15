@@ -39,9 +39,9 @@ class DescarteViewSet(viewsets.ModelViewSet):
 
     CU15 Buscar descarte   → GET  /api/descartes/
     CU16 Nuevo descarte    → POST /api/descartes/
-    CU17 Finalizar         → POST /api/descartes/{id}/finalizar/
-    CU18 Modificar         → PATCH/PUT /api/descartes/{id}/
-    CU19 Eliminar          → DELETE /api/descartes/{id}/
+    CU17 Modificar         → PATCH/PUT /api/descartes/{id}/
+    CU18 Borrar            → DELETE /api/descartes/{id}/
+    CU19 Finalizar         → POST /api/descartes/{id}/finalizar/
 
     Categorías (ver models.Descarte):
         · Galpón (G): estadístico; solo las gallinas (lote) descuentan del lote.
@@ -101,7 +101,7 @@ class DescarteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="finalizar")
     def finalizar(self, request, pk=None):
         """
-        CU17 — Finaliza un descarte pendiente y aplica su efecto.
+        CU19 — Finaliza un descarte pendiente y aplica su efecto.
 
         Reglas:
         · Solo se puede finalizar un descarte en estado PENDIENTE.

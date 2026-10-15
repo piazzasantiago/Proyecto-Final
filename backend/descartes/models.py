@@ -27,8 +27,8 @@ class Descarte(models.Model):
       materias primas descartados una vez finalizado.
 
     Ciclo de vida: P (Pendiente) → F (Finalizado).
-    Mientras está Pendiente es editable (CU18) y borrable (CU19). Al
-    finalizarlo (CU17) queda de solo lectura y aplica su efecto.
+    Mientras está Pendiente es editable (CU17) y borrable (CU18). Al
+    finalizarlo (CU19) queda de solo lectura y aplica su efecto.
     """
 
     CATEGORIA_GALPON = "G"

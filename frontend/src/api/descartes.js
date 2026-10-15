@@ -21,7 +21,7 @@ export function deleteDescarte(id) {
   return request(`/api/descartes/${id}/`, { method: "DELETE" });
 }
 
-/** CU17 — Finalizar descarte (queda de solo lectura; descuenta gallinas del lote) */
+/** CU19 — Finalizar descarte (queda de solo lectura; descuenta gallinas del lote) */
 export function finalizarDescarte(id) {
   return request(`/api/descartes/${id}/finalizar/`, { method: "POST" });
 }

@@ -62,29 +62,13 @@ al menos una línea. El sistema completa solo el usuario que lo carga
   admiten decimales);
 - **Categoría Galpón:** falta el galpón, el galpón está inactivo, el lote no
   pertenece a ese galpón, el lote está finalizado, o se quieren descartar más
-  gallinas de las que tiene el lote;
+  gallinas de las que tiene el lote (si el mismo lote aparece en varias líneas,
+  se suman);
 - **Categoría Stock:** se envía un galpón, se incluye una línea de gallinas, o
   alguna cantidad supera el stock disponible (si el mismo ítem aparece en varias
   líneas, se suman).
 
-### CU17 – Finalizar Descarte
-
-**Actor:** Administrador, Operario.
-
-`POST /api/descartes/{id}/finalizar/` pasa el descarte de Pendiente (`P`) a
-Finalizado (`F`) y aplica su efecto:
-
-- **Galpón:** por cada línea de gallinas, resta la cantidad a `cantidad_actual`
-  del lote (sin bajar de 0). Las líneas de productos y materias primas no tocan
-  el stock.
-- **Stock:** vuelve a verificar que alcance el stock de cada ítem. Si no alcanza
-  devuelve 400 y no cambia nada. Si alcanza, el stock se recalcula solo al quedar
-  el descarte Finalizado.
-
-Todo ocurre en una transacción, con la fila bloqueada: dos finalizaciones
-simultáneas no descuentan dos veces. Si ya estaba finalizado devuelve 409.
-
-### CU18 – Modificar Descarte
+### CU17 – Modificar Descarte
 
 **Actor:** Administrador, Operario.
 
@@ -94,13 +78,32 @@ cambian una vez creado el descarte, y tampoco el usuario que lo cargó (quien
 edita no lo reemplaza). Las validaciones de líneas, y las de stock en los
 descartes de stock, son las mismas que en CU16.
 
-### CU19 – Eliminar Descarte
+### CU18 – Borrar Descarte
 
 **Actor:** Administrador, Operario.
 
 Elimina físicamente un descarte **Pendiente** y, en cascada, sus líneas. Un
 descarte Finalizado no se puede eliminar (409): ya bajó gallinas del lote o stock,
 y borrarlo dejaría esos números sin el registro que los respalda.
+
+### CU19 – Finalizar Descarte
+
+**Actor:** Administrador, Operario.
+
+`POST /api/descartes/{id}/finalizar/` pasa el descarte de Pendiente (`P`) a
+Finalizado (`F`) y aplica su efecto:
+
+- **Galpón:** por cada lote con líneas de gallinas, vuelve a verificar que el
+  lote no esté finalizado y que alcancen las gallinas (se suman las líneas del
+  mismo lote) y resta la cantidad a `cantidad_actual`. Si no alcanzan devuelve
+  400 y no cambia nada: el lote nunca se recorta a 0 en silencio. Las líneas de
+  productos y materias primas no tocan el stock.
+- **Stock:** vuelve a verificar que alcance el stock de cada ítem. Si no alcanza
+  devuelve 400 y no cambia nada. Si alcanza, el stock se recalcula solo al quedar
+  el descarte Finalizado.
+
+Todo ocurre en una transacción, con la fila bloqueada: dos finalizaciones
+simultáneas no descuentan dos veces. Si ya estaba finalizado devuelve 409.
 
 ### Líneas de descarte (CU20 a CU23)
 
@@ -125,9 +128,9 @@ Según la matriz de permisos por rol del README:
 |---|:---:|:---:|:---:|
 | CU15 Buscar Descarte | Sí | Sí | Sí |
 | CU16 Nuevo Descarte | Sí | Sí | No |
-| CU17 Finalizar Descarte | Sí | Sí | No |
-| CU18 Modificar Descarte (Pendiente) | Sí | Sí | No |
-| CU19 Eliminar Descarte (Pendiente) | Sí | Sí | No |
+| CU17 Modificar Descarte (Pendiente) | Sí | Sí | No |
+| CU18 Borrar Descarte (Pendiente) | Sí | Sí | No |
+| CU19 Finalizar Descarte | Sí | Sí | No |
 | Líneas (CU20 a CU23) | Sí | Sí | Solo ver |
 
 ---
@@ -241,7 +244,9 @@ detalle.
 - **Cantidades enteras** para productos y gallinas; decimales solo en materias
   primas.
 - **Gallinas:** el lote debe pertenecer al galpón, no estar finalizado y tener al
-  menos esa cantidad de gallinas (`cantidad_actual`).
+  menos esa cantidad de gallinas (`cantidad_actual`). Si el mismo lote aparece en
+  varias líneas, se suman antes de comparar. Se verifica al crear, al modificar y
+  otra vez al finalizar.
 - **Stock:** no se puede descartar más de lo que hay; las líneas repetidas del
   mismo ítem se suman antes de comparar.
 - **Observaciones:** máximo 500 caracteres.
@@ -256,9 +261,9 @@ detalle.
 |---|:---:|:---:|:---:|
 | Listar / ver detalle (CU15) | ✅ | ✅ | ✅ |
 | Crear (CU16) | ✅ | ✅ | ❌ |
-| Modificar PENDIENTE (CU18) | ✅ | ✅ | ❌ |
-| Finalizar (CU17) | ✅ | ✅ | ❌ |
-| Eliminar PENDIENTE (CU19) | ✅ | ✅ | ❌ |
+| Modificar PENDIENTE (CU17) | ✅ | ✅ | ❌ |
+| Finalizar (CU19) | ✅ | ✅ | ❌ |
+| Borrar PENDIENTE (CU18) | ✅ | ✅ | ❌ |
 
 Sin token, todos los endpoints devuelven 401. Se usa `EsAdministradorOOperario`
 para escribir e `IsAuthenticated` para leer (ver `get_permissions` en
@@ -288,9 +293,9 @@ formulario sean los vigentes.
 | CU15 | GET | `/api/descartes/` | Listar (`?fecha_desde=`, `?fecha_hasta=`, `?categoria=`, `?estado=`, `?id_galpon=`) | autenticado |
 | CU15 | GET | `/api/descartes/{id}/` | Detalle | autenticado |
 | CU16 | POST | `/api/descartes/` | Crear con líneas | Adm. / Operario |
-| CU18 | PUT/PATCH | `/api/descartes/{id}/` | Editar, incluidas las líneas (solo PENDIENTE) | Adm. / Operario |
-| CU19 | DELETE | `/api/descartes/{id}/` | Eliminar (solo PENDIENTE) | Adm. / Operario |
-| CU17 | POST | `/api/descartes/{id}/finalizar/` | Finalizar y aplicar el efecto | Adm. / Operario |
+| CU17 | PUT/PATCH | `/api/descartes/{id}/` | Editar, incluidas las líneas (solo PENDIENTE) | Adm. / Operario |
+| CU18 | DELETE | `/api/descartes/{id}/` | Borrar (solo PENDIENTE) | Adm. / Operario |
+| CU19 | POST | `/api/descartes/{id}/finalizar/` | Finalizar y aplicar el efecto | Adm. / Operario |
 
 ### Ejemplo de payload — descarte de galpón
 
@@ -376,7 +381,7 @@ No se envían `id_usuario` ni `estado`: la API los completa.
 
 ## Tests
 
-Se implementaron **91 tests** en `backend/descartes/tests.py`, organizados en 10
+Se implementaron **96 tests** en `backend/descartes/tests.py`, organizados en 11
 clases:
 
 | Clase | Tests | Qué verifica |
@@ -390,7 +395,8 @@ clases:
 | `EliminarDescarteTests` | 5 | Eliminar pendiente, cascada a líneas, finalizado no se elimina, descarte de stock, 404 |
 | `LineasDescarteTests` | 4 | Los tres tipos en un descarte, cantidad negativa, motivo obligatorio, nombres legibles |
 | `PermisosDescarteTests` | 14 | Matriz completa por rol, incluidos Operario con CRUD y Consulta solo lectura; sin token → 401 |
-| `DescarteLoteTests` | 4 | Finalizar baja `cantidad_actual`, nunca por debajo de 0, el pendiente y los de stock no tocan el lote |
+| `DescarteLoteTests` | 4 | Finalizar baja `cantidad_actual`, no finaliza si el lote ya no tiene las gallinas (400, sin recortar a 0), el pendiente y los de stock no tocan el lote |
+| `GallinasPorLoteAcumuladasTests` | 5 | Un mismo lote en varias líneas se suma (al crear y al modificar), suma exacta válida, dos descartes que juntos superan el lote (el segundo falla al finalizar y queda Pendiente), lote finalizado antes de finalizar |
 
 Ejecutar:
 
@@ -414,7 +420,7 @@ python manage.py test descartes --verbosity=2
 | `descartes/serializers.py` | Nuevo: serializers cabecera-líneas y validaciones por categoría |
 | `descartes/views.py` | Nuevo: `DescarteViewSet` con filtros, `perform_create` (inyecta `id_usuario`) y acción `/finalizar/` |
 | `descartes/admin.py`, `apps.py` | Registro en el panel de administración y configuración de la app |
-| `descartes/tests.py` | Nuevo: 91 tests |
+| `descartes/tests.py` | Nuevo: 96 tests |
 | `productos/serializers.py`, `productos/views.py` | Agregan `stock_descartado` y lo restan en `stock_actual`; orden explícito en el listado |
 | `materias_primas/serializers.py`, `materias_primas/views.py` | Agregan `stock_descartado` y lo restan en `stock_actual` |
 | `recolecciones/tests.py` | Fecha de prueba con zona horaria (elimina un `RuntimeWarning`) |

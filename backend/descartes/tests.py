@@ -9,13 +9,14 @@ Clases:
   - BuscarDescarteTests          CU15: listado y filtros (fechas, categoría, estado)
   - NuevoDescarteGalponTests     CU16: crear descartes de galpón
   - NuevoDescarteStockTests      CU16: crear descartes de stock
-  - FinalizarDescarteTests       CU17: finalizar → de solo lectura
-  - FinalizarStockTests          CU17: el stock de productos y materias primas baja
-  - ModificarDescarteTests       CU18: editar descarte pendiente
-  - EliminarDescarteTests        CU19: borrar descarte
+  - FinalizarDescarteTests       CU19: finalizar → de solo lectura
+  - FinalizarStockTests          CU19: el stock de productos y materias primas baja
+  - ModificarDescarteTests       CU17: editar descarte pendiente
+  - EliminarDescarteTests        CU18: borrar descarte
   - LineasDescarteTests          validaciones de líneas
   - PermisosDescarteTests        matriz rol × operación
   - DescarteLoteTests            descarte de gallinas → decrementa cantidad_actual del lote
+  - GallinasPorLoteAcumuladasTests  un mismo lote en varias líneas se suma; se verifica al finalizar
 """
 
 import datetime
