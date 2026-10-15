@@ -106,9 +106,11 @@ class DescarteViewSet(viewsets.ModelViewSet):
         Reglas:
         · Solo se puede finalizar un descarte en estado PENDIENTE.
           Si ya está Finalizado devuelve 409 Conflict.
-        · Descarte de GALPÓN: para cada línea de gallinas (lote) decrementa
-          cantidad_actual del lote (sin bajar de 0). Las líneas de materias
-          primas y productos son solo estadísticas: no tocan el stock.
+        · Descarte de GALPÓN: para cada lote con líneas de gallinas verifica
+          que alcancen (sumando las líneas del mismo lote) y decrementa
+          cantidad_actual. Si no alcanzan devuelve 400 y no cambia nada.
+          Las líneas de materias primas y productos son solo estadísticas:
+          no tocan el stock.
         · Descarte de STOCK: verifica que alcance el stock de cada producto y
           materia prima. Si no alcanza devuelve 400 y no cambia nada. Si
           alcanza, el stock actual se recalcula solo al quedar Finalizado.
@@ -132,12 +134,35 @@ class DescarteViewSet(viewsets.ModelViewSet):
             )
 
             if descarte.categoria == Descarte.CATEGORIA_GALPON:
+                # Gallinas a descontar por lote (un lote puede repetirse en
+                # varias líneas). Se bloquean en orden de id para evitar
+                # bloqueos cruzados entre finalizaciones simultáneas.
+                por_lote = {}
                 for linea in lineas:
-                    if linea.id_lote_id is None:
-                        continue
-                    lote = Lote.objects.select_for_update().get(pk=linea.id_lote_id)
-                    nueva_cantidad = int(lote.cantidad_actual) - int(linea.cantidad)
-                    lote.cantidad_actual = max(0, nueva_cantidad)
+                    if linea.id_lote_id is not None:
+                        por_lote[linea.id_lote_id] = (
+                            por_lote.get(linea.id_lote_id, 0) + int(linea.cantidad)
+                        )
+                for id_lote in sorted(por_lote):
+                    lote = Lote.objects.select_for_update().get(pk=id_lote)
+                    a_descartar = por_lote[id_lote]
+                    # Entre la carga y la finalización el lote pudo cambiar
+                    # (otro descarte finalizado, lote cerrado): se vuelve a
+                    # verificar y, si no alcanza, no se cambia nada.
+                    if lote.estado == Lote.ESTADO_FINALIZADO:
+                        raise ValidationError(
+                            {"detail": f"El lote {lote.codigo} ya está finalizado."}
+                        )
+                    if a_descartar > lote.cantidad_actual:
+                        raise ValidationError(
+                            {
+                                "detail": (
+                                    f"No se pueden descartar {a_descartar} gallinas del lote "
+                                    f"{lote.codigo}: solo quedan {lote.cantidad_actual}."
+                                )
+                            }
+                        )
+                    lote.cantidad_actual -= a_descartar
                     lote.save(update_fields=["cantidad_actual"])
             else:
                 items = [

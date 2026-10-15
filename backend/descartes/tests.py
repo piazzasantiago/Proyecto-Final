@@ -864,11 +864,15 @@ class DescarteLoteTests(TestCase):
         self.assertEqual(self.lote.cantidad_actual, 490)
 
     def test_finalizar_no_baja_de_cero(self):
+        """Si el lote ya no tiene las gallinas, no se finaliza ni se recorta a 0."""
         self.lote.cantidad_actual = 5
         self.lote.save()
-        self.client.post(f"/api/descartes/{self.d.pk}/finalizar/")
+        resp = self.client.post(f"/api/descartes/{self.d.pk}/finalizar/")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.lote.refresh_from_db()
-        self.assertEqual(self.lote.cantidad_actual, 0)
+        self.d.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, 5)
+        self.assertEqual(self.d.estado, Descarte.ESTADO_PENDIENTE)
 
     def test_descarte_pendiente_no_modifica_lote(self):
         self.lote.refresh_from_db()
@@ -881,3 +885,82 @@ class DescarteLoteTests(TestCase):
         self.client.post(f"/api/descartes/{d.pk}/finalizar/")
         self.lote.refresh_from_db()
         self.assertEqual(self.lote.cantidad_actual, 500)
+
+
+class GallinasPorLoteAcumuladasTests(TestCase):
+    """
+    Las gallinas de un mismo lote se suman entre líneas (al crear y editar) y se
+    vuelven a verificar al finalizar, sin recortar el lote a 0 en silencio.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.g = make_galpon()
+        self.lote = make_lote(self.g, cantidad_inicial=100, cantidad_actual=100)
+        auth(self.client, make_admin())
+
+    def crear(self, *cantidades, dia=9):
+        lineas = [
+            {"id_lote": self.lote.pk, "cantidad": str(c), "motivo": "muerte"}
+            for c in cantidades
+        ]
+        return self.client.post(
+            "/api/descartes/",
+            payload_galpon(self.g, lineas, fecha=f"2026-08-{dia:02d}T10:00:00Z"),
+            format="json",
+        )
+
+    def test_mismo_lote_en_dos_lineas_que_superan_el_lote(self):
+        resp = self.crear(80, 80)
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("lineas", resp.data)
+        self.assertIn("160", str(resp.data["lineas"]))
+
+    def test_mismo_lote_en_dos_lineas_que_suman_justo_el_lote(self):
+        resp = self.crear(60, 40)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        f = self.client.post(f"/api/descartes/{resp.data['id_descarte']}/finalizar/")
+        self.assertEqual(f.status_code, status.HTTP_200_OK)
+        self.lote.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, 0)
+
+    def test_editar_con_lineas_que_superan_el_lote(self):
+        resp = self.crear(10)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        e = self.client.patch(
+            f"/api/descartes/{resp.data['id_descarte']}/",
+            {
+                "lineas": [
+                    {"id_lote": self.lote.pk, "cantidad": "70", "motivo": "a"},
+                    {"id_lote": self.lote.pk, "cantidad": "70", "motivo": "b"},
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(e.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_finalizar_dos_descartes_que_juntos_superan_el_lote(self):
+        a = self.crear(80, dia=9)
+        b = self.crear(80, dia=10)
+        self.assertEqual(a.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(b.status_code, status.HTTP_201_CREATED)
+        fa = self.client.post(f"/api/descartes/{a.data['id_descarte']}/finalizar/")
+        fb = self.client.post(f"/api/descartes/{b.data['id_descarte']}/finalizar/")
+        self.assertEqual(fa.status_code, status.HTTP_200_OK)
+        self.assertEqual(fb.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("solo quedan 20", str(fb.data))
+        self.lote.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, 20)
+        self.assertEqual(
+            Descarte.objects.get(pk=b.data["id_descarte"]).estado,
+            Descarte.ESTADO_PENDIENTE,
+        )
+
+    def test_finalizar_con_lote_ya_finalizado(self):
+        resp = self.crear(10)
+        Lote.objects.filter(pk=self.lote.pk).update(estado=Lote.ESTADO_FINALIZADO)
+        f = self.client.post(f"/api/descartes/{resp.data['id_descarte']}/finalizar/")
+        self.assertEqual(f.status_code, status.HTTP_400_BAD_REQUEST)
+        self.lote.refresh_from_db()
+        self.assertEqual(self.lote.cantidad_actual, 100)
+

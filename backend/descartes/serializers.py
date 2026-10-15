@@ -208,6 +208,9 @@ class DescarteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"id_galpon": "El galpón es obligatorio en los descartes de galpón."}
             )
+        # Si un mismo lote aparece en varias líneas, se suman: el total no puede
+        # superar las gallinas que tiene el lote.
+        descartadas = {}
         for linea in lineas:
             lote = linea.get("id_lote")
             if lote is None:
@@ -220,11 +223,15 @@ class DescarteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"lineas": f"El lote {lote.codigo} ya está finalizado."}
                 )
-            if linea["cantidad"] > lote.cantidad_actual:
+            lote_y_total = descartadas.get(lote.pk, (lote, Decimal("0")))
+            descartadas[lote.pk] = (lote, lote_y_total[1] + linea["cantidad"])
+
+        for lote, total in descartadas.values():
+            if total > lote.cantidad_actual:
                 raise serializers.ValidationError(
                     {
                         "lineas": (
-                            f"No se pueden descartar {int(linea['cantidad'])} gallinas del lote "
+                            f"No se pueden descartar {int(total)} gallinas del lote "
                             f"{lote.codigo}: solo quedan {lote.cantidad_actual}."
                         )
                     }
