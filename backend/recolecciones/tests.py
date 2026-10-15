@@ -133,7 +133,7 @@ def crear_recoleccion(galpon, lote, producto, estado=Recoleccion.ESTADO_PENDIENT
     rec = Recoleccion.objects.create(
         id_galpon=galpon,
         id_lote=lote,
-        fecha=datetime.datetime(2026, 6, 15, 8, 0),
+        fecha=datetime.datetime(2026, 6, 15, 8, 0, tzinfo=timezone.get_current_timezone()),
         estado=estado,
     )
     LineaRecoleccion.objects.create(
