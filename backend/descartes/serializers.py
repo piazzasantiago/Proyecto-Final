@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from galpones.models import Galpon
@@ -169,6 +170,14 @@ class DescarteSerializer(serializers.ModelSerializer):
         return obj.lineas.count()
 
     # ── Validaciones ──────────────────────────────────────────────────────────
+
+    def validate_fecha(self, value):
+        """Un descarte registra algo que ya ocurrió: no admite fechas futuras."""
+        if value > timezone.now():
+            raise serializers.ValidationError(
+                "La fecha y hora del descarte no pueden ser futuras."
+            )
+        return value
 
     def validate_lineas(self, lineas):
         if not lineas:

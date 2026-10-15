@@ -54,6 +54,7 @@ al menos una línea. El sistema completa solo el usuario que lo carga
 (`id_usuario`) y lo crea en estado **Pendiente**. Se rechaza con 400 si:
 
 - falta la categoría;
+- la fecha y hora son futuras;
 - no hay líneas;
 - las observaciones superan los 500 caracteres;
 - una línea no tiene ítem, o tiene más de uno;
@@ -249,6 +250,9 @@ detalle.
   otra vez al finalizar.
 - **Stock:** no se puede descartar más de lo que hay; las líneas repetidas del
   mismo ítem se suman antes de comparar.
+- **Fecha y hora no futura:** no puede ser posterior al momento actual, al
+  crear ni al modificar (HTTP 400). El formulario también la limita al momento
+  actual.
 - **Observaciones:** máximo 500 caracteres.
 - **Descarte finalizado:** no se puede modificar (400), ni eliminar (409), ni
   finalizar de nuevo (409).
@@ -381,7 +385,7 @@ No se envían `id_usuario` ni `estado`: la API los completa.
 
 ## Tests
 
-Se implementaron **96 tests** en `backend/descartes/tests.py`, organizados en 11
+Se implementaron **101 tests** en `backend/descartes/tests.py`, organizados en 12
 clases:
 
 | Clase | Tests | Qué verifica |
@@ -397,6 +401,7 @@ clases:
 | `PermisosDescarteTests` | 14 | Matriz completa por rol, incluidos Operario con CRUD y Consulta solo lectura; sin token → 401 |
 | `DescarteLoteTests` | 4 | Finalizar baja `cantidad_actual`, no finaliza si el lote ya no tiene las gallinas (400, sin recortar a 0), el pendiente y los de stock no tocan el lote |
 | `GallinasPorLoteAcumuladasTests` | 5 | Un mismo lote en varias líneas se suma (al crear y al modificar), suma exacta válida, dos descartes que juntos superan el lote (el segundo falla al finalizar y queda Pendiente), lote finalizado antes de finalizar |
+| `FechaDescarteTests` | 5 | Fecha de mañana o con hora futura → 400 (de galpón y de stock), fecha pasada válida, no se puede editar a una fecha futura |
 
 Ejecutar:
 
@@ -420,7 +425,7 @@ python manage.py test descartes --verbosity=2
 | `descartes/serializers.py` | Nuevo: serializers cabecera-líneas y validaciones por categoría |
 | `descartes/views.py` | Nuevo: `DescarteViewSet` con filtros, `perform_create` (inyecta `id_usuario`) y acción `/finalizar/` |
 | `descartes/admin.py`, `apps.py` | Registro en el panel de administración y configuración de la app |
-| `descartes/tests.py` | Nuevo: 96 tests |
+| `descartes/tests.py` | Nuevo: 101 tests |
 | `productos/serializers.py`, `productos/views.py` | Agregan `stock_descartado` y lo restan en `stock_actual`; orden explícito en el listado |
 | `materias_primas/serializers.py`, `materias_primas/views.py` | Agregan `stock_descartado` y lo restan en `stock_actual` |
 | `recolecciones/tests.py` | Fecha de prueba con zona horaria (elimina un `RuntimeWarning`) |

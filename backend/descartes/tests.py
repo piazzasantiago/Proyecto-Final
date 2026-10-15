@@ -17,6 +17,7 @@ Clases:
   - PermisosDescarteTests        matriz rol × operación
   - DescarteLoteTests            descarte de gallinas → decrementa cantidad_actual del lote
   - GallinasPorLoteAcumuladasTests  un mismo lote en varias líneas se suma; se verifica al finalizar
+  - FechaDescarteTests           la fecha no puede ser futura (al crear ni al editar)
 """
 
 import datetime
@@ -24,6 +25,7 @@ from datetime import timezone
 from decimal import Decimal
 
 from django.test import TestCase
+from django.utils import timezone as dj_timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -964,4 +966,66 @@ class GallinasPorLoteAcumuladasTests(TestCase):
         self.assertEqual(f.status_code, status.HTTP_400_BAD_REQUEST)
         self.lote.refresh_from_db()
         self.assertEqual(self.lote.cantidad_actual, 100)
+
+
+class FechaDescarteTests(TestCase):
+    """La fecha del descarte no puede ser posterior al momento actual."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.g = make_galpon()
+        self.mp = make_materia_prima()
+        auth(self.client, make_admin())
+
+    def crear(self, fecha_iso):
+        return self.client.post(
+            "/api/descartes/",
+            payload_galpon(
+                self.g,
+                [{"id_materia_prima": self.mp.pk, "cantidad": "1", "motivo": "x"}],
+                fecha=fecha_iso,
+            ),
+            format="json",
+        )
+
+    def test_fecha_de_mañana_es_rechazada(self):
+        manana = dj_timezone.now() + datetime.timedelta(days=1)
+        resp = self.crear(manana.isoformat())
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("fecha", resp.data)
+
+    def test_hora_futura_del_mismo_dia_es_rechazada(self):
+        en_una_hora = dj_timezone.now() + datetime.timedelta(hours=1)
+        resp = self.crear(en_una_hora.isoformat())
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_fecha_pasada_es_valida(self):
+        ayer = dj_timezone.now() - datetime.timedelta(days=1)
+        resp = self.crear(ayer.isoformat())
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+    def test_fecha_de_stock_futura_tambien_es_rechazada(self):
+        prod = make_producto(stock_inicial=10)
+        manana = dj_timezone.now() + datetime.timedelta(days=1)
+        resp = self.client.post(
+            "/api/descartes/",
+            dict(
+                categoria="S",
+                fecha=manana.isoformat(),
+                lineas=[{"id_producto": prod.pk, "cantidad": "1", "motivo": "x"}],
+            ),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_no_se_puede_editar_a_una_fecha_futura(self):
+        ayer = dj_timezone.now() - datetime.timedelta(days=1)
+        creado = self.crear(ayer.isoformat())
+        manana = dj_timezone.now() + datetime.timedelta(days=1)
+        resp = self.client.patch(
+            f"/api/descartes/{creado.data['id_descarte']}/",
+            {"fecha": manana.isoformat()},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
