@@ -14,7 +14,8 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 El sistema cuenta con **autenticación real y control de acceso por rol**, y siete
 módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
-Gallinas**, **Productos**, **Recolección diaria** y **Materias Primas**.
+Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas** y
+**Descartes**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -25,11 +26,18 @@ Gallinas**, **Productos**, **Recolección diaria** y **Materias Primas**.
 | Gestión de Productos | CU49 a CU54 | Funcional |
 | Recolección diaria | CU24 a CU32 | Funcional |
 | Gestión de Materias Primas | CU55 a CU60 | Funcional |
-| Descartes, Salidas, Entradas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Descartes | CU15 a CU23 | Funcional |
+| Salidas, Entradas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
-El módulo de Recolección diaria registra además el **usuario responsable de la
-carga** (`id_usuario`) en cada recolección, visible como columna "Cargado por"
-en la tabla y en el panel de detalle.
+Los módulos de Recolección diaria y Descartes registran además el **usuario
+responsable de la carga** (`id_usuario`) en cada registro, visible como columna
+"Cargado por" en la tabla y en el panel de detalle.
+
+Los **Descartes** tienen dos categorías: *Galpón* (algo que ocurre dentro de un
+galpón; es estadístico y solo las gallinas descuentan del lote) y *Stock* (baja de
+productos y materias primas almacenados, que sí reduce su stock actual). El stock
+de productos y de materias primas no se guarda: se calcula a partir de las
+recolecciones y los descartes finalizados.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -86,6 +94,7 @@ backend/
 ├── productos/       módulo de Productos
 ├── recolecciones/   módulo de Recolección diaria
 ├── materias_primas/ módulo de Materias Primas
+├── descartes/       módulo de Descartes
 └── manage.py
 ```
 
@@ -195,7 +204,7 @@ Django crea automáticamente una base de datos temporaria, corre todos los tests
 y la elimina al terminar. No toca la base de desarrollo.
 
 ```
-Ran 277 tests in ~Xs
+Ran N tests in ~Xs
 OK
 ```
 
@@ -208,6 +217,7 @@ python manage.py test lotes
 python manage.py test productos
 python manage.py test recolecciones
 python manage.py test materias_primas
+python manage.py test descartes
 ```
 
 ---
@@ -252,6 +262,12 @@ python manage.py test materias_primas
 | POST | `/api/materias-primas/{id}/activar/` | Activar materia prima | Administrador |
 | POST | `/api/materias-primas/{id}/desactivar/` | Desactivar materia prima | Administrador |
 | GET | `/api/materias-primas/similares/` | Nombres iguales o parecidos (ayuda del formulario) | autenticado |
+| GET | `/api/descartes/` | Listar descartes (`?fecha_desde=`, `?fecha_hasta=`, `?categoria=G\|S`, `?estado=`, `?id_galpon=`) | autenticado |
+| POST | `/api/descartes/` | Crear descarte de galpón o de stock con líneas | Adm. / Operario |
+| GET | `/api/descartes/{id}/` | Detalle de descarte | autenticado |
+| PATCH | `/api/descartes/{id}/` | Modificar descarte PENDIENTE | Adm. / Operario |
+| DELETE | `/api/descartes/{id}/` | Eliminar descarte PENDIENTE | Adm. / Operario |
+| POST | `/api/descartes/{id}/finalizar/` | Finalizar y aplicar el efecto (lote o stock) | Adm. / Operario |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:
@@ -312,9 +328,10 @@ En `docs/`:
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
-| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado y tests (CU49 a CU54) |
+| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado (recolecciones y descartes) y tests (CU49 a CU54) |
 | `docs-recolecciones.md` | Recolección diaria, estructura cabecera-líneas, FK a lote, FK a usuario ("Cargado por"), estados y tests (CU24 a CU32) |
-| `docs-materias-primas.md` | Gestión de materias primas, alerta de stock mínimo, stock calculado provisional y tests (CU55 a CU60) |
+| `docs-materias-primas.md` | Gestión de materias primas, alerta de stock mínimo, stock calculado (descartes) y tests (CU55 a CU60) |
+| `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -355,18 +372,16 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/descartes`** — Descartes (CU15 a CU23). Depende de Lotes ✅,
-   Productos ✅ y Materias Primas ✅ — todos ya implementados.
-
-3. **`feature/salidas`** — Registro de salidas de productos de la granja
+1. **`feature/salidas`** — Registro de salidas de productos de la granja
    (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
-   una `Salida` con N `LineaSalida` (producto + cantidad). Depende de que
-   existan Recolecciones y Descartes, ya que el stock real de cada producto
-   se calcula como `recolecciones − descartes − salidas`.
+   una `Salida` con N `LineaSalida` (producto + cantidad). Recolecciones ✅ y
+   Descartes ✅ ya están implementados: el stock real de cada producto hoy se
+   calcula como `stock_inicial + recolecciones − descartes`, y con Salidas pasará
+   a restar también las salidas.
 
-4. Módulos de insumos: Entradas, Compras y Proveedores.
+2. Módulos de insumos: Entradas, Compras y Proveedores.
 
-5. **Informes e indicadores productivos** (CU85 a CU89).
+3. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
@@ -377,8 +392,8 @@ backend, endpoints con DRF, permisos por rol, pantalla React, tests en
 Mejoras que aplican a múltiples módulos y conviene implementar cuando haya
 dos o tres modelos funcionales, para aplicarlas de una vez y con consistencia:
 
-**Registro de auditoría.** El módulo de Recolección ya registra el usuario
-responsable de la carga en el campo `id_usuario`. Para los demás módulos,
+**Registro de auditoría.** Los módulos de Recolección y Descartes ya registran el
+usuario responsable de la carga en el campo `id_usuario`. Para los demás módulos,
 una opción escalable es agregar una clase base abstracta `ModeloAuditable`
 en `backend/core/models.py` con los campos `creado_por`, `modificado_por`,
 `fecha_creacion` y `fecha_modificacion`. Cada modelo la hereda con una sola

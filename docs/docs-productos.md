@@ -17,8 +17,9 @@ de `feature/gestion-recolecciones` referenciará uno de estos productos.
 - CRUD completo de productos (nombre, descripción, estado).
 - Activar / desactivar como acciones dedicadas (no vía `PATCH` del estado).
 - Stock: `stock_inicial` (carga manual del Administrador) más lo recolectado en
-  recolecciones finalizadas. La API expone `stock_recolectado` y `stock_actual`
-  como campos calculados de solo lectura.
+  recolecciones finalizadas, menos lo descartado en descartes de stock
+  finalizados. La API expone `stock_recolectado`, `stock_descartado` y
+  `stock_actual` como campos calculados de solo lectura.
 - Acceso de solo lectura para el rol Consulta.
 - Tests automatizados del módulo (44 tests en 8 clases).
 - Interfaz React con tarjetas compactas y panel de detalle; botones de acción
@@ -26,10 +27,10 @@ de `feature/gestion-recolecciones` referenciará uno de estos productos.
 
 ### Qué no incluye
 
-- Los descuentos de stock por descartes y salidas. La Educción de requisitos
-  describe el stock disponible como recolecciones menos descartes menos
-  salidas; hoy se suman las recolecciones, pero esos dos módulos todavía no
-  existen (ver sección 10, Pendientes).
+- El descuento de stock por salidas. La Educción de requisitos describe el
+  stock disponible como recolecciones menos descartes menos salidas; hoy se
+  suman las recolecciones y se restan los descartes, pero Salidas todavía no
+  existe (ver sección 10, Pendientes).
 - La carga de las recolecciones. Eso se modela en `feature/gestion-recolecciones`
   (ver `docs-recolecciones.md`), que consume los productos activos de este
   módulo y aporta el stock recolectado.
@@ -124,9 +125,12 @@ sucede con Galpones.
   incluido en todas las respuestas de la API.
 - `stock_recolectado` — suma de las cantidades de las líneas de recolecciones
   **finalizadas** de ese producto.
-- `stock_actual` — `stock_inicial + stock_recolectado`. No se guarda: se calcula
-  en cada consulta, así que no puede desfasarse (por ejemplo, si se borra una
-  recolección finalizada, el stock baja solo).
+- `stock_descartado` — suma de las cantidades de las líneas de descartes de
+  categoría **Stock** y estado **Finalizado** de ese producto (ver
+  `docs-descartes.md`). Los descartes de galpón no cuentan.
+- `stock_actual` — `stock_inicial + stock_recolectado − stock_descartado`. No se
+  guarda: se calcula en cada consulta, así que no puede desfasarse (por ejemplo,
+  si se borra una recolección finalizada, el stock baja solo).
 
 ---
 
@@ -159,7 +163,8 @@ sucede con Galpones.
       "estado_display": "Activo",
       "stock_inicial": 50,
       "stock_recolectado": 100,
-      "stock_actual": 150
+      "stock_descartado": 10,
+      "stock_actual": 140
     }
   ]
 }
@@ -173,11 +178,13 @@ ocurren a través de `activar`/`desactivar`.
 modificar. Es un entero sin signo (`PositiveIntegerField`); un valor negativo
 devuelve `400`.
 
-**Campos `stock_recolectado` y `stock_actual` (solo lectura):** se calculan
-(ver sección 4). Enviarlos en un `POST`/`PATCH` no tiene efecto. El listado los
-obtiene con una sola consulta (anotación en `get_queryset`), sin una consulta
-por producto. Solo cuentan las recolecciones en estado Finalizada; las
-pendientes no suman.
+**Campos `stock_recolectado`, `stock_descartado` y `stock_actual` (solo
+lectura):** se calculan (ver sección 4). Enviarlos en un `POST`/`PATCH` no tiene
+efecto. El listado los obtiene con una sola consulta (anotación en
+`get_queryset`), sin una consulta por producto. Solo cuentan las recolecciones y
+los descartes de stock en estado Finalizado; los pendientes no suman ni restan.
+Como la anotación con `Sum` descarta el orden por defecto del modelo, el listado
+fija `order_by("producto")` para que la paginación sea estable.
 
 ---
 
@@ -288,15 +295,22 @@ recolecciones **finalizadas**.
 
 Se eligió calcularlo en lugar de sumar al finalizar porque así no hay nada que
 mantener sincronizado: borrar una recolección finalizada, o cualquier otro
-cambio, se refleja solo, y cuando existan Descartes y Salidas bastará con
-restarlos en el mismo cálculo. Las recolecciones pendientes no suman: solo la
-finalización confirma que los huevos están contados.
+cambio, se refleja solo, y los Descartes ya se restan en el mismo cálculo (las
+Salidas se restarán igual cuando existan). Las recolecciones pendientes no
+suman: solo la finalización confirma que los huevos están contados. Del mismo
+modo, solo los descartes de **stock** finalizados restan.
+
+Los descartes se suman con una subconsulta (`descartes/stock.py`) y no con un
+segundo `JOIN`, para no multiplicar las filas del `Sum` de recolecciones.
 
 Dependencia entre apps: `productos` no importa `recolecciones` a nivel de
 módulo (es `recolecciones` la que depende de `productos`); el cálculo usa
 imports diferidos dentro de `ProductoViewSet.get_queryset` y
 `ProductoSerializer`, igual que `galpones` con `lotes`. Los tests que combinan
-ambos módulos viven en `recolecciones/tests.py` (`StockDeProductosTests`).
+ambos módulos viven en `recolecciones/tests.py` (`StockDeProductosTests`); los
+que combinan Productos con Descartes, en `descartes/tests.py`
+(`FinalizarStockTests`). `productos` tampoco importa `descartes` a nivel de
+módulo.
 
 ### 8.5 Consulta con acceso de solo lectura
 
@@ -327,6 +341,8 @@ catálogo sin ninguna acción disponible.
 - Un `stock_inicial` negativo devuelve 400 y no modifica el valor en base.
 - `stock_actual` suma lo recolectado en recolecciones finalizadas; las pendientes
   no suman, finalizar por la API lo hace subir y borrar una finalizada lo baja.
+- `stock_actual` resta los descartes de stock finalizados; los pendientes y los
+  de galpón no restan.
 
 **Frontend**
 
@@ -343,8 +359,8 @@ catálogo sin ninguna acción disponible.
 
 ## 10. Pendientes
 
-- **Descartes y Salidas:** cuando existan, el stock actual debe restar descartes
-  y salidas además de sumar las recolecciones finalizadas (ver sección 8.4).
+- **Salidas:** cuando exista, el stock actual debe restar también las salidas
+  (ver sección 8.4). Los descartes ya se restan.
 - **Relación con Línea de Recolección:** cada línea de recolección deberá
   referenciar un producto activo. Falta decidir si el borrado de un producto
   (CU53) debe bloquearse cuando tiene líneas asociadas, como ya ocurre con

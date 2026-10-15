@@ -18,9 +18,9 @@ materias primas.
 - CRUD completo de materias primas (nombre, descripción, unidad, estado,
   stock mínimo, stock inicial).
 - Activar / desactivar como acciones dedicadas (no vía `PATCH` del estado).
-- `stock_actual` expuesto como campo calculado de solo lectura; por ahora
-  equivale a `stock_inicial` (base para integración futura con Compras y
-  Descartes).
+- `stock_actual` expuesto como campo calculado de solo lectura:
+  `stock_inicial` menos lo descartado en descartes de stock finalizados
+  (`stock_descartado`). Queda listo para sumar Compras cuando exista.
 - Alerta visual en la tarjeta y en el panel de detalle cuando
   `stock_actual < stock_minimo`.
 - Acceso de solo lectura para los roles Operario y Consulta.
@@ -32,9 +32,9 @@ materias primas.
 
 ### Qué no incluye
 
-- Los incrementos de stock por Compras y los decrementos por Descartes. El
-  stock actual hoy devuelve `stock_inicial`; cuando existan esos módulos
-  bastará con sumar compras y restar descartes en el mismo campo calculado.
+- Los incrementos de stock por Compras. El stock actual hoy es
+  `stock_inicial − stock_descartado`; cuando exista ese módulo bastará con
+  sumar las compras en el mismo campo calculado.
 
 ---
 
@@ -123,8 +123,11 @@ solo se renderizan cuando `esAdministrador` es verdadero.
 
 - `estado_display` — texto legible del estado (`"Activo"` / `"Inactivo"`),
   incluido en todas las respuestas de la API.
-- `stock_actual` — por ahora devuelve `stock_inicial`. Cuando existan Compras
-  y Descartes se calculará como `stock_inicial + compras − descartes`.
+- `stock_descartado` — suma de las cantidades de las líneas de descartes de
+  categoría **Stock** y estado **Finalizado** de esa materia prima (ver
+  `docs-descartes.md`). Los descartes de galpón no cuentan.
+- `stock_actual` — `stock_inicial − stock_descartado`. Cuando exista Compras se
+  calculará como `stock_inicial + compras − descartes`.
 
 ---
 
@@ -180,7 +183,8 @@ solo se renderizan cuando `esAdministrador` es verdadero.
       "estado_display": "Activo",
       "stock_minimo": "200.00",
       "stock_inicial": "500.00",
-      "stock_actual": "500.00"
+      "stock_descartado": "20.00",
+      "stock_actual": "480.00"
     }
   ]
 }
@@ -193,8 +197,10 @@ ocurren a través de `activar`/`desactivar`.
 **Campos `stock_minimo` y `stock_inicial` (editables):** `DecimalField` con
 dos decimales; un valor negativo devuelve `400`.
 
-**Campo `stock_actual` (solo lectura):** se calcula en el serializer; enviarlo
-en un `POST`/`PATCH` no tiene efecto.
+**Campos `stock_descartado` y `stock_actual` (solo lectura):** se calculan;
+enviarlos en un `POST`/`PATCH` no tiene efecto. El listado obtiene
+`stock_descartado` con una subconsulta (`anotar_descartado`), sin una consulta
+por materia prima. Solo restan los descartes de stock en estado Finalizado.
 
 ---
 
@@ -298,15 +304,20 @@ medidos con precisión (como vitaminas en gramos) como materiales a granel
 (como alimento en kilogramos). El frontend usa `step="0.01"` en los inputs
 numéricos del formulario.
 
-### 8.4 stock_actual como campo calculado provisional
+### 8.4 stock_actual como campo calculado
 
 El dominio describe el stock disponible como un valor dinámico
-(`stock_inicial + compras − descartes`). Hoy solo existe `stock_inicial`
-porque Compras y Descartes aún no están implementados. Se eligió exponer
-`stock_actual` como `SerializerMethodField` desde el principio — devolviendo
-`stock_inicial` por ahora — para que el frontend y los tests ya consuman la
-interfaz definitiva. Cuando se agreguen los módulos dependientes, solo cambia
-la implementación del método, sin romper ningún contrato de API.
+(`stock_inicial + compras − descartes`). Se eligió exponer `stock_actual` como
+`SerializerMethodField` desde el principio, para que el frontend y los tests ya
+consumieran la interfaz definitiva. Al construirse Descartes solo cambió la
+implementación del método, sin romper ningún contrato de API: ahora devuelve
+`stock_inicial − stock_descartado`, donde `stock_descartado` suma los descartes
+de categoría Stock finalizados. Compras todavía no existe, así que aún no suma.
+
+`materias_primas` no importa `descartes` a nivel de módulo (es `descartes` la
+que depende de ella); el cálculo usa imports diferidos en la vista y el
+serializer. Los tests que combinan ambos módulos viven en `descartes/tests.py`
+(`FinalizarStockTests`).
 
 ### 8.5 Alerta de stock mínimo en la UI
 
@@ -341,6 +352,8 @@ romper la paleta del sistema.
 - Un nombre duplicado devuelve 400, aunque difiera en mayúsculas o tildes.
 - Una unidad fuera de las opciones del combo devuelve 400.
 - Un `stock_minimo` o `stock_inicial` negativo devuelve 400.
+- `stock_actual` resta los descartes de stock finalizados; los pendientes y los
+  de galpón no restan.
 
 **Frontend**
 
@@ -359,9 +372,9 @@ romper la paleta del sistema.
 
 - **Compras:** cuando el módulo exista, `stock_actual` debe sumar el total de
   compras registradas para la materia prima.
-- **Descartes:** cuando el módulo exista, `stock_actual` debe restar los
-  descartes asociados.
 - **Relación con Descartes:** el borrado de una materia prima (CU58) deberá
-  bloquearse cuando tenga descartes asociados, igual que el borrado de un
-  galpón con lotes. El backend ya devuelve error en ese caso; el mensaje en el
-  frontend indica desactivar como alternativa.
+  bloquearse con un `409` y un mensaje claro cuando tenga descartes asociados,
+  igual que el borrado de un galpón con lotes. Hoy las líneas de descarte
+  referencian la materia prima con `PROTECT`, así que la base impide el borrado,
+  pero la vista no captura ese error para devolver el mensaje (ver
+  `docs-descartes.md`, Pendientes).
