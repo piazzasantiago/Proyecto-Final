@@ -7,17 +7,118 @@
 
 ## Casos de uso implementados
 
-| ID | Nombre | Actor |
-|---|---|---|
-| CU24 | Registrar recolección diaria | Administrador, Operario |
-| CU25 | Agregar líneas de recolección (producto + cantidad) | Administrador, Operario |
-| CU26 | Editar recolección en estado Pendiente | Administrador, Operario |
-| CU27 | Finalizar recolección | Administrador, Operario |
-| CU28 | Eliminar recolección | Administrador |
-| CU29 | Listar recolecciones (con filtros por galpón y estado) | Todos |
-| CU30 | Ver detalle de una recolección | Todos |
-| CU31 | Filtrar recolecciones por galpón | Todos |
-| CU32 | Filtrar recolecciones por estado | Todos |
+Numeración y nombres según la *Educción de requisitos*. Los CU24 a CU28
+corresponden a la cabecera (la recolección) y los CU29 a CU32 a sus líneas
+(producto + cantidad). Las líneas no tienen endpoints propios: se leen y se
+modifican siempre a través de la recolección a la que pertenecen (ver cada CU).
+
+### Recolecciones
+
+#### CU24 – Buscar Avanzado Recolecciones
+
+**Actor:** cualquier usuario autenticado (Administrador, Operario y Consulta).
+
+Lista las recolecciones con sus líneas, lote, galpón y usuario que las cargó.
+Permite filtrar por galpón (`?id_galpon=`) y por estado (`?estado=P|F`); los
+filtros se pueden combinar. El detalle de una recolección se obtiene con
+`GET /api/recolecciones/{id}/`. No hay filtro por rango de fechas todavía.
+
+#### CU25 – Nueva Recolección
+
+**Actor:** Administrador, Operario.
+
+Registra la recolección de un galpón con su fecha y hora, observaciones
+opcionales y al menos una línea. El sistema completa solo el lote activo del
+galpón (`id_lote`) y el usuario que la carga (`id_usuario`), y la crea en estado
+**Pendiente**. Se rechaza con 400 si:
+
+- el galpón no tiene un lote activo (Transición o Producción);
+- el galpón ya tiene otra recolección ese día;
+- la fecha es futura;
+- no hay líneas, o hay un producto repetido o inactivo;
+- las observaciones superan los 500 caracteres.
+
+#### CU26 – Modificar Recolección
+
+**Actor:** Administrador, Operario.
+
+Modifica la fecha, las observaciones y/o las líneas de una recolección
+**Pendiente**. Una recolección Finalizada no se puede modificar
+(*"Recolección finalizada. No se puede editar."*). El galpón no se puede
+cambiar una vez creada la recolección, y el estado solo cambia con CU28. Si la
+fecha se mueve a un día en que el galpón ya tiene otra recolección, devuelve 400.
+Las validaciones de fecha, observaciones y líneas son las mismas que en CU25.
+
+#### CU27 – Borrar Recolección
+
+**Actor:** Administrador.
+
+Elimina físicamente la recolección y, en cascada, todas sus líneas. Puede
+borrarse tanto una Pendiente como una Finalizada; en este último caso la
+cantidad deja de contarse en el stock de Productos (ver "Impacto en el stock
+de Productos"). El Operario recibe 403.
+
+#### CU28 – Finalizar Recolección
+
+**Actor:** Administrador, Operario.
+
+Pasa la recolección de Pendiente (`P`) a Finalizada (`F`) con
+`POST /api/recolecciones/{id}/finalizar/`. A partir de ahí no se puede editar y
+sus cantidades se suman al stock de cada producto. Si ya estaba finalizada
+devuelve 400.
+
+### Líneas de recolección
+
+Cada línea indica un producto y la cantidad recolectada (entera, de 1 a
+1.000.000). Una recolección no puede repetir el mismo producto ni quedar sin
+líneas.
+
+#### CU29 – Listar Líneas de Recolección
+
+**Actor:** cualquier usuario autenticado.
+
+Las líneas de una recolección vienen anidadas en el campo `lineas` de la
+respuesta de CU24 (listado y detalle), cada una con su producto y cantidad. En
+la pantalla se ven en el panel de detalle de la recolección seleccionada.
+
+#### CU30 – Nueva Línea de Recolección
+
+**Actor:** Administrador, Operario.
+
+Se agrega al crear la recolección (CU25) o, en una Pendiente, enviando en
+`lineas` (CU26) las existentes más la nueva. Solo se aceptan productos
+**activos**; los productos desactivados que la recolección ya tenía se conservan
+(se muestran como "(inactivo)").
+
+#### CU31 – Modificar Línea de Recolección
+
+**Actor:** Administrador, Operario.
+
+Se cambia la cantidad (o el producto) de una línea de una recolección
+Pendiente enviando en `lineas` (CU26) el listado actualizado. La API reemplaza
+todas las líneas de la recolección por las recibidas.
+
+#### CU32 – Borrar Línea de Recolección
+
+**Actor:** Administrador, Operario.
+
+Se quita una línea de una recolección Pendiente omitiéndola del listado `lineas`
+enviado en CU26. No se puede dejar la recolección sin líneas: para eliminarla
+por completo se usa CU27.
+
+### Matriz rol × caso de uso
+
+| Caso de uso | Administrador | Operario | Consulta |
+|---|:---:|:---:|:---:|
+| CU24 Buscar Avanzado Recolecciones | Sí | Sí | Sí |
+| CU25 Nueva Recolección | Sí | Sí | No |
+| CU26 Modificar Recolección (Pendiente) | Sí | Sí | No |
+| CU27 Borrar Recolección | Sí | No | No |
+| CU28 Finalizar Recolección | Sí | Sí | No |
+| CU29 Listar Líneas de Recolección | Sí | Sí | Sí |
+| CU30 Nueva Línea de Recolección | Sí | Sí | No |
+| CU31 Modificar Línea de Recolección | Sí | Sí | No |
+| CU32 Borrar Línea de Recolección | Sí | Sí | No |
 
 ---
 
@@ -138,11 +239,11 @@ disponible, o el nombre de usuario como fallback.
 
 | Operación | Administrador | Operario | Consulta |
 |---|:---:|:---:|:---:|
-| Listar / Ver detalle | ✅ | ✅ | ✅ |
-| Crear recolección | ✅ | ✅ | ❌ |
-| Editar recolección PENDIENTE | ✅ | ✅ | ❌ |
-| Finalizar recolección | ✅ | ✅ | ❌ |
-| Eliminar recolección | ✅ | ❌ | ❌ |
+| Listar / Ver detalle (CU24, CU29) | ✅ | ✅ | ✅ |
+| Crear recolección (CU25, CU30) | ✅ | ✅ | ❌ |
+| Editar recolección PENDIENTE (CU26, CU30 a CU32) | ✅ | ✅ | ❌ |
+| Finalizar recolección (CU28) | ✅ | ✅ | ❌ |
+| Eliminar recolección (CU27) | ✅ | ❌ | ❌ |
 
 La combinación Administrador-o-Operario se implementa con la clase
 `EsAdministradorOOperario` en `usuarios/permissions.py`, en lugar de usar el
@@ -205,14 +306,14 @@ cualquier otro. No se bloquea ni se muestra aviso.
 
 ## Endpoints
 
-| Método | Ruta | Descripción | Rol |
-|---|---|---|---|
-| GET | `/api/recolecciones/` | Listar (`?id_galpon=`, `?estado=`) | autenticado |
-| POST | `/api/recolecciones/` | Crear con líneas | Adm. / Operario |
-| GET | `/api/recolecciones/{id}/` | Detalle | autenticado |
-| PUT/PATCH | `/api/recolecciones/{id}/` | Editar (solo PENDIENTE) | Adm. / Operario |
-| DELETE | `/api/recolecciones/{id}/` | Eliminar | Administrador |
-| POST | `/api/recolecciones/{id}/finalizar/` | Finalizar | Adm. / Operario |
+| CU | Método | Ruta | Descripción | Rol |
+|---|---|---|---|---|
+| CU24, CU29 | GET | `/api/recolecciones/` | Listar con líneas (`?id_galpon=`, `?estado=`) | autenticado |
+| CU25, CU30 | POST | `/api/recolecciones/` | Crear con líneas | Adm. / Operario |
+| CU24, CU29 | GET | `/api/recolecciones/{id}/` | Detalle | autenticado |
+| CU26, CU30 a CU32 | PUT/PATCH | `/api/recolecciones/{id}/` | Editar, incluidas las líneas (solo PENDIENTE) | Adm. / Operario |
+| CU27 | DELETE | `/api/recolecciones/{id}/` | Eliminar | Administrador |
+| CU28 | POST | `/api/recolecciones/{id}/finalizar/` | Finalizar | Adm. / Operario |
 
 ### Ejemplo de payload para crear
 

@@ -14,3 +14,6 @@ Thumbs.db
 
 # Mensajes para corregir commits
 msg.txt
+
+# Script para poblar la bd
+seed_materias_primas.py
