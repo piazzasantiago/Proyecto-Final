@@ -19,6 +19,8 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
         - Administrador: acceso completo.
         - Operario: puede crear, editar y finalizar recolecciones PENDIENTES.
           No puede eliminar.
+        - Eliminar una finalizada se rechaza (409) si dejaría el stock de algún
+          producto en negativo.
         - Consulta: solo lectura (list + retrieve).
     """
 
@@ -93,6 +95,38 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
                 {"detail": "No se puede editar una recolección finalizada."}
             )
         return super().update(request, *args, **kwargs)
+
+    # ── Eliminación: no dejar el stock de un producto en negativo ─────────────
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Una recolección finalizada suma stock a sus productos. Si parte de eso
+        ya se descartó, borrarla dejaría el stock en negativo; en ese caso se
+        rechaza con 409 y el mensaje indica el producto afectado. Las
+        pendientes no suman stock, así que siempre se pueden borrar.
+        """
+        recoleccion = self.get_object()
+        if recoleccion.estado == Recoleccion.ESTADO_FINALIZADA:
+            # Import diferido: descartes depende de recolecciones, no al revés.
+            from descartes.stock import stock_actual_producto
+
+            for linea in recoleccion.lineas.select_related("id_producto"):
+                producto = linea.id_producto
+                hay = stock_actual_producto(producto)
+                quedaria = hay - linea.cantidad
+                if quedaria < 0:
+                    return Response(
+                        {
+                            "detail": (
+                                f"No se puede eliminar la recolección: el stock de "
+                                f"'{producto.producto}' quedaría en {quedaria} (hay {hay} y "
+                                f"esta recolección aportó {linea.cantidad}). Parte de lo "
+                                f"recolectado ya se descartó."
+                            )
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+        return super().destroy(request, *args, **kwargs)
 
     # ── Acción: finalizar ─────────────────────────────────────────────────────
 

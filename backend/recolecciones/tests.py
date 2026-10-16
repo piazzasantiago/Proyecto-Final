@@ -6,6 +6,7 @@ Clases de tests:
     CrearRecoleccionTests        (10)  CU-REC-CREATE – crear recolección con líneas
     EditarRecoleccionTests        (6)  CU-REC-EDIT – editar recolección pendiente
     BorrarRecoleccionTests        (4)  CU-REC-DEL – eliminar
+    BorrarRecoleccionStockTests   (6)  no se borra una finalizada si el stock quedaría en negativo
     FinalizarRecoleccionTests     (5)  CU-REC-FIN – finalizar recolección
     PermisosRecoleccionTests     (10)  matriz rol × operación
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
@@ -16,7 +17,7 @@ Clases de tests:
     ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
     StockDeProductosTests         (6)  el stock de Productos suma recolecciones finalizadas
 
-Total: 75 tests
+Total: 81 tests
 """
 
 import datetime
@@ -27,6 +28,7 @@ from rest_framework.test import APIClient
 
 from galpones.models import Galpon, UsuarioDelGalpon
 from lotes.models import Lote, PlanTransicion
+from descartes.models import Descarte, LineaDescarte
 from productos.models import Producto
 from usuarios.models import Usuario
 
@@ -994,4 +996,102 @@ class StockDeProductosTests(TestCase):
         resp = self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
         self.assertEqual(resp.status_code, 204)
         self.assertEqual(self._stock(self.producto)["stock_actual"], 0)
+
+
+# ---------------------------------------------------------------------------
+# Borrar una recolección finalizada sin dejar el stock en negativo
+# ---------------------------------------------------------------------------
+
+class BorrarRecoleccionStockTests(TestCase):
+    """
+    El stock de un producto es stock_inicial + recolectado (finalizadas) -
+    descartado (descartes de stock finalizados). Borrar una recolección
+    finalizada que dejaría ese número en negativo se rechaza con 409.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_borrar_stock")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto("Huevo Nº1")
+        self.otro = crear_producto("Huevo Nº2")
+
+    def _recoleccion(self, producto, cantidad, estado=Recoleccion.ESTADO_FINALIZADA, dia=15):
+        rec = Recoleccion.objects.create(
+            id_galpon=self.galpon,
+            id_lote=self.lote,
+            fecha=datetime.datetime(2026, 6, dia, 8, 0, tzinfo=timezone.get_current_timezone()),
+            estado=estado,
+        )
+        LineaRecoleccion.objects.create(
+            id_recoleccion=rec, id_galpon=self.galpon, id_producto=producto, cantidad=cantidad
+        )
+        return rec
+
+    def _descarte_stock(self, producto, cantidad, estado=Descarte.ESTADO_FINALIZADO):
+        d = Descarte.objects.create(
+            categoria=Descarte.CATEGORIA_STOCK,
+            fecha=datetime.datetime(2026, 6, 20, 8, 0, tzinfo=timezone.get_current_timezone()),
+            estado=estado,
+        )
+        LineaDescarte.objects.create(
+            id_descarte=d, id_producto=producto, cantidad=cantidad, motivo="rotos"
+        )
+        return d
+
+    def _stock(self, producto):
+        return self.client.get(f"/api/productos/{producto.id_producto}/").data["stock_actual"]
+
+    def _borrar(self, rec):
+        return self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
+
+    def test_rechaza_si_lo_recolectado_ya_se_descarto(self):
+        rec = self._recoleccion(self.producto, 100)
+        self._descarte_stock(self.producto, 100)
+        resp = self._borrar(rec)
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("Huevo Nº1", resp.data["detail"])
+        self.assertIn("-100", resp.data["detail"])
+        self.assertTrue(Recoleccion.objects.filter(pk=rec.pk).exists())
+        self.assertEqual(self._stock(self.producto), 0)
+
+    def test_permite_si_el_stock_alcanza_para_quitarla(self):
+        Producto.objects.filter(pk=self.producto.pk).update(stock_inicial=100)
+        rec = self._recoleccion(self.producto, 100)
+        self._descarte_stock(self.producto, 100)
+        self.assertEqual(self._borrar(rec).status_code, 204)
+        self.assertEqual(self._stock(self.producto), 0)
+
+    def test_descarte_pendiente_no_cuenta(self):
+        rec = self._recoleccion(self.producto, 100)
+        self._descarte_stock(self.producto, 100, estado=Descarte.ESTADO_PENDIENTE)
+        self.assertEqual(self._borrar(rec).status_code, 204)
+
+    def test_pendiente_siempre_se_puede_borrar(self):
+        self._recoleccion(self.producto, 100, dia=14)
+        self._descarte_stock(self.producto, 100)
+        pendiente = self._recoleccion(
+            self.producto, 50, estado=Recoleccion.ESTADO_PENDIENTE, dia=16
+        )
+        self.assertEqual(self._borrar(pendiente).status_code, 204)
+
+    def test_con_varios_productos_rechaza_si_alguno_quedaria_negativo(self):
+        rec = self._recoleccion(self.producto, 100)
+        LineaRecoleccion.objects.create(
+            id_recoleccion=rec, id_galpon=self.galpon, id_producto=self.otro, cantidad=30
+        )
+        self._descarte_stock(self.otro, 30)
+        resp = self._borrar(rec)
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("Huevo Nº2", resp.data["detail"])
+        self.assertEqual(rec.lineas.count(), 2)
+
+    def test_otra_recoleccion_finalizada_cubre_el_descarte(self):
+        a = self._recoleccion(self.producto, 100, dia=14)
+        self._recoleccion(self.producto, 100, dia=15)
+        self._descarte_stock(self.producto, 100)
+        self.assertEqual(self._borrar(a).status_code, 204)
+        self.assertEqual(self._stock(self.producto), 0)
 
