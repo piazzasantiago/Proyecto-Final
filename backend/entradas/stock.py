@@ -11,8 +11,6 @@ from decimal import Decimal
 from django.db.models import DecimalField, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 
-from materias_primas.models import MateriaPrima
-
 from .models import Entrada, LineaEntrada
 
 _DECIMAL = DecimalField(max_digits=12, decimal_places=2)
@@ -58,55 +56,65 @@ def existencias_galpon(id_galpon):
     """
     Existencia ESTIMADA de cada materia prima dentro de un galpón.
 
-        ingresado   = entradas finalizadas a ese galpón
-        descartado  = descartes de galpón finalizados de esa materia prima
-        existencia  = max(ingresado − descartado, 0)
+        existencia = max(último ingreso − descartes de galpón posteriores, 0)
 
-    Es una estimación: el sistema no registra el consumo diario, así que lo que
-    comen las gallinas no se resta. El descarte de galpón sigue siendo
-    estadístico para el stock general (la materia prima ya salió de ahí al
-    finalizar la entrada), pero sí reduce lo que queda en el galpón.
+    - Último ingreso: la línea de la entrada Finalizada más reciente de esa
+      materia prima en el galpón. Se supone que la carga anterior ya se
+      consumió; sumar todos los ingresos daría un número cada vez más alejado
+      de la realidad, porque el sistema no registra el consumo diario.
+    - Descartes posteriores: líneas de descartes de categoría Galpón
+      Finalizados, de esa materia prima y ese galpón, con fecha posterior a la
+      de la entrada. Los anteriores se refieren a la carga anterior.
+
+    Es una cota superior: no resta lo que las gallinas consumieron. El descarte
+    de galpón sigue siendo estadístico para el stock general (la materia prima
+    ya salió de ahí al finalizar la entrada).
 
     Devuelve una lista de dicts ordenada por nombre, solo con las materias
-    primas que alguna vez ingresaron o se descartaron en el galpón.
+    primas que ingresaron alguna vez al galpón.
     """
     # Import diferido: descartes.stock importa este módulo.
     from descartes.models import Descarte, LineaDescarte
 
-    ingresado = {
-        fila["id_materia_prima"]: fila["total"]
-        for fila in _lineas_finalizadas()
+    # Última línea finalizada por materia prima (la de fecha más reciente).
+    ultimos = {}
+    for linea in (
+        _lineas_finalizadas()
         .filter(id_entrada__id_galpon=id_galpon)
-        .order_by()
-        .values("id_materia_prima")
-        .annotate(total=Sum("cantidad"))
-    }
-    descartado = {
-        fila["id_materia_prima"]: fila["total"]
-        for fila in LineaDescarte.objects.filter(
+        .select_related("id_entrada", "id_materia_prima")
+        .order_by("-id_entrada__fecha", "-id_entrada__id_entrada", "-id_linea_entrada")
+    ):
+        ultimos.setdefault(linea.id_materia_prima_id, linea)
+    if not ultimos:
+        return []
+
+    descartes = list(
+        LineaDescarte.objects.filter(
             id_descarte__categoria=Descarte.CATEGORIA_GALPON,
             id_descarte__estado=Descarte.ESTADO_FINALIZADO,
             id_descarte__id_galpon=id_galpon,
-            id_materia_prima__isnull=False,
-        )
-        .order_by()
-        .values("id_materia_prima")
-        .annotate(total=Sum("cantidad"))
-    }
+            id_materia_prima__in=list(ultimos),
+        ).values_list("id_materia_prima", "id_descarte__fecha", "cantidad")
+    )
 
-    ids = set(ingresado) | set(descartado)
     filas = []
-    for mp in MateriaPrima.objects.filter(pk__in=ids).order_by("materia_prima"):
-        entro = ingresado.get(mp.pk, Decimal("0"))
-        se_descarto = descartado.get(mp.pk, Decimal("0"))
+    for id_mp, linea in ultimos.items():
+        fecha_ingreso = linea.id_entrada.fecha
+        descartado = sum(
+            (cant for mp, fecha, cant in descartes if mp == id_mp and fecha > fecha_ingreso),
+            Decimal("0"),
+        )
+        mp = linea.id_materia_prima
         filas.append(
             {
                 "id_materia_prima": mp.pk,
                 "materia_prima": mp.materia_prima,
                 "unidad": mp.unidad,
-                "ingresado": entro,
-                "descartado": se_descarto,
-                "existencia_estimada": max(entro - se_descarto, Decimal("0")),
+                "ultimo_ingreso_fecha": fecha_ingreso,
+                "ultimo_ingreso": linea.cantidad,
+                "descartado_desde_entonces": descartado,
+                "existencia_estimada": max(linea.cantidad - descartado, Decimal("0")),
             }
         )
+    filas.sort(key=lambda f: f["materia_prima"].lower())
     return filas

@@ -599,7 +599,10 @@ class StockMateriaPrimaEntradaTests(TestCase):
 # ── Existencias por galpón ────────────────────────────────────────────────────
 
 class ExistenciasGalponTests(TestCase):
-    """GET /api/galpones/{id}/existencias/: ingresado − descartado en el galpón."""
+    """
+    GET /api/galpones/{id}/existencias/: último ingreso finalizado menos los
+    descartes de galpón posteriores a esa entrada.
+    """
 
     def setUp(self):
         self.client = APIClient()
@@ -613,16 +616,16 @@ class ExistenciasGalponTests(TestCase):
     def url(self, galpon=None):
         return f"/api/galpones/{(galpon or self.g).pk}/existencias/"
 
-    def entrada(self, mp, cantidad, galpon=None, estado=Entrada.ESTADO_FINALIZADA, dia=9):
-        e = make_entrada(galpon or self.g, estado=estado, dia=dia)
+    def entrada(self, mp, cantidad, galpon=None, estado=Entrada.ESTADO_FINALIZADA, dia=9, hora=10):
+        e = make_entrada(galpon or self.g, estado=estado, dia=dia, fecha=fecha(dia, hora))
         add_linea(e, mp, cantidad)
         return e
 
     def descarte(self, mp, cantidad, galpon=None, categoria=Descarte.CATEGORIA_GALPON,
-                 estado=Descarte.ESTADO_FINALIZADO):
+                 estado=Descarte.ESTADO_FINALIZADO, dia=9, hora=12):
         galpon = galpon or self.g
         d = Descarte.objects.create(
-            categoria=categoria, fecha=fecha(9), estado=estado,
+            categoria=categoria, fecha=fecha(dia, hora), estado=estado,
             id_galpon=galpon if categoria == Descarte.CATEGORIA_GALPON else None,
         )
         LineaDescarte.objects.create(
@@ -639,26 +642,48 @@ class ExistenciasGalponTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, [])
 
-    def test_suma_las_entradas_finalizadas(self):
+    def test_muestra_solo_el_ultimo_ingreso_y_no_acumula(self):
         self.entrada(self.mp, 40, dia=5)
         self.entrada(self.mp, 25, dia=6)
-        fila = self.fila(self.client.get(self.url()), self.mp)
-        self.assertEqual(Decimal(fila["ingresado"]), Decimal("65"))
-        self.assertEqual(Decimal(fila["descartado"]), Decimal("0"))
-        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("65"))
+        self.entrada(self.mp, 60, dia=7)
+        resp = self.client.get(self.url())
+        self.assertEqual(len(resp.data), 1)
+        fila = self.fila(resp, self.mp)
+        self.assertEqual(Decimal(fila["ultimo_ingreso"]), Decimal("60"))
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("60"))
+        self.assertEqual(fila["ultimo_ingreso_fecha"], fecha(7))
         self.assertEqual(fila["materia_prima"], "Balanceado")
         self.assertEqual(fila["unidad"], "kg")
 
-    def test_las_entradas_pendientes_no_cuentan(self):
-        self.entrada(self.mp, 40, estado=Entrada.ESTADO_PENDIENTE)
-        self.assertEqual(self.client.get(self.url()).data, [])
-
-    def test_el_descarte_de_galpon_finalizado_resta(self):
-        self.entrada(self.mp, 40)
-        self.descarte(self.mp, 5)
+    def test_el_ultimo_se_define_por_fecha_y_no_por_orden_de_carga(self):
+        self.entrada(self.mp, 60, dia=7)
+        self.entrada(self.mp, 40, dia=5)  # cargada después, pero de fecha anterior
         fila = self.fila(self.client.get(self.url()), self.mp)
-        self.assertEqual(Decimal(fila["descartado"]), Decimal("5"))
-        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("35"))
+        self.assertEqual(Decimal(fila["ultimo_ingreso"]), Decimal("60"))
+
+    def test_las_entradas_pendientes_no_cuentan(self):
+        self.entrada(self.mp, 40, dia=5)
+        self.entrada(self.mp, 90, dia=8, estado=Entrada.ESTADO_PENDIENTE)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["ultimo_ingreso"]), Decimal("40"))
+        self.entrada(self.mp2, 3, estado=Entrada.ESTADO_PENDIENTE)
+        self.assertEqual(len(self.client.get(self.url()).data), 1)
+
+    def test_resta_los_descartes_de_galpon_posteriores_al_ingreso(self):
+        self.entrada(self.mp, 40, dia=9, hora=10)
+        self.descarte(self.mp, 5, dia=9, hora=12)
+        self.descarte(self.mp, 3, dia=10)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["descartado_desde_entonces"]), Decimal("8"))
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("32"))
+
+    def test_ignora_los_descartes_anteriores_al_ultimo_ingreso(self):
+        self.entrada(self.mp, 40, dia=5)
+        self.descarte(self.mp, 30, dia=6)   # de la carga anterior
+        self.entrada(self.mp, 50, dia=8)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["descartado_desde_entonces"]), Decimal("0"))
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("50"))
 
     def test_no_resta_descartes_pendientes_de_stock_ni_de_otro_galpon(self):
         self.entrada(self.mp, 40)
@@ -673,7 +698,11 @@ class ExistenciasGalponTests(TestCase):
         self.descarte(self.mp, 25)
         fila = self.fila(self.client.get(self.url()), self.mp)
         self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("0"))
-        self.assertEqual(Decimal(fila["descartado"]), Decimal("25"))
+        self.assertEqual(Decimal(fila["descartado_desde_entonces"]), Decimal("25"))
+
+    def test_una_materia_prima_solo_descartada_no_aparece(self):
+        self.descarte(self.mp, 5)
+        self.assertEqual(self.client.get(self.url()).data, [])
 
     def test_separa_por_galpon_y_por_materia_prima(self):
         self.entrada(self.mp, 40)
@@ -681,9 +710,9 @@ class ExistenciasGalponTests(TestCase):
         self.entrada(self.mp, 99, galpon=self.otro)
         resp = self.client.get(self.url())
         self.assertEqual([f["materia_prima"] for f in resp.data], ["Balanceado", "Vacuna"])
-        self.assertEqual(Decimal(self.fila(resp, self.mp)["ingresado"]), Decimal("40"))
+        self.assertEqual(Decimal(self.fila(resp, self.mp)["ultimo_ingreso"]), Decimal("40"))
         resp2 = self.client.get(self.url(self.otro))
-        self.assertEqual(Decimal(self.fila(resp2, self.mp)["ingresado"]), Decimal("99"))
+        self.assertEqual(Decimal(self.fila(resp2, self.mp)["ultimo_ingreso"]), Decimal("99"))
 
     def test_no_altera_el_stock_general_de_la_materia_prima(self):
         self.entrada(self.mp, 40)

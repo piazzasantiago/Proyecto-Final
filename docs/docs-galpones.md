@@ -232,9 +232,10 @@ de la base de datos.
 | CU14 | POST | `/api/galpones/{id}/baja/` | Administrador |
 | — (info del detalle) | GET | `/api/galpones/{id}/existencias/` | autenticado (el operario, solo sus galpones) |
 
-`existencias` devuelve, por materia prima que ingresó o se descartó en el galpón:
-`ingresado` (entradas finalizadas), `descartado` (descartes de galpón finalizados),
-`existencia_estimada` (`ingresado − descartado`, nunca negativa) y la unidad.
+`existencias` devuelve, por materia prima que ingresó al galpón: `ultimo_ingreso` y
+`ultimo_ingreso_fecha` (entrada finalizada más reciente), `descartado_desde_entonces`
+(descartes de galpón finalizados posteriores a esa entrada), `existencia_estimada`
+(`ultimo_ingreso − descartado_desde_entonces`, nunca negativa) y la unidad.
 No es un caso de uso aparte: es información adicional del detalle del galpón,
 mostrada en la sección "Materias primas en el galpón". Es una **estimación**, porque el
 sistema no registra el consumo diario de las gallinas. El cálculo vive en

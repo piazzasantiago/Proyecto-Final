@@ -14,6 +14,15 @@ function formatCantidad(valor) {
   return Number.isNaN(n) ? "—" : n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
 }
 
+function formatFechaCorta(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export default function GalponesPage() {
   const { esAdministrador, esOperario } = useAuth();
 
@@ -268,17 +277,24 @@ export default function GalponesPage() {
                       <thead>
                         <tr>
                           <th>Materia prima</th>
-                          <th style={{ textAlign: "right" }}>Ingresado</th>
-                          <th style={{ textAlign: "right" }}>Descartado</th>
-                          <th style={{ textAlign: "right" }}>Existencia</th>
+                          <th style={{ textAlign: "right" }}>Último ingreso</th>
+                          <th style={{ textAlign: "right" }}>Descartado desde entonces</th>
+                          <th style={{ textAlign: "right" }}>Existencia estimada</th>
                         </tr>
                       </thead>
                       <tbody>
                         {existencias.map((e) => (
                           <tr key={e.id_materia_prima}>
                             <td>{e.materia_prima}</td>
-                            <td style={{ textAlign: "right" }}>{formatCantidad(e.ingresado)}</td>
-                            <td style={{ textAlign: "right" }}>{formatCantidad(e.descartado)}</td>
+                            <td style={{ textAlign: "right" }}>
+                              {formatCantidad(e.ultimo_ingreso)} {e.unidad}
+                              <div style={{ fontSize: 12, color: "var(--gray-500)" }}>
+                                {formatFechaCorta(e.ultimo_ingreso_fecha)}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              {formatCantidad(e.descartado_desde_entonces)}
+                            </td>
                             <td style={{ textAlign: "right", fontWeight: 600 }}>
                               {formatCantidad(e.existencia_estimada)} {e.unidad}
                             </td>
@@ -287,8 +303,9 @@ export default function GalponesPage() {
                       </tbody>
                     </table>
                     <div className="form-hint" style={{ marginTop: 6 }}>
-                      <i className="fa-solid fa-circle-info"></i> Existencia estimada: entradas
-                      finalizadas menos descartes del galpón. No incluye el consumo diario de las
+                      <i className="fa-solid fa-circle-info"></i> Estimada, como máximo: último
+                      ingreso finalizado menos los descartes del galpón posteriores. Supone que la
+                      carga anterior ya se consumió y no descuenta el consumo diario de las
                       gallinas.
                     </div>
                   </>

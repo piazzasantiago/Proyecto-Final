@@ -139,19 +139,25 @@ Sin token, todas las operaciones devuelven 401.
 El detalle de cada galpón (módulo Galpones) muestra qué materias primas hay en él:
 
 ```
-existencia_estimada = max(ingresado − descartado en el galpón, 0)
+existencia_estimada = max(último ingreso − descartes de galpón posteriores, 0)
 ```
 
-- **Ingresado:** líneas de entradas finalizadas a ese galpón.
-- **Descartado:** líneas de materia prima de descartes de categoría Galpón
-  finalizados de ese galpón.
+- **Último ingreso:** la línea de la entrada **finalizada** más reciente (por fecha) de
+  esa materia prima en el galpón. Se supone que la carga anterior ya se consumió:
+  sumar todos los ingresos daría un número cada vez más alejado de la realidad,
+  porque el sistema no registra el consumo diario.
+- **Descartes posteriores:** líneas de materia prima de descartes de categoría Galpón
+  finalizados de ese galpón con fecha posterior a la de esa entrada. Los anteriores
+  se refieren a la carga anterior y no se cuentan.
+- Solo aparecen las materias primas que ingresaron alguna vez al galpón.
 
 `GET /api/galpones/{id}/existencias/` (cualquier rol que pueda ver el galpón; el
 operario, solo los suyos). El descarte de galpón sigue siendo estadístico para el
 stock general: la materia prima ya salió de ahí al finalizar la entrada, así que no
-se descuenta dos veces. Es una **estimación**: no incluye el consumo diario. La
+se descuenta dos veces. Es una **estimación, como máximo**: no incluye el consumo
+diario, y si el último ingreso fue un complemento chico subestima lo que hay. La
 existencia real queda como mejora futura (registro de consumo por galpón). Si los
-descartes superan lo ingresado, se muestra 0 y no se bloquea el descarte.
+descartes superan el último ingreso, se muestra 0 y no se bloquea el descarte.
 
 ---
 
@@ -246,7 +252,7 @@ detalle que Descartes:
 
 ## Tests
 
-Se implementaron **75 tests** en `backend/entradas/tests.py`, organizados en 9
+Se implementaron **78 tests** en `backend/entradas/tests.py`, organizados en 9
 clases:
 
 | Clase | Tests | Qué verifica |
@@ -258,7 +264,7 @@ clases:
 | `BorrarEntradaTests` | 3 | Pendiente con cascada a líneas, finalizada → 409, 404 |
 | `FinalizarEntradaTests` | 9 | Finalizar, persistencia, baja de stock, doble finalización (409, sin descontar dos veces), stock insuficiente sin cambios, varias líneas, edición posterior bloqueada, 404 |
 | `StockMateriaPrimaEntradaTests` | 8 | `stock_entradas` y `stock_actual`, pendientes no restan, entradas y descartes juntos, varias entradas, listado, cruce con Descartes en ambos sentidos |
-| `ExistenciasGalponTests` | 10 | Ingresado solo con finalizadas, descartes de galpón que restan (no los pendientes, de stock ni de otro galpón), piso en 0, separación por galpón y materia prima, el stock general no cambia, 404, permisos por rol |
+| `ExistenciasGalponTests` | 13 | Solo el último ingreso finalizado (por fecha, sin acumular ni contar pendientes), descartes de galpón posteriores que restan (no los anteriores, pendientes, de stock ni de otro galpón), piso en 0, separación por galpón y materia prima, el stock general no cambia, 404, permisos por rol |
 | `PermisosEntradaTests` | 3 | Administrador y Operario con CRUD completo, Consulta solo lectura (403), sin token (401) |
 
 Ejecutar:
