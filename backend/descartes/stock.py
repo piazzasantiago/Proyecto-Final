@@ -8,7 +8,7 @@ efecto.
 
 El stock no se guarda: se calcula (igual que el de recolecciones) como
     producto:        stock_inicial + recolectado - descartado
-    materia prima:   stock_inicial - descartado
+    materia prima:   stock_inicial - descartado - ingresado a galpones (entradas)
 """
 
 from decimal import Decimal
@@ -87,19 +87,27 @@ def stock_actual_producto(producto):
 
 
 def stock_actual_materia_prima(materia_prima):
-    return materia_prima.stock_inicial - descartado_materia_prima(materia_prima.pk)
+    # Import diferido: entradas depende de materias primas y de este módulo.
+    from entradas.stock import ingresado_materia_prima
+
+    return (
+        materia_prima.stock_inicial
+        - descartado_materia_prima(materia_prima.pk)
+        - ingresado_materia_prima(materia_prima.pk)
+    )
 
 
 def _formatear(numero):
     return format(Decimal(numero).normalize(), "f")
 
 
-def verificar_stock(items):
+def verificar_stock(items, accion="descartar"):
     """
     Comprueba que alcance el stock para descartar.
 
     items: iterable de (objeto, cantidad) donde objeto es un Producto o una
     MateriaPrima. Si un mismo ítem aparece en varias líneas se suman.
+    accion: verbo para el mensaje de error ("descartar", "ingresar", …).
 
     Devuelve un mensaje de error en español, o None si alcanza para todo.
     """
@@ -125,6 +133,6 @@ def verificar_stock(items):
         if pedido > Decimal(disponible):
             return (
                 f"Stock insuficiente de '{nombre}': hay {_formatear(disponible)} "
-                f"en stock y se quieren descartar {_formatear(pedido)}."
+                f"en stock y se quieren {accion} {_formatear(pedido)}."
             )
     return None

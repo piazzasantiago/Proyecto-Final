@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "recolecciones",
     "materias_primas",
     "descartes",
+    "entradas",
 ]
 
 MIDDLEWARE = [
