@@ -273,35 +273,36 @@ export default function GalponesPage() {
                   </div>
                 ) : (
                   <>
-                    <table className="plan-table">
-                      <thead>
-                        <tr>
-                          <th>Materia prima</th>
-                          <th style={{ textAlign: "right" }}>Último ingreso</th>
-                          <th style={{ textAlign: "right" }}>Descartado desde entonces</th>
-                          <th style={{ textAlign: "right" }}>Existencia estimada</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {existencias.map((e) => (
-                          <tr key={e.id_materia_prima}>
-                            <td>{e.materia_prima}</td>
-                            <td style={{ textAlign: "right" }}>
-                              {formatCantidad(e.ultimo_ingreso)} {e.unidad}
-                              <div style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                                {formatFechaCorta(e.ultimo_ingreso_fecha)}
-                              </div>
-                            </td>
-                            <td style={{ textAlign: "right" }}>
-                              {formatCantidad(e.descartado_desde_entonces)}
-                            </td>
-                            <td style={{ textAlign: "right", fontWeight: 600 }}>
+                    <div>
+                      {existencias.map((e) => (
+                        <div
+                          key={e.id_materia_prima}
+                          style={{ padding: "8px 0", borderBottom: "1px dashed var(--gray-200)" }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "baseline",
+                              gap: 12,
+                            }}
+                          >
+                            <span style={{ fontWeight: 500 }}>{e.materia_prima}</span>
+                            <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
                               {formatCantidad(e.existencia_estimada)} {e.unidad}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
+                            Último ingreso: {formatCantidad(e.ultimo_ingreso)} {e.unidad} ·{" "}
+                            {formatFechaCorta(e.ultimo_ingreso_fecha)}
+                            {Number(e.descartado_desde_entonces) > 0 &&
+                              ` · Descartado desde entonces: ${formatCantidad(
+                                e.descartado_desde_entonces
+                              )} ${e.unidad}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                     <div className="form-hint" style={{ marginTop: 6 }}>
                       <i className="fa-solid fa-circle-info"></i> Estimada, como máximo: último
                       ingreso finalizado menos los descartes del galpón posteriores. Supone que la
