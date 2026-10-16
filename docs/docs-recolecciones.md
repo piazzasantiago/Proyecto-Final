@@ -56,7 +56,10 @@ Las validaciones de fecha, observaciones y líneas son las mismas que en CU25.
 Elimina físicamente la recolección y, en cascada, todas sus líneas. Puede
 borrarse tanto una Pendiente como una Finalizada; en este último caso la
 cantidad deja de contarse en el stock de Productos (ver "Impacto en el stock
-de Productos"). El Operario recibe 403.
+de Productos"). Si al quitarla el stock de algún producto quedaría en negativo
+(porque parte de lo recolectado ya se descartó), la API responde 409 con un
+mensaje que indica el producto y las cantidades, y no borra nada. Una Pendiente
+siempre se puede borrar, porque no suma stock. El Operario recibe 403.
 
 #### CU28 – Finalizar Recolección
 
@@ -292,7 +295,10 @@ recolecciones **finalizadas**: al pasar una recolección a Finalizada, la cantid
 de cada una de sus líneas se incorpora al `stock_actual` del producto. Las
 pendientes no suman. No se guarda nada al finalizar: el stock se calcula en cada
 consulta, de modo que borrar una recolección finalizada (solo el Administrador)
-lo baja automáticamente.
+lo baja automáticamente. Para que el stock no quede en negativo, ese borrado se
+rechaza con **409** si lo recolectado en ella ya se descartó (ver CU27): el
+cálculo reutiliza `descartes/stock.py` mediante un import diferido, porque
+Descartes depende de Recolecciones y no al revés.
 
 ### Lote en Transición
 
@@ -367,8 +373,8 @@ automáticamente.
 
 ## Tests
 
-Se implementaron **74 tests** en `backend/recolecciones/tests.py`, organizados
-en 13 clases:
+Se implementaron **81 tests** en `backend/recolecciones/tests.py`, organizados
+en 14 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
@@ -385,6 +391,7 @@ en 13 clases:
 | `UnaRecoleccionPorDiaTests` | 7 | Segunda recolección del mismo día y galpón → 400, otro galpón u otro día válidos, la finalizada también cuenta, medianoche (días distintos), editar dentro del mismo día, mover la fecha a un día ocupado → 400 |
 | `ProductoDesactivadoTests` | 4 | Conservar un producto desactivado al editar, sumar uno activo, no agregar uno inactivo nuevo, no crear con inactivo |
 | `StockDeProductosTests` | 6 | El stock de Productos: sin recolecciones es el inicial, las pendientes no suman, las finalizadas sí, finalizar por la API lo sube, suma varias y separa por producto, borrar una finalizada lo baja |
+| `BorrarRecoleccionStockTests` | 6 | Borrar una finalizada se rechaza (409) si lo recolectado ya se descartó, se permite si el stock alcanza o lo cubre otra recolección, los descartes pendientes no cuentan, una pendiente siempre se borra, con varios productos basta uno que quede negativo |
 
 Ejecutar:
 
@@ -407,7 +414,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` y `UsuarioResumenSerializer` |
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` (inyecta `id_lote` e `id_usuario`) y acción `/finalizar/` |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 74 tests |
+| `recolecciones/tests.py` | Nuevo: 81 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/migrations/0002_alter_usuario_options.py` | Sincroniza opciones de Meta (`verbose_name`, `verbose_name_plural`) |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |

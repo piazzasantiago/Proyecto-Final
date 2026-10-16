@@ -27,13 +27,20 @@ class MateriaPrimaViewSet(viewsets.ModelViewSet):
     crear, modificar y eliminar requiere rol Administrador.
     """
 
-    queryset = MateriaPrima.objects.all()
+    queryset = MateriaPrima.objects.all()  # get_queryset() agrega el stock descartado
     serializer_class = MateriaPrimaSerializer
     permission_classes = [LecturaAutenticados_EscrituraAdministrador]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["estado"]
     search_fields = ["materia_prima", "descripcion"]
     ordering_fields = ["materia_prima"]
+
+    def get_queryset(self):
+        """Anota cada materia prima con lo descartado (stock_descartado)."""
+        # Import diferido: descartes depende de materias primas, no al revés.
+        from descartes.stock import anotar_descartado
+
+        return anotar_descartado(MateriaPrima.objects.all(), "id_materia_prima")
 
     def update(self, request, *args, **kwargs):
         instancia = self.get_object()

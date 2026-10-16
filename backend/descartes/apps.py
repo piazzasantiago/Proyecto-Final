@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class DescartesConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "descartes"
+    verbose_name = "Descartes"

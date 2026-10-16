@@ -7,6 +7,7 @@ from .models import Producto
 class ProductoSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_recolectado = serializers.SerializerMethodField()
+    stock_descartado = serializers.SerializerMethodField()
     stock_actual = serializers.SerializerMethodField()
 
     def get_stock_recolectado(self, obj):
@@ -27,9 +28,30 @@ class ProductoSerializer(serializers.ModelSerializer):
         ).aggregate(total=Sum("cantidad"))["total"]
         return total or 0
 
+    def get_stock_descartado(self, obj):
+        """
+        Total de huevos de descartes de STOCK finalizados. Igual que el stock
+        recolectado: lo anota el ViewSet y, si falta, se calcula acá.
+        Los productos se descartan en unidades enteras.
+        """
+        anotado = getattr(obj, "stock_descartado", None)
+        if anotado is None:
+            # Import diferido: descartes depende de productos, no al revés.
+            from descartes.stock import descartado_producto
+
+            anotado = descartado_producto(obj.pk)
+        return int(anotado)
+
     def get_stock_actual(self, obj):
-        """Stock inicial/ajuste + lo recolectado en recolecciones finalizadas."""
-        return obj.stock_inicial + self.get_stock_recolectado(obj)
+        """
+        Stock inicial/ajuste + lo recolectado en recolecciones finalizadas
+        - lo descartado en descartes de stock finalizados.
+        """
+        return (
+            obj.stock_inicial
+            + self.get_stock_recolectado(obj)
+            - self.get_stock_descartado(obj)
+        )
 
     class Meta:
         model = Producto
@@ -41,6 +63,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             "estado_display",
             "stock_inicial",
             "stock_recolectado",
+            "stock_descartado",
             "stock_actual",
         ]
         read_only_fields = ["id_producto", "estado"]
