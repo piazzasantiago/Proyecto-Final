@@ -134,6 +134,27 @@ Sin token, todas las operaciones devuelven 401.
 
 ---
 
+## Existencia estimada por galpón
+
+El detalle de cada galpón (módulo Galpones) muestra qué materias primas hay en él:
+
+```
+existencia_estimada = max(ingresado − descartado en el galpón, 0)
+```
+
+- **Ingresado:** líneas de entradas finalizadas a ese galpón.
+- **Descartado:** líneas de materia prima de descartes de categoría Galpón
+  finalizados de ese galpón.
+
+`GET /api/galpones/{id}/existencias/` (cualquier rol que pueda ver el galpón; el
+operario, solo los suyos). El descarte de galpón sigue siendo estadístico para el
+stock general: la materia prima ya salió de ahí al finalizar la entrada, así que no
+se descuenta dos veces. Es una **estimación**: no incluye el consumo diario. La
+existencia real queda como mejora futura (registro de consumo por galpón). Si los
+descartes superan lo ingresado, se muestra 0 y no se bloquea el descarte.
+
+---
+
 ## Decisiones de diseño
 
 ### El stock se calcula, no se guarda
@@ -225,7 +246,7 @@ detalle que Descartes:
 
 ## Tests
 
-Se implementaron **65 tests** en `backend/entradas/tests.py`, organizados en 8
+Se implementaron **75 tests** en `backend/entradas/tests.py`, organizados en 9
 clases:
 
 | Clase | Tests | Qué verifica |
@@ -237,6 +258,7 @@ clases:
 | `BorrarEntradaTests` | 3 | Pendiente con cascada a líneas, finalizada → 409, 404 |
 | `FinalizarEntradaTests` | 9 | Finalizar, persistencia, baja de stock, doble finalización (409, sin descontar dos veces), stock insuficiente sin cambios, varias líneas, edición posterior bloqueada, 404 |
 | `StockMateriaPrimaEntradaTests` | 8 | `stock_entradas` y `stock_actual`, pendientes no restan, entradas y descartes juntos, varias entradas, listado, cruce con Descartes en ambos sentidos |
+| `ExistenciasGalponTests` | 10 | Ingresado solo con finalizadas, descartes de galpón que restan (no los pendientes, de stock ni de otro galpón), piso en 0, separación por galpón y materia prima, el stock general no cambia, 404, permisos por rol |
 | `PermisosEntradaTests` | 3 | Administrador y Operario con CRUD completo, Consulta solo lectura (403), sin token (401) |
 
 Ejecutar:
@@ -259,6 +281,7 @@ backend/config/urls.py       rutas de /api/entradas/
 backend/descartes/stock.py   stock_actual_materia_prima resta las entradas;
                              verificar_stock recibe la acción (descartar / ingresar)
 backend/materias_primas/     campo stock_entradas y nuevo stock_actual
+backend/galpones/views.py    acción existencias (GET /api/galpones/{id}/existencias/)
 ```
 
 ### Frontend
@@ -268,6 +291,8 @@ frontend/src/api/entradas.js
 frontend/src/components/EntradaFormModal.jsx
 frontend/src/pages/EntradasPage.jsx
 frontend/src/App.jsx          la ruta /app/entradas deja de ser una vista previa
+frontend/src/api/galpones.js, frontend/src/pages/GalponesPage.jsx
+                              sección "Materias primas en el galpón"
 ```
 
 ---

@@ -281,6 +281,7 @@ python manage.py test entradas
 | PATCH | `/api/entradas/{id}/` | Modificar entrada PENDIENTE | Adm. / Operario |
 | DELETE | `/api/entradas/{id}/` | Eliminar entrada PENDIENTE | Adm. / Operario |
 | POST | `/api/entradas/{id}/finalizar/` | Finalizar y descontar el stock de materias primas | Adm. / Operario |
+| GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
 Todas las peticiones, salvo el inicio de sesión, requieren el encabezado:

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon } from "../api/galpones";
+import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon, getExistenciasGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
 
@@ -7,6 +7,11 @@ import { useAuth } from "../context/AuthContext";
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
 function formatCodigo(id) {
   return `G-${String(id).padStart(2, "0")}`;
+}
+
+function formatCantidad(valor) {
+  const n = Number(valor);
+  return Number.isNaN(n) ? "—" : n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
 }
 
 export default function GalponesPage() {
@@ -22,6 +27,9 @@ export default function GalponesPage() {
   // los roles arranca sin filtro (ve todos, activos e inactivos).
   const [estadoFilter, setEstadoFilter] = useState(esOperario ? "A" : "");
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+  // Existencia estimada de materias primas del galpón seleccionado (null = cargando).
+  const [existencias, setExistencias] = useState(null);
+  const [existenciasError, setExistenciasError] = useState(false);
 
   async function fetchGalpones() {
     setLoading(true);
@@ -46,6 +54,29 @@ export default function GalponesPage() {
     fetchGalpones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, estadoFilter]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setExistencias([]);
+      return;
+    }
+    let cancelado = false;
+    setExistencias(null);
+    setExistenciasError(false);
+    getExistenciasGalpon(selectedId)
+      .then((d) => {
+        if (!cancelado) setExistencias(d);
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setExistencias([]);
+          setExistenciasError(true);
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [selectedId]);
 
   const selected = useMemo(
     () => galpones.find((g) => g.id_galpon === selectedId) || null,
@@ -217,6 +248,50 @@ export default function GalponesPage() {
                   <div className="form-hint" style={{ marginBottom: 10 }}>
                     Este galpón no tiene un lote activo.
                   </div>
+                )}
+
+                {/* Materias primas en el galpón (estimadas) */}
+                <div className="detail-sec-title">Materias primas en el galpón</div>
+                {existencias === null ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>Cargando...</div>
+                ) : existenciasError ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    No se pudo cargar la existencia de materias primas.
+                  </div>
+                ) : existencias.length === 0 ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    Este galpón todavía no recibió materias primas.
+                  </div>
+                ) : (
+                  <>
+                    <table className="plan-table">
+                      <thead>
+                        <tr>
+                          <th>Materia prima</th>
+                          <th style={{ textAlign: "right" }}>Ingresado</th>
+                          <th style={{ textAlign: "right" }}>Descartado</th>
+                          <th style={{ textAlign: "right" }}>Existencia</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {existencias.map((e) => (
+                          <tr key={e.id_materia_prima}>
+                            <td>{e.materia_prima}</td>
+                            <td style={{ textAlign: "right" }}>{formatCantidad(e.ingresado)}</td>
+                            <td style={{ textAlign: "right" }}>{formatCantidad(e.descartado)}</td>
+                            <td style={{ textAlign: "right", fontWeight: 600 }}>
+                              {formatCantidad(e.existencia_estimada)} {e.unidad}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="form-hint" style={{ marginTop: 6 }}>
+                      <i className="fa-solid fa-circle-info"></i> Existencia estimada: entradas
+                      finalizadas menos descartes del galpón. No incluye el consumo diario de las
+                      gallinas.
+                    </div>
+                  </>
                 )}
 
                 {/* Operarios asignados */}

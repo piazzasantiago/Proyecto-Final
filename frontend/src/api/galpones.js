@@ -30,3 +30,8 @@ export function altaGalpon(id) {
 export function bajaGalpon(id) {
   return request(`/api/galpones/${id}/baja/`, { method: "POST" });
 }
+
+/** Existencia estimada de cada materia prima dentro del galpón (entradas − descartes de galpón) */
+export function getExistenciasGalpon(id) {
+  return request(`/api/galpones/${id}/existencias/`);
+}

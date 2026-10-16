@@ -14,6 +14,7 @@ Clases:
   - BorrarEntradaTests            CU34: borrar entrada
   - FinalizarEntradaTests         CU37: finalizar y verificar stock
   - StockMateriaPrimaEntradaTests el stock de Materias Primas resta las entradas finalizadas
+  - ExistenciasGalponTests        existencia estimada de materias primas por galpón
   - PermisosEntradaTests          matriz rol × operación
 """
 
@@ -27,7 +28,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from descartes.models import Descarte, LineaDescarte
-from galpones.models import Galpon
+from galpones.models import Galpon, UsuarioDelGalpon
 from materias_primas.models import MateriaPrima
 from usuarios.models import Usuario
 
@@ -593,6 +594,117 @@ class StockMateriaPrimaEntradaTests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
         self.assertIn("hay 30", str(resp.data))
+
+
+# ── Existencias por galpón ────────────────────────────────────────────────────
+
+class ExistenciasGalponTests(TestCase):
+    """GET /api/galpones/{id}/existencias/: ingresado − descartado en el galpón."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = make_admin()
+        auth(self.client, self.admin)
+        self.g = make_galpon("Galpón 1")
+        self.otro = make_galpon("Galpón 2")
+        self.mp = make_mp("Balanceado", stock_inicial=1000)
+        self.mp2 = make_mp("Vacuna", stock_inicial=1000, unidad="u")
+
+    def url(self, galpon=None):
+        return f"/api/galpones/{(galpon or self.g).pk}/existencias/"
+
+    def entrada(self, mp, cantidad, galpon=None, estado=Entrada.ESTADO_FINALIZADA, dia=9):
+        e = make_entrada(galpon or self.g, estado=estado, dia=dia)
+        add_linea(e, mp, cantidad)
+        return e
+
+    def descarte(self, mp, cantidad, galpon=None, categoria=Descarte.CATEGORIA_GALPON,
+                 estado=Descarte.ESTADO_FINALIZADO):
+        galpon = galpon or self.g
+        d = Descarte.objects.create(
+            categoria=categoria, fecha=fecha(9), estado=estado,
+            id_galpon=galpon if categoria == Descarte.CATEGORIA_GALPON else None,
+        )
+        LineaDescarte.objects.create(
+            id_descarte=d, id_galpon=d.id_galpon, id_materia_prima=mp,
+            cantidad=cantidad, motivo="se pudrió",
+        )
+        return d
+
+    def fila(self, resp, mp):
+        return next(f for f in resp.data if f["id_materia_prima"] == mp.pk)
+
+    def test_sin_movimientos_lista_vacia(self):
+        resp = self.client.get(self.url())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, [])
+
+    def test_suma_las_entradas_finalizadas(self):
+        self.entrada(self.mp, 40, dia=5)
+        self.entrada(self.mp, 25, dia=6)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["ingresado"]), Decimal("65"))
+        self.assertEqual(Decimal(fila["descartado"]), Decimal("0"))
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("65"))
+        self.assertEqual(fila["materia_prima"], "Balanceado")
+        self.assertEqual(fila["unidad"], "kg")
+
+    def test_las_entradas_pendientes_no_cuentan(self):
+        self.entrada(self.mp, 40, estado=Entrada.ESTADO_PENDIENTE)
+        self.assertEqual(self.client.get(self.url()).data, [])
+
+    def test_el_descarte_de_galpon_finalizado_resta(self):
+        self.entrada(self.mp, 40)
+        self.descarte(self.mp, 5)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["descartado"]), Decimal("5"))
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("35"))
+
+    def test_no_resta_descartes_pendientes_de_stock_ni_de_otro_galpon(self):
+        self.entrada(self.mp, 40)
+        self.descarte(self.mp, 3, estado=Descarte.ESTADO_PENDIENTE)
+        self.descarte(self.mp, 4, categoria=Descarte.CATEGORIA_STOCK)
+        self.descarte(self.mp, 6, galpon=self.otro)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("40"))
+
+    def test_nunca_es_negativa(self):
+        self.entrada(self.mp, 10)
+        self.descarte(self.mp, 25)
+        fila = self.fila(self.client.get(self.url()), self.mp)
+        self.assertEqual(Decimal(fila["existencia_estimada"]), Decimal("0"))
+        self.assertEqual(Decimal(fila["descartado"]), Decimal("25"))
+
+    def test_separa_por_galpon_y_por_materia_prima(self):
+        self.entrada(self.mp, 40)
+        self.entrada(self.mp2, 7)
+        self.entrada(self.mp, 99, galpon=self.otro)
+        resp = self.client.get(self.url())
+        self.assertEqual([f["materia_prima"] for f in resp.data], ["Balanceado", "Vacuna"])
+        self.assertEqual(Decimal(self.fila(resp, self.mp)["ingresado"]), Decimal("40"))
+        resp2 = self.client.get(self.url(self.otro))
+        self.assertEqual(Decimal(self.fila(resp2, self.mp)["ingresado"]), Decimal("99"))
+
+    def test_no_altera_el_stock_general_de_la_materia_prima(self):
+        self.entrada(self.mp, 40)
+        self.descarte(self.mp, 5)
+        datos = self.client.get(f"/api/materias-primas/{self.mp.pk}/").data
+        self.assertEqual(Decimal(str(datos["stock_actual"])), Decimal("960"))
+
+    def test_galpon_inexistente_404(self):
+        self.assertEqual(self.client.get("/api/galpones/9999/existencias/").status_code, 404)
+
+    def test_todos_los_roles_pueden_verlo_y_sin_token_401(self):
+        self.entrada(self.mp, 40)
+        for usuario in (make_operario(), make_consulta()):
+            c = APIClient()
+            auth(c, usuario)
+            if usuario.rol == Usuario.ROL_OPERARIO:
+                # El operario solo ve los galpones que tiene asignados.
+                self.assertEqual(c.get(self.url()).status_code, 404)
+                UsuarioDelGalpon.objects.create(id_galpon=self.g, id_usuario=usuario)
+            self.assertEqual(c.get(self.url()).status_code, 200, usuario.usuario)
+        self.assertEqual(APIClient().get(self.url()).status_code, 401)
 
 
 # ── Permisos ──────────────────────────────────────────────────────────────────
