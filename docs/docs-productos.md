@@ -130,7 +130,8 @@ sucede con Galpones.
   `docs-descartes.md`). Los descartes de galpón no cuentan.
 - `stock_actual` — `stock_inicial + stock_recolectado − stock_descartado`. No se
   guarda: se calcula en cada consulta, así que no puede desfasarse (por ejemplo,
-  si se borra una recolección finalizada, el stock baja solo).
+  si se borra una recolección finalizada, el stock baja solo; si quedara en
+  negativo, el borrado se rechaza con 409).
 
 ---
 
