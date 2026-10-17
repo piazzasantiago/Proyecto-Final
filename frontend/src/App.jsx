@@ -16,10 +16,10 @@ import DescartesPage from "./pages/DescartesPage";
 import EntradasPage from "./pages/EntradasPage";
 import SalidasPage from "./pages/SalidasPage";
 import StaticPage from "./pages/static/StaticPage";
+import ProveedoresPage from "./pages/ProveedoresPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
 import comprasHtml from "./pages/static/raw/compras.html?raw";
-import proveedoresHtml from "./pages/static/raw/proveedores.html?raw";
 import informesHtml from "./pages/static/raw/informes.html?raw";
 
 function App() {
@@ -50,7 +50,7 @@ function App() {
           <Route path="salidas" element={<SalidasPage />} />
           <Route path="entradas" element={<EntradasPage />} />
           <Route path="compras" element={<RequireRol roles={rolesDe("/app/compras")}><StaticPage html={comprasHtml} /></RequireRol>} />
-          <Route path="proveedores" element={<RequireRol roles={rolesDe("/app/proveedores")}><StaticPage html={proveedoresHtml} /></RequireRol>} />
+          <Route path="proveedores" element={<RequireRol roles={rolesDe("/app/proveedores")}><ProveedoresPage /></RequireRol>} />
           <Route path="informes" element={<RequireRol roles={rolesDe("/app/informes")}><StaticPage html={informesHtml} /></RequireRol>} />
           <Route path="usuarios" element={<RequireRol roles={rolesDe("/app/usuarios")}><UsuariosPage /></RequireRol>} />
         </Route>

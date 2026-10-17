@@ -29,7 +29,8 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Descartes | CU15 a CU23 | Funcional |
 | Entradas a galpones | CU33 a CU41 | Funcional |
 | Salidas de productos | CU76 a CU84 | Funcional |
-| Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Gestión de Proveedores | CU70 a CU75 | Funcional |
+| Compras, Informes, Dashboard | — | Solo vista previa |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -107,6 +108,7 @@ backend/
 ├── descartes/       módulo de Descartes
 ├── entradas/        módulo de Entradas a galpones
 ├── salidas/         módulo de Salidas de productos
+├── proveedores/     módulo de Proveedores
 └── manage.py
 ```
 
@@ -232,6 +234,7 @@ python manage.py test materias_primas
 python manage.py test descartes
 python manage.py test entradas
 python manage.py test salidas
+python manage.py test proveedores
 ```
 
 ---
@@ -294,6 +297,14 @@ python manage.py test salidas
 | PATCH | `/api/salidas/{id}/` | Modificar salida PENDIENTE | Adm. / Operario |
 | DELETE | `/api/salidas/{id}/` | Eliminar salida PENDIENTE | Adm. / Operario |
 | POST | `/api/salidas/{id}/finalizar/` | Finalizar y descontar el stock de productos | Adm. / Operario |
+| GET | `/api/proveedores/` | Listar proveedores (`?search=`, `?estado=`) | Adm. / Consulta |
+| POST | `/api/proveedores/` | Crear proveedor | Adm. |
+| GET | `/api/proveedores/{id}/` | Detalle de proveedor | Adm. / Consulta |
+| PATCH | `/api/proveedores/{id}/` | Modificar proveedor | Adm. |
+| DELETE | `/api/proveedores/{id}/` | Borrar proveedor (409 si tiene registros asociados) | Adm. |
+| POST | `/api/proveedores/{id}/alta/` | Dar de alta | Adm. |
+| POST | `/api/proveedores/{id}/baja/` | Dar de baja | Adm. |
+| GET | `/api/proveedores/similares/` | Nombres iguales o parecidos | Adm. / Consulta |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -361,6 +372,7 @@ En `docs/`:
 | `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
+| `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -401,13 +413,10 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Proveedores** — próximo módulo a implementar. Es la base de Compras, que
-   necesita saber a quién se le compra.
+1. **Compras** — próximo módulo a implementar (ya existen Proveedores). Cuando
+   exista, el stock de materias primas sumará lo comprado.
 
-2. **Compras** — se implementa después de Proveedores. Cuando exista, el stock de
-   materias primas sumará lo comprado.
-
-3. **Informes e indicadores productivos** (CU85 a CU89).
+2. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
