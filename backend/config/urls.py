@@ -11,4 +11,5 @@ urlpatterns = [
     path("api/", include("materias_primas.urls")),
     path("api/", include("descartes.urls")),
     path("api/", include("entradas.urls")),
+    path("api/", include("salidas.urls")),
 ]

@@ -30,7 +30,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
     Stock: stock_inicial se edita como un campo más (alta/modificación), a
     cargo del Administrador. stock_recolectado y stock_actual son de solo
     lectura y se calculan: stock_actual = stock_inicial + lo recolectado en
-    recolecciones finalizadas - lo descartado en descartes de stock finalizados.
+    recolecciones finalizadas - lo descartado en descartes de stock finalizados
+    - lo que salió en salidas finalizadas.
     """
 
     queryset = Producto.objects.all()  # get_queryset() agrega el stock recolectado
@@ -44,13 +45,16 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Anota cada producto con lo recolectado en recolecciones FINALIZADAS
-        (stock_recolectado) y lo descartado en descartes de stock FINALIZADOS
-        (stock_descartado), para calcular el stock actual sin una consulta
+        (stock_recolectado), lo descartado en descartes de stock FINALIZADOS
+        (stock_descartado) y lo que salió en salidas FINALIZADAS
+        (stock_salidas), para calcular el stock actual sin una consulta
         por producto.
         """
-        # Import diferido: recolecciones y descartes dependen de productos, no al revés.
+        # Import diferido: recolecciones, descartes y salidas dependen de
+        # productos, no al revés.
         from descartes.stock import anotar_descartado
         from recolecciones.models import Recoleccion
+        from salidas.stock import anotar_egresado
 
         productos = Producto.objects.annotate(
             stock_recolectado=Coalesce(
@@ -63,9 +67,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 0,
             )
         )
-        # Los descartes se suman con una subconsulta (no con otro JOIN) para no
-        # multiplicar las filas del Sum de recolecciones.
+        # Descartes y salidas se suman con subconsultas (no con otro JOIN) para
+        # no multiplicar las filas del Sum de recolecciones.
         productos = anotar_descartado(productos, "id_producto")
+        productos = anotar_egresado(productos)
         # Al agrupar por el Sum, Django ignora el orden por defecto del modelo;
         # sin un orden explícito la paginación podría repetir o saltear filas.
         # (?ordering= lo reemplaza cuando se pide otro orden.)
