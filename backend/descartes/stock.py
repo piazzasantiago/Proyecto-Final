@@ -7,7 +7,7 @@ descartes de galpón son estadísticos y los pendientes todavía no hicieron
 efecto.
 
 El stock no se guarda: se calcula (igual que el de recolecciones) como
-    producto:        stock_inicial + recolectado - descartado
+    producto:        stock_inicial + recolectado - descartado - salidas
     materia prima:   stock_inicial - descartado - ingresado a galpones (entradas)
 """
 
@@ -73,8 +73,10 @@ def anotar_descartado(queryset, campo_fk):
 
 
 def stock_actual_producto(producto):
-    # Import diferido: recolecciones depende de productos, no al revés.
+    # Imports diferidos: recolecciones y salidas dependen de productos, no al
+    # revés (y salidas.serializers importa este módulo).
     from recolecciones.models import LineaRecoleccion, Recoleccion
+    from salidas.stock import egresado_producto
 
     recolectado = (
         LineaRecoleccion.objects.filter(
@@ -83,7 +85,12 @@ def stock_actual_producto(producto):
         ).aggregate(total=Sum("cantidad"))["total"]
         or 0
     )
-    return producto.stock_inicial + recolectado - int(descartado_producto(producto.pk))
+    return (
+        producto.stock_inicial
+        + recolectado
+        - int(descartado_producto(producto.pk))
+        - egresado_producto(producto.pk)
+    )
 
 
 def stock_actual_materia_prima(materia_prima):

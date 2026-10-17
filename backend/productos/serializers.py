@@ -8,6 +8,7 @@ class ProductoSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_recolectado = serializers.SerializerMethodField()
     stock_descartado = serializers.SerializerMethodField()
+    stock_salidas = serializers.SerializerMethodField()
     stock_actual = serializers.SerializerMethodField()
 
     def get_stock_recolectado(self, obj):
@@ -42,15 +43,30 @@ class ProductoSerializer(serializers.ModelSerializer):
             anotado = descartado_producto(obj.pk)
         return int(anotado)
 
+    def get_stock_salidas(self, obj):
+        """
+        Total de productos que salieron de la granja en salidas FINALIZADAS.
+        Igual que lo descartado: lo anota el ViewSet y, si falta, se calcula acá.
+        """
+        anotado = getattr(obj, "stock_salidas", None)
+        if anotado is None:
+            # Import diferido: salidas depende de productos, no al revés.
+            from salidas.stock import egresado_producto
+
+            anotado = egresado_producto(obj.pk)
+        return int(anotado)
+
     def get_stock_actual(self, obj):
         """
         Stock inicial/ajuste + lo recolectado en recolecciones finalizadas
-        - lo descartado en descartes de stock finalizados.
+        - lo descartado en descartes de stock finalizados
+        - lo que salió en salidas finalizadas.
         """
         return (
             obj.stock_inicial
             + self.get_stock_recolectado(obj)
             - self.get_stock_descartado(obj)
+            - self.get_stock_salidas(obj)
         )
 
     class Meta:
@@ -64,6 +80,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             "stock_inicial",
             "stock_recolectado",
             "stock_descartado",
+            "stock_salidas",
             "stock_actual",
         ]
         read_only_fields = ["id_producto", "estado"]
