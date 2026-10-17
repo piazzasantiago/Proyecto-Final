@@ -175,7 +175,7 @@ stock_actual = stock_inicial − stock_descartado − stock_entradas
 - `stock_entradas`: líneas de entradas a galpones finalizadas.
 
 Así no hay un número que pueda desincronizarse: borrar o corregir un registro
-siempre deja el stock coherente. Cuando exista Compras se le sumará
+siempre deja el stock coherente. Con Compras se le suma además
 `+ compras`. El listado de materias primas obtiene `stock_entradas` con una
 subconsulta (`anotar_ingresado`), sin una consulta por materia prima.
 
@@ -309,4 +309,4 @@ frontend/src/api/galpones.js, frontend/src/pages/GalponesPage.jsx
   materia prima y el galpón con `PROTECT`, así que la base impide borrarlos, pero
   la vista de materias primas todavía no captura ese error para devolver un 409
   con mensaje claro (mismo pendiente que con Descartes y Recolecciones).
-- **Compras:** cuando exista, `stock_actual` de materias primas sumará lo comprado.
+- **Compras:** ya suma lo comprado en `stock_actual` de materias primas (ver `docs-compras.md`).

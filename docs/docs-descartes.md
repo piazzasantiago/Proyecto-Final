@@ -449,7 +449,7 @@ python manage.py test descartes --verbosity=2
 
 ## Pendientes
 
-- **Compras:** `stock_actual` de materias primas deberá sumar las compras.
+- **Compras:** `stock_actual` de materias primas ya suma las compras finalizadas (ver `docs-compras.md`).
 - **Borrado de productos y materias primas con descartes:** hoy los descartes
   referencian productos y materias primas con `PROTECT`; falta revisar que
   eliminar uno que ya tiene descartes devuelva un mensaje claro en lugar de un

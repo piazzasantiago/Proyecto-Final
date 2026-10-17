@@ -30,11 +30,8 @@ saber a quién se le compra.
 
 ### Qué no incluye
 
-- El vínculo con Compras: la sección "Compras recientes" del detalle es un
-  marcador de posición hasta que exista ese módulo.
-- Manejo del borrado cuando haya compras asociadas: el endpoint ya devuelve 409
-  ante un `ProtectedError`, pero la restricción `PROTECT` recién existirá cuando
-  Compras referencie a Proveedores.
+- La sección "Compras recientes" del detalle sigue siendo un marcador de
+  posición (el módulo de Compras ya existe; falta listarlas acá).
 
 ---
 
@@ -71,8 +68,7 @@ borrar el CUIT y la dirección. El estado no se puede cambiar por este medio.
 
 **Actor:** Administrador.
 
-Elimina el proveedor físicamente. Si tiene registros asociados (las compras,
-cuando exista ese módulo), el borrado se rechaza con `409` y el mensaje indica
+Elimina el proveedor físicamente. Si tiene compras asociadas, el borrado se rechaza con `409` y el mensaje indica
 que debe darse de baja en su lugar.
 
 ### CU74 – Dar de Alta Proveedor
@@ -227,6 +223,7 @@ frontend/src/{api/proveedores.js, components/ProveedorFormModal.jsx, pages/Prove
 
 ## 10. Pendientes
 
-- Mostrar las compras recientes del proveedor cuando exista Compras.
-- Cambiar `on_delete` de las FK de Compras a `PROTECT` y verificar el 409 real.
+- Mostrar las compras recientes del proveedor en su detalle.
+- *Resuelto con Compras:* la FK de Compras a Proveedores es `PROTECT` y el 409 al
+  eliminar un proveedor con compras está cubierto por tests.
 - Mejora futura: verificar la dirección con autocompletado y mapa (Georef AR para validar calles y localidades de Argentina, y Leaflet con OpenStreetMap para mostrar el pin). Requeriría agregar `latitud` y `longitud` opcionales al modelo y mantener la carga manual para direcciones rurales.
