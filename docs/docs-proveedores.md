@@ -141,3 +141,4 @@ frontend/src/{api/proveedores.js, components/ProveedorFormModal.jsx, pages/Prove
 
 - Mostrar las compras recientes del proveedor cuando exista Compras.
 - Cambiar `on_delete` de las FK de Compras a `PROTECT` y verificar el 409 real.
+- Mejora futura: verificar la dirección con autocompletado y mapa (Georef AR para validar calles y localidades de Argentina, y Leaflet con OpenStreetMap para mostrar el pin). Requeriría agregar `latitud` y `longitud` opcionales al modelo y mantener la carga manual para direcciones rurales.
