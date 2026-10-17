@@ -372,7 +372,7 @@ En `docs/`:
 | `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
-| `docs-proveedores.md` | Gestión de proveedores, CUIT, nombres parecidos, permisos y tests (CU70 a CU75) |
+| `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
