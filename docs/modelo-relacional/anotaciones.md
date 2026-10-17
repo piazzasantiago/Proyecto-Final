@@ -80,3 +80,6 @@ Propuesta: que las alertas sean solamente productivas (postura, descartes, etc.)
 
 13\) Tabla LineasCompra: la cantidad es DECIMAL(10,2) ya que puede tratarse de una compra en kg, por ej. IDEM LINEASENTRADA CON EL TEMA DE LAS RELACIONES CON LOTES Y MATERIASPRIMAS.
 
+
+
+14\) Tabla Proveedores: se agregaron los campos `nombre` (obligatorio, único) y `cuit` (opcional, único si se carga), porque el diagrama original no permitía identificar a un proveedor. `direccion` pasa a ser opcional.
