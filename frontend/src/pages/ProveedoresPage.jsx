@@ -181,9 +181,11 @@ export default function ProveedoresPage() {
                 </div>
                 <div className="detail-row"><span>Email</span><span>{selected.email}</span></div>
                 <div className="detail-row"><span>Teléfono</span><span>{selected.telefono}</span></div>
-                <div className="detail-row">
-                  <span>Dirección</span>
-                  <span>{selected.direccion || "—"}</span>
+                {/* Una dirección larga ocupa varias líneas: el título no se achica y el
+                    texto queda alineado a la derecha como el resto de las filas. */}
+                <div className="detail-row" style={{ gap: 16 }}>
+                  <span style={{ flexShrink: 0 }}>Dirección</span>
+                  <span style={{ textAlign: "right" }}>{selected.direccion || "—"}</span>
                 </div>
 
                 <div className="detail-sec-title">Compras recientes</div>

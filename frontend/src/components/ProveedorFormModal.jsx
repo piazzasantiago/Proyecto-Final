@@ -153,8 +153,13 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   maxLength={45}
                   placeholder="381-455-0102"
                 />
-                <span className="form-hint">Con característica, por ejemplo 381-455-0102.</span>
-                {fieldError("telefono")}
+                {errors.telefono ? (
+                  fieldError("telefono")
+                ) : (
+                  <span className="form-hint">
+                    Con característica, por ejemplo 381-455-0102. Si es de otro país, empezá con + y el código de país (+598 99 123 456).
+                  </span>
+                )}
               </div>
 
               <div className="form-group full">
