@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "materias_primas",
     "descartes",
     "entradas",
+    "salidas",
 ]
 
 MIDDLEWARE = [
