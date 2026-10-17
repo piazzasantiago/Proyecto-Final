@@ -68,3 +68,27 @@ class LecturaAutenticados_EscrituraAdministrador(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return usuario.es_administrador
+
+
+class LecturaAdministradorYConsulta_EscrituraAdministrador(BasePermission):
+    """
+    Matriz del módulo Proveedores (y, más adelante, Compras):
+
+      - GET / HEAD / OPTIONS  -> Administrador y Consulta.
+      - POST / PUT / PATCH / DELETE -> solo Administrador.
+      - Operario: sin acceso (ni siquiera de lectura), como indica la
+        descripción de usuarios y el menú de la aplicación.
+    """
+
+    message = "No tiene permiso para acceder a esta sección."
+
+    def has_permission(self, request, view):
+        usuario = request.user
+        if not (usuario and usuario.is_authenticated):
+            return False
+        if usuario.es_administrador:
+            return True
+        if request.method in SAFE_METHODS:
+            return usuario.rol == type(usuario).ROL_CONSULTA
+        self.message = "Se requiere rol Administrador para realizar esta operación."
+        return False

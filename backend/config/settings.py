@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "descartes",
     "entradas",
     "salidas",
+    "proveedores",
 ]
 
 MIDDLEWARE = [
