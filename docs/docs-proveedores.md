@@ -37,7 +37,59 @@ saber a quién se le compra.
 
 ---
 
-## 2. Casos de uso y permisos
+## 2. Casos de uso
+
+### CU70 – Buscar Proveedor
+
+**Actor:** Administrador, Consulta.
+
+Lista los proveedores con búsqueda de texto (`?search=`) sobre nombre, CUIT,
+email, teléfono y dirección, filtro por estado (`?estado=A|I`) y orden
+(`?ordering=`, por defecto por nombre). También permite ver el detalle de uno.
+
+### CU71 – Nuevo Proveedor
+
+**Actor:** Administrador.
+
+Crea un proveedor con nombre (obligatorio y único), email y teléfono
+(obligatorios), y CUIT y dirección opcionales. El nombre, el teléfono, la
+dirección y el CUIT se validan como se explica en la sección de decisiones de
+diseño. El estado inicial siempre es Activo. Mientras se escribe el nombre, el
+formulario avisa si ya existe uno igual o parecido.
+
+### CU72 – Modificar Proveedor
+
+**Actor:** Administrador.
+
+Modifica cualquier dato del proveedor, con las mismas validaciones que al
+crearlo. Reenviar el propio nombre o CUIT no cuenta como duplicado. Se puede
+borrar el CUIT y la dirección. El estado no se puede cambiar por este medio.
+
+### CU73 – Borrar Proveedor
+
+**Actor:** Administrador.
+
+Elimina el proveedor físicamente. Si tiene registros asociados (las compras,
+cuando exista ese módulo), el borrado se rechaza con `409` y el mensaje indica
+que debe darse de baja en su lugar.
+
+### CU74 – Dar de Alta Proveedor
+
+**Actor:** Administrador.
+
+Pasa un proveedor de Inactivo a Activo. Devuelve `409` si ya estaba activo.
+
+### CU75 – Dar de Baja Proveedor
+
+**Actor:** Administrador.
+
+Pasa un proveedor de Activo a Inactivo. Devuelve `409` si ya estaba inactivo.
+La baja conserva todos sus datos y no afecta los registros históricos; su
+nombre sigue ocupado.
+
+---
+
+## 3. Matriz rol × caso de uso
 
 | CU | Caso de uso | Administrador | Operario | Consulta |
 |----|-------------|:---:|:---:|:---:|
@@ -54,7 +106,7 @@ el menú. Se implementa con el permiso
 
 ---
 
-## 3. Modelo de datos
+## 4. Modelo de datos
 
 Tabla `Proveedores`:
 
@@ -73,7 +125,7 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ---
 
-## 4. Decisiones de diseño
+## 5. Decisiones de diseño
 
 - **Nombre único** comparando con `normalizar_nombre` (sin tildes, mayúsculas ni
   espacios repetidos), igual que Materias Primas. Un proveedor dado de baja sigue
@@ -91,7 +143,7 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ---
 
-## 5. Endpoints
+## 6. Endpoints
 
 | Método | Ruta | Descripción | Permiso |
 |--------|------|-------------|---------|
@@ -106,7 +158,7 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ---
 
-## 6. Interfaz
+## 7. Interfaz
 
 - `frontend/src/pages/ProveedoresPage.jsx`: tarjetas, búsqueda, filtro de estado
   y panel de detalle.
@@ -118,14 +170,14 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ---
 
-## 7. Tests
+## 8. Tests
 
 `python manage.py test proveedores` — 61 tests en 8 clases: Buscar, Nuevo,
 Modificar, Borrar, Alta/Baja, Similares, CUIT y Permisos.
 
 ---
 
-## 8. Archivos
+## 9. Archivos
 
 ```
 backend/proveedores/{models,serializers,views,urls,admin,apps,tests}.py
@@ -137,7 +189,7 @@ frontend/src/{api/proveedores.js, components/ProveedorFormModal.jsx, pages/Prove
 
 ---
 
-## 9. Pendientes
+## 10. Pendientes
 
 - Mostrar las compras recientes del proveedor cuando exista Compras.
 - Cambiar `on_delete` de las FK de Compras a `PROTECT` y verificar el 409 real.
