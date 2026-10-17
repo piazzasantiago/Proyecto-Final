@@ -227,6 +227,20 @@ class NuevoProveedorTests(TestCase):
         for malo in ["abc", "12345", "381-ABC-0102", "!!!!!!!", "12 34", "4550102", "0000000", "0000000000", "1111111111", "381-455-01", "381-455-01022", "081-455-0102", "+54 9 181 455 0102"]:
             self.assertEqual(self.post(telefono=malo).status_code, 400, malo)
 
+    def test_telefono_internacional_valido(self):
+        for i, tel in enumerate(["+598 99 123 456", "+1 (415) 555-2671", "+34 612 345 678", "+55 11 91234-5678", "+56 9 8765 4321"]):
+            self.assertEqual(self.post(nombre=f"Ext{i}", telefono=tel).status_code, 201, tel)
+
+    def test_telefono_internacional_invalido(self):
+        # Sin + el número se trata como argentino; con + y otro país solo se controla lo básico.
+        for malo in ["+598", "+1234567", "+1111111111","+0 612 345 678", "+34 612 345 678 901 234", "+34 612 abc 678"]:
+            self.assertEqual(self.post(telefono=malo).status_code, 400, malo)
+        self.assertEqual(self.post(telefono="598 99 123 456").status_code, 400)
+
+    def test_telefono_con_codigo_54_sigue_validandose_como_argentino(self):
+        self.assertEqual(self.post(nombre="Arg", telefono="+54 9 381 455 0102").status_code, 201)
+        self.assertEqual(self.post(nombre="Arg2", telefono="+54 9 181 455 0102").status_code, 400)
+
     def test_nombre_sin_letras_o_demasiado_corto(self):
         for malo in [".", "..", "-", "1", "a", "123", "__", "?!"]:
             self.assertEqual(self.post(nombre=malo).status_code, 400, malo)

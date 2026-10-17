@@ -55,6 +55,20 @@ def telefono_nacional(texto):
     return d
 
 
+def telefono_internacional(texto):
+    """
+    Devuelve los dígitos de un teléfono internacional (empieza con + y un código
+    de país distinto de 54), o None si no es válido. Solo se controla lo básico,
+    porque cada país tiene su propio plan de numeración: entre 8 y 15 dígitos en
+    total (máximo de la norma E.164), que el código de país no empiece con 0 y que
+    no sea una repetición de dígitos.
+    """
+    d = re.sub(r"\D", "", texto)
+    if not 8 <= len(d) <= 15 or d.startswith("0") or len(set(d)) < 3:
+        return None
+    return d
+
+
 class ProveedorSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     cuit_formateado = serializers.SerializerMethodField()
@@ -124,18 +138,29 @@ class ProveedorSerializer(serializers.ModelSerializer):
         return digitos
 
     def validate_telefono(self, value):
-        """Teléfono argentino con característica (código de área)."""
+        """
+        Teléfono argentino con característica (código de área) o, si empieza con
+        + y un código de país distinto de 54, un teléfono internacional.
+        """
         value = value.strip()
         if not re.fullmatch(r"\+?[\d\s()\-]+", value):
             raise serializers.ValidationError(
                 "El teléfono solo puede incluir números, espacios, guiones, paréntesis "
                 "y un + al inicio."
             )
+        if value.startswith("+") and not re.sub(r"\D", "", value).startswith("54"):
+            if telefono_internacional(value) is None:
+                raise serializers.ValidationError(
+                    "Ingresá un teléfono internacional válido con código de país, "
+                    "por ejemplo +598 99 123 456."
+                )
+            return value
         nacional = telefono_nacional(value)
         if nacional is None:
             raise serializers.ValidationError(
                 "Ingresá un teléfono argentino válido con característica, por ejemplo "
-                "381-455-0102 o +54 9 381 455 0102."
+                "381-455-0102 o +54 9 381 455 0102. Para otro país, empezá con + y el "
+                "código de país."
             )
         return value
 
