@@ -13,6 +13,7 @@ class MateriaPrimaSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_descartado = serializers.SerializerMethodField()
     stock_entradas = serializers.SerializerMethodField()
+    stock_compras = serializers.SerializerMethodField()
     stock_actual = serializers.SerializerMethodField()
 
     def get_stock_descartado(self, obj):
@@ -42,15 +43,28 @@ class MateriaPrimaSerializer(serializers.ModelSerializer):
 
         return ingresado_materia_prima(obj.pk)
 
+    def get_stock_compras(self, obj):
+        """
+        Total comprado en compras finalizadas. Igual que el descartado: lo anota
+        el ViewSet y, si falta, se calcula acá.
+        """
+        anotado = getattr(obj, "stock_compras", None)
+        if anotado is not None:
+            return anotado
+        # Import diferido: compras depende de materias primas, no al revés.
+        from compras.stock import comprado_materia_prima
+
+        return comprado_materia_prima(obj.pk)
+
     def get_stock_actual(self, obj):
         """
-        stock_inicial (stock de partida/ajuste manual) menos lo descartado en
-        descartes de stock finalizados y lo enviado a galpones en entradas
-        finalizadas. Cuando exista el módulo Compras, también se le sumarán las
-        compras.
+        stock_inicial (stock de partida/ajuste manual) más lo comprado en
+        compras finalizadas, menos lo descartado en descartes de stock
+        finalizados y lo enviado a galpones en entradas finalizadas.
         """
         return (
             obj.stock_inicial
+            + self.get_stock_compras(obj)
             - self.get_stock_descartado(obj)
             - self.get_stock_entradas(obj)
         )
@@ -109,6 +123,7 @@ class MateriaPrimaSerializer(serializers.ModelSerializer):
             "stock_inicial",
             "stock_descartado",
             "stock_entradas",
+            "stock_compras",
             "stock_actual",
         ]
         read_only_fields = ["id_materia_prima", "estado"]

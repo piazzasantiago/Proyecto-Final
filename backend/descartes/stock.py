@@ -8,7 +8,8 @@ efecto.
 
 El stock no se guarda: se calcula (igual que el de recolecciones) como
     producto:        stock_inicial + recolectado - descartado - salidas
-    materia prima:   stock_inicial - descartado - ingresado a galpones (entradas)
+    materia prima:   stock_inicial + comprado - descartado - ingresado a galpones
+                     (compras y entradas)
 """
 
 from decimal import Decimal
@@ -94,11 +95,14 @@ def stock_actual_producto(producto):
 
 
 def stock_actual_materia_prima(materia_prima):
-    # Import diferido: entradas depende de materias primas y de este módulo.
+    # Imports diferidos: compras y entradas dependen de materias primas y de
+    # este módulo.
+    from compras.stock import comprado_materia_prima
     from entradas.stock import ingresado_materia_prima
 
     return (
         materia_prima.stock_inicial
+        + comprado_materia_prima(materia_prima.pk)
         - descartado_materia_prima(materia_prima.pk)
         - ingresado_materia_prima(materia_prima.pk)
     )
