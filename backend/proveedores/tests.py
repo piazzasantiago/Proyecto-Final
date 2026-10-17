@@ -220,12 +220,24 @@ class NuevoProveedorTests(TestCase):
         self.assertIn("telefono", resp.data)
 
     def test_telefono_formatos_validos(self):
-        for i, tel in enumerate(["381-455-0102", "+54 9 381 455 0102", "(0381) 455-0102", "4550102"]):
+        for i, tel in enumerate(["381-455-0102", "+54 9 381 455 0102", "(0381) 455-0102", "0381 15 455-0102", "(011) 4555-1234", "3814550102"]):
             self.assertEqual(self.post(nombre=f"P{i}", telefono=tel).status_code, 201, tel)
 
     def test_telefono_invalido(self):
-        for malo in ["abc", "12345", "381-ABC-0102", "!!!!!!!", "12 34"]:
+        for malo in ["abc", "12345", "381-ABC-0102", "!!!!!!!", "12 34", "4550102", "0000000", "0000000000", "1111111111", "381-455-01", "381-455-01022", "081-455-0102", "+54 9 181 455 0102"]:
             self.assertEqual(self.post(telefono=malo).status_code, 400, malo)
+
+    def test_nombre_sin_letras_o_demasiado_corto(self):
+        for malo in [".", "..", "-", "1", "a", "123", "__", "?!"]:
+            self.assertEqual(self.post(nombre=malo).status_code, 400, malo)
+        for bueno in ["Ab", "3M", "Agro 2000"]:
+            Proveedor.objects.all().delete()
+            self.assertEqual(self.post(nombre=bueno).status_code, 201, bueno)
+
+    def test_direccion_sin_contenido_rechazada(self):
+        for malo in [".", "--", "a1"]:
+            self.assertEqual(self.post(direccion=malo).status_code, 400, malo)
+        self.assertEqual(self.post(direccion="Av. Roca 1200").status_code, 201)
 
     def test_telefono_demasiado_largo(self):
         self.assertEqual(self.post(telefono="1" * 46).status_code, 400)

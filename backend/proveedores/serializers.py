@@ -29,6 +29,32 @@ def formatear_cuit(digitos):
     return f"{digitos[:2]}-{digitos[2:10]}-{digitos[10]}"
 
 
+def telefono_nacional(texto):
+    """
+    Devuelve los 10 dígitos nacionales (característica + número) de un teléfono
+    argentino, o None si no es válido. Acepta +54, el 9 de celulares, el 0 inicial
+    de la característica y el 15 intermedio: 381-455-0102, 0381 15 455-0102,
+    +54 9 381 455 0102, (011) 4555-1234.
+    """
+    d = re.sub(r"\D", "", texto)
+    if d.startswith("54"):
+        d = d[2:]
+        if d.startswith("9"):
+            d = d[1:]
+    if d.startswith("0"):
+        d = d[1:]
+    if len(d) == 12:  # característica + 15 + número
+        for area in (2, 3, 4):
+            if d[area:area + 2] == "15" and len(d) - 2 == 10:
+                d = d[:area] + d[area + 2:]
+                break
+    if len(d) != 10 or len(set(d)) < 3:
+        return None
+    if not (d.startswith("11") or d[0] in "23"):
+        return None
+    return d
+
+
 class ProveedorSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     cuit_formateado = serializers.SerializerMethodField()
@@ -63,6 +89,10 @@ class ProveedorSerializer(serializers.ModelSerializer):
         value = " ".join(value.split())
         if not value:
             raise serializers.ValidationError("El nombre no puede estar vacío.")
+        if len(re.findall(r"[^\W_]", value)) < 2 or not re.search(r"[^\W\d_]", value):
+            raise serializers.ValidationError(
+                "El nombre debe tener al menos 2 caracteres e incluir letras."
+            )
         buscado = normalizar_nombre(value)
         otros = Proveedor.objects.all()
         if self.instance is not None:
@@ -94,16 +124,26 @@ class ProveedorSerializer(serializers.ModelSerializer):
         return digitos
 
     def validate_telefono(self, value):
+        """Teléfono argentino con característica (código de área)."""
         value = value.strip()
-        if not re.fullmatch(r"[\d\s()+\-]+", value) or len(re.sub(r"\D", "", value)) < 6:
+        if not re.fullmatch(r"\+?[\d\s()\-]+", value):
             raise serializers.ValidationError(
-                "El teléfono debe tener al menos 6 dígitos y solo puede incluir números, "
-                "espacios, +, - y paréntesis."
+                "El teléfono solo puede incluir números, espacios, guiones, paréntesis "
+                "y un + al inicio."
+            )
+        nacional = telefono_nacional(value)
+        if nacional is None:
+            raise serializers.ValidationError(
+                "Ingresá un teléfono argentino válido con característica, por ejemplo "
+                "381-455-0102 o +54 9 381 455 0102."
             )
         return value
 
     def validate_direccion(self, value):
-        return " ".join((value or "").split())
+        value = " ".join((value or "").split())
+        if value and len(re.findall(r"[^\W_]", value)) < 3:
+            raise serializers.ValidationError("Ingresá una dirección válida.")
+        return value
 
     def validate_email(self, value):
         return value.strip().lower()

@@ -19,13 +19,13 @@ saber a quién se le compra.
 - Dar de alta y de baja como acciones dedicadas, no vía `PATCH` del estado
   (CU74, CU75).
 - Validaciones: nombre único (sin distinguir mayúsculas, tildes ni espacios de
-  más), email con formato válido, teléfono con formato válido, CUIT con dígito
+  más), email con formato válido, teléfono argentino con característica, dirección con contenido, CUIT con dígito
   verificador y único.
 - Aviso en el formulario mientras se escribe si ya existe un nombre igual o
   parecido (`GET /api/proveedores/similares/`).
 - Interfaz React con tarjetas y panel de detalle; botones de acción solo para el
   Administrador.
-- 59 tests automatizados.
+- 61 tests automatizados.
 
 ### Qué no incluye
 
@@ -82,6 +82,8 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
   (módulo 11 de AFIP). Acepta guiones y espacios; se guarda solo con dígitos y
   se muestra como `XX-XXXXXXXX-X`. La unicidad es una restricción parcial en la
   base (`proveedor_cuit_unico`, solo cuando no está vacío).
+- **Nombre**: al menos 2 caracteres alfanuméricos e incluir letras (rechaza ".", "123").
+- **Teléfono argentino**: se normalizan +54, el 9 de celulares, el 0 inicial y el 15 intermedio; deben quedar 10 dígitos (característica + número) con característica que empiece con 11, 2 o 3, y no puede ser una repetición de dígitos ("0000000"). Se guarda como lo escribió el usuario.
 - **Alta / baja** son acciones (`POST .../alta/` y `.../baja/`); repetirlas
   responde 409.
 - **El estado no se envía** al crear ni al modificar.
@@ -118,7 +120,7 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ## 7. Tests
 
-`python manage.py test proveedores` — 59 tests en 8 clases: Buscar, Nuevo,
+`python manage.py test proveedores` — 61 tests en 8 clases: Buscar, Nuevo,
 Modificar, Borrar, Alta/Baja, Similares, CUIT y Permisos.
 
 ---

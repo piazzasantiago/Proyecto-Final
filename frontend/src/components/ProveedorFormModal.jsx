@@ -153,6 +153,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   maxLength={45}
                   placeholder="381-455-0102"
                 />
+                <span className="form-hint">Con característica, por ejemplo 381-455-0102.</span>
                 {fieldError("telefono")}
               </div>
 
