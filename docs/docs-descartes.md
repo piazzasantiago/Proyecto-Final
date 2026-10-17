@@ -188,9 +188,12 @@ Por eso `id_galpon` pasó a ser nulo.
 Igual que con las recolecciones, no se guarda ningún "stock actual":
 
 ```
-producto:       stock_actual = stock_inicial + stock_recolectado − stock_descartado
-materia prima:  stock_actual = stock_inicial − stock_descartado
+producto:       stock_actual = stock_inicial + stock_recolectado − stock_descartado − stock_salidas
+materia prima:  stock_actual = stock_inicial − stock_descartado − stock_entradas
 ```
+
+(`stock_salidas` y `stock_entradas` provienen de los módulos Salidas y Entradas;
+ver `docs-salidas.md` y `docs-entradas.md`.)
 
 `stock_descartado` suma las líneas de descartes de categoría **Stock** y estado
 **Finalizado**. Los pendientes no restan (pueden editarse o borrarse) y los de
@@ -446,8 +449,6 @@ python manage.py test descartes --verbosity=2
 
 ## Pendientes
 
-- **Salidas:** cuando exista el módulo, `stock_actual` de productos deberá restar
-  también las salidas (`recolectado − descartado − salidas`).
 - **Compras:** `stock_actual` de materias primas deberá sumar las compras.
 - **Borrado de productos y materias primas con descartes:** hoy los descartes
   referencian productos y materias primas con `PROTECT`; falta revisar que

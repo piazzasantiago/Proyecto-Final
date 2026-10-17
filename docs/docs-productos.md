@@ -27,10 +27,9 @@ de `feature/gestion-recolecciones` referenciará uno de estos productos.
 
 ### Qué no incluye
 
-- El descuento de stock por salidas. La Educción de requisitos describe el
-  stock disponible como recolecciones menos descartes menos salidas; hoy se
-  suman las recolecciones y se restan los descartes, pero Salidas todavía no
-  existe (ver sección 10, Pendientes).
+- La carga de las salidas. El stock disponible es recolecciones menos descartes
+  menos salidas; las salidas se cargan en su propio módulo (ver
+  `docs-salidas.md`), que aporta el stock despachado.
 - La carga de las recolecciones. Eso se modela en `feature/gestion-recolecciones`
   (ver `docs-recolecciones.md`), que consume los productos activos de este
   módulo y aporta el stock recolectado.
@@ -128,10 +127,12 @@ sucede con Galpones.
 - `stock_descartado` — suma de las cantidades de las líneas de descartes de
   categoría **Stock** y estado **Finalizado** de ese producto (ver
   `docs-descartes.md`). Los descartes de galpón no cuentan.
-- `stock_actual` — `stock_inicial + stock_recolectado − stock_descartado`. No se
-  guarda: se calcula en cada consulta, así que no puede desfasarse (por ejemplo,
-  si se borra una recolección finalizada, el stock baja solo; si quedara en
-  negativo, el borrado se rechaza con 409).
+- `stock_salidas` — suma de las cantidades de las líneas de salidas
+  **finalizadas** de ese producto (ver `docs-salidas.md`).
+- `stock_actual` — `stock_inicial + stock_recolectado − stock_descartado −
+  stock_salidas`. No se guarda: se calcula en cada consulta, así que no puede
+  desfasarse (por ejemplo, si se borra una recolección finalizada, el stock baja
+  solo; si quedara en negativo, el borrado se rechaza con 409).
 
 ---
 
@@ -165,7 +166,8 @@ sucede con Galpones.
       "stock_inicial": 50,
       "stock_recolectado": 100,
       "stock_descartado": 10,
-      "stock_actual": 140
+      "stock_salidas": 20,
+      "stock_actual": 120
     }
   ]
 }
@@ -179,11 +181,12 @@ ocurren a través de `activar`/`desactivar`.
 modificar. Es un entero sin signo (`PositiveIntegerField`); un valor negativo
 devuelve `400`.
 
-**Campos `stock_recolectado`, `stock_descartado` y `stock_actual` (solo
-lectura):** se calculan (ver sección 4). Enviarlos en un `POST`/`PATCH` no tiene
-efecto. El listado los obtiene con una sola consulta (anotación en
-`get_queryset`), sin una consulta por producto. Solo cuentan las recolecciones y
-los descartes de stock en estado Finalizado; los pendientes no suman ni restan.
+**Campos `stock_recolectado`, `stock_descartado`, `stock_salidas` y
+`stock_actual` (solo lectura):** se calculan (ver sección 4). Enviarlos en un
+`POST`/`PATCH` no tiene efecto. El listado los obtiene con una sola consulta
+(anotaciones en `get_queryset`), sin una consulta por producto. Solo cuentan las
+recolecciones, los descartes de stock y las salidas en estado Finalizado; los
+pendientes no suman ni restan.
 Como la anotación con `Sum` descarta el orden por defecto del modelo, el listado
 fija `order_by("producto")` para que la paginación sea estable.
 
@@ -296,8 +299,8 @@ recolecciones **finalizadas**.
 
 Se eligió calcularlo en lugar de sumar al finalizar porque así no hay nada que
 mantener sincronizado: borrar una recolección finalizada, o cualquier otro
-cambio, se refleja solo, y los Descartes ya se restan en el mismo cálculo (las
-Salidas se restarán igual cuando existan). Las recolecciones pendientes no
+cambio, se refleja solo, y los Descartes y las Salidas se restan en el mismo
+cálculo. Las recolecciones pendientes no
 suman: solo la finalización confirma que los huevos están contados. Del mismo
 modo, solo los descartes de **stock** finalizados restan.
 
@@ -344,6 +347,8 @@ catálogo sin ninguna acción disponible.
   no suman, finalizar por la API lo hace subir y borrar una finalizada lo baja.
 - `stock_actual` resta los descartes de stock finalizados; los pendientes y los
   de galpón no restan.
+- `stock_actual` resta las salidas finalizadas; las pendientes no restan (ver
+  `docs-salidas.md`).
 
 **Frontend**
 
@@ -354,14 +359,13 @@ catálogo sin ninguna acción disponible.
 - El formulario incluye "Stock inicial / ajuste", con una aclaración de que el
   stock actual suma además lo recolectado.
 - Cada tarjeta muestra el stock actual en grande junto con el nombre; el panel
-  de detalle desglosa stock actual, stock inicial y recolectado.
+  de detalle desglosa stock actual, stock inicial, recolectado, descartado y
+  salidas.
 
 ---
 
 ## 10. Pendientes
 
-- **Salidas:** cuando exista, el stock actual debe restar también las salidas
-  (ver sección 8.4). Los descartes ya se restan.
 - **Relación con Línea de Recolección:** cada línea de recolección deberá
   referenciar un producto activo. Falta decidir si el borrado de un producto
   (CU53) debe bloquearse cuando tiene líneas asociadas, como ya ocurre con

@@ -12,10 +12,10 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y ocho
+El sistema cuenta con **autenticación real y control de acceso por rol**, y nueve
 módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
 Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
-**Descartes** y **Entradas**.
+**Descartes**, **Entradas** y **Salidas**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -28,7 +28,8 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Gestión de Materias Primas | CU55 a CU60 | Funcional |
 | Descartes | CU15 a CU23 | Funcional |
 | Entradas a galpones | CU33 a CU41 | Funcional |
-| Salidas, Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
+| Salidas de productos | CU76 a CU84 | Funcional |
+| Compras, Proveedores, Informes, Dashboard | — | Solo vista previa |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -38,11 +39,15 @@ Los **Descartes** tienen dos categorías: *Galpón* (algo que ocurre dentro de u
 galpón; es estadístico y solo las gallinas descuentan del lote) y *Stock* (baja de
 productos y materias primas almacenados, que sí reduce su stock actual). El stock
 de productos y de materias primas no se guarda: se calcula a partir de las
-recolecciones y los descartes finalizados (productos) o de los descartes y las
-entradas a galpones finalizadas (materias primas).
+recolecciones, los descartes y las salidas finalizadas (productos) o de los
+descartes y las entradas a galpones finalizadas (materias primas).
 
 Las **Entradas** retiran materias primas del stock y las pasan a un galpón: al
 finalizarlas descuentan el stock de cada materia prima.
+
+Las **Salidas** registran los productos que dejan la granja (por ejemplo, un
+camión que se lleva los huevos para la venta): al finalizarlas descuentan el
+stock de cada producto.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -101,6 +106,7 @@ backend/
 ├── materias_primas/ módulo de Materias Primas
 ├── descartes/       módulo de Descartes
 ├── entradas/        módulo de Entradas a galpones
+├── salidas/         módulo de Salidas de productos
 └── manage.py
 ```
 
@@ -225,6 +231,7 @@ python manage.py test recolecciones
 python manage.py test materias_primas
 python manage.py test descartes
 python manage.py test entradas
+python manage.py test salidas
 ```
 
 ---
@@ -281,6 +288,12 @@ python manage.py test entradas
 | PATCH | `/api/entradas/{id}/` | Modificar entrada PENDIENTE | Adm. / Operario |
 | DELETE | `/api/entradas/{id}/` | Eliminar entrada PENDIENTE | Adm. / Operario |
 | POST | `/api/entradas/{id}/finalizar/` | Finalizar y descontar el stock de materias primas | Adm. / Operario |
+| GET | `/api/salidas/` | Listar salidas (`?fecha_desde=`, `?fecha_hasta=`, `?estado=`, `?id_producto=`) | autenticado |
+| POST | `/api/salidas/` | Crear salida de productos con líneas | Adm. / Operario |
+| GET | `/api/salidas/{id}/` | Detalle de salida | autenticado |
+| PATCH | `/api/salidas/{id}/` | Modificar salida PENDIENTE | Adm. / Operario |
+| DELETE | `/api/salidas/{id}/` | Eliminar salida PENDIENTE | Adm. / Operario |
+| POST | `/api/salidas/{id}/finalizar/` | Finalizar y descontar el stock de productos | Adm. / Operario |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -342,11 +355,12 @@ En `docs/`:
 | `docs-usuarios.md` | Autenticación, gestión de usuarios, tests y permisos por rol (CU01 a CU08) |
 | `docs-galpones.md` | Gestión de galpones, alta/baja lógica, operarios asignados y tests (CU09 a CU14) |
 | `docs-lotes.md` | Gestión de lotes, ciclo de vida, plan de transición, vaciado sanitario y tests (CU42 a CU48) |
-| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado (recolecciones y descartes) y tests (CU49 a CU54) |
+| `docs-productos.md` | Gestión de productos, activar/desactivar, stock calculado (recolecciones, descartes y salidas) y tests (CU49 a CU54) |
 | `docs-recolecciones.md` | Recolección diaria, estructura cabecera-líneas, FK a lote, FK a usuario ("Cargado por"), estados y tests (CU24 a CU32) |
 | `docs-materias-primas.md` | Gestión de materias primas, alerta de stock mínimo, stock calculado (descartes y entradas) y tests (CU55 a CU60) |
 | `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
+| `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |
@@ -387,14 +401,11 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **`feature/salidas`** — Registro de salidas de productos de la granja
-   (venta u otro destino). Mismo patrón cabecera-líneas que Recolección:
-   una `Salida` con N `LineaSalida` (producto + cantidad). Recolecciones ✅ y
-   Descartes ✅ ya están implementados: el stock real de cada producto hoy se
-   calcula como `stock_inicial + recolecciones − descartes`, y con Salidas pasará
-   a restar también las salidas.
+1. **Proveedores** — próximo módulo a implementar. Es la base de Compras, que
+   necesita saber a quién se le compra.
 
-2. Módulos de insumos: Compras y Proveedores (Entradas ✅ ya está implementado).
+2. **Compras** — se implementa después de Proveedores. Cuando exista, el stock de
+   materias primas sumará lo comprado.
 
 3. **Informes e indicadores productivos** (CU85 a CU89).
 
