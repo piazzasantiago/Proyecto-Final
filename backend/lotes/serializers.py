@@ -1,7 +1,9 @@
 import datetime
 
+from django.db import transaction
 from rest_framework import serializers
 
+from compras.models import Compra, LineaCompra
 from galpones.models import Galpon
 from .models import Lote, PlanTransicion
 
@@ -124,6 +126,10 @@ class LoteSerializer(serializers.ModelSerializer):
     - id_galpon_id: ID del galpón a asignar.
     - plan_transicion: los 12 campos de manejo semanal. El serializer
       calcula y guarda automáticamente fecha_inicio, fecha_fin y estado.
+    - id_linea_compra: el lote comprado que se asigna al galpón (obligatorio al
+      crear). Un lote no se crea "de la nada": tiene que venir de una compra de
+      lotes finalizada que todavía no se haya asignado. La cantidad inicial
+      sale de esa compra (lo que se envíe en cantidad_inicial se ignora).
     - cantidad_actual se inicializa igual a cantidad_inicial al crear.
     - fecha_vaciado no se acepta en escritura: la completa la acción /vaciar/.
     - estado no se acepta en escritura: lo cambian las acciones
@@ -147,12 +153,21 @@ class LoteSerializer(serializers.ModelSerializer):
     # Lectura y escritura: plan de transición embebido
     plan_transicion = PlanTransicionSerializer()
 
+    # Escritura: línea de la compra de lotes de la que sale este lote.
+    id_linea_compra = serializers.IntegerField(write_only=True, required=False)
+    # En lectura: de qué compra viene (None en lotes cargados antes de Compras).
+    compra = serializers.SerializerMethodField()
+    # Al crear sale de la compra; en lotes viejos sin compra se puede corregir.
+    cantidad_inicial = serializers.IntegerField(required=False)
+
     class Meta:
         model = Lote
         fields = [
             "id_lote",
             "codigo",
             "id_galpon_id",
+            "id_linea_compra",
+            "compra",
             "galpon",
             "fecha_ingreso",
             "fecha_vaciado",
@@ -177,6 +192,52 @@ class LoteSerializer(serializers.ModelSerializer):
         delta = hoy - obj.fecha_ingreso
         return delta.days // 7
 
+    def get_compra(self, obj):
+        linea = getattr(obj, "linea_compra", None)
+        if linea is None:
+            return None
+        compra = linea.id_compra
+        return {
+            "id_compra": compra.pk,
+            "nro_factura": compra.nro_factura,
+            "proveedor": compra.id_proveedor.nombre,
+        }
+
+    def _linea_a_asignar(self, id_linea):
+        """
+        Línea de compra de lotes que se va a asignar. Un lote no se crea sin una
+        compra de lotes finalizada que lo respalde.
+        """
+        if id_linea is None:
+            if not Compra.objects.filter(
+                categoria=Compra.CATEGORIA_LOTES,
+                estado=Compra.ESTADO_FINALIZADA,
+                lineas__id_lote__isnull=True,
+            ).exists():
+                raise serializers.ValidationError({
+                    "id_linea_compra": (
+                        "No hay lotes comprados esperando un galpón. Registrá y "
+                        "finalizá primero una compra de lotes."
+                    )
+                })
+            raise serializers.ValidationError({
+                "id_linea_compra": "Seleccioná el lote comprado que querés asignar a un galpón."
+            })
+        linea = LineaCompra.objects.filter(
+            pk=id_linea,
+            id_compra__categoria=Compra.CATEGORIA_LOTES,
+            id_compra__estado=Compra.ESTADO_FINALIZADA,
+        ).first()
+        if linea is None:
+            raise serializers.ValidationError({
+                "id_linea_compra": "El lote seleccionado no está disponible para asignar."
+            })
+        if linea.id_lote_id is not None:
+            raise serializers.ValidationError({
+                "id_linea_compra": "Ese lote ya fue asignado a un galpón."
+            })
+        return linea
+
     def validate_cantidad_inicial(self, value):
         if value <= 0:
             raise serializers.ValidationError("La cantidad inicial debe ser mayor a 0.")
@@ -196,7 +257,25 @@ class LoteSerializer(serializers.ModelSerializer):
         el lote anterior debe estar en estado Finalizado (F).
 
         En edición (PATCH) se omite esta validación porque id_galpon no cambia.
+
+        Al crear, además, el lote tiene que venir de una compra de lotes
+        finalizada y todavía sin asignar; su cantidad inicial es la comprada.
         """
+        id_linea = data.pop("id_linea_compra", None)
+        if self.instance is None:
+            self._linea = self._linea_a_asignar(id_linea)
+            data["cantidad_inicial"] = int(self._linea.cantidad)
+        else:
+            # Un lote que viene de una compra conserva la cantidad comprada.
+            linea = getattr(self.instance, "linea_compra", None)
+            nueva = data.get("cantidad_inicial")
+            if linea is not None and nueva is not None and nueva != self.instance.cantidad_inicial:
+                raise serializers.ValidationError({
+                    "cantidad_inicial": (
+                        "La cantidad inicial viene de la compra y no se puede modificar."
+                    )
+                })
+
         galpon = data.get("id_galpon")
 
         # En PATCH el campo puede no venir; si no viene, no hay nada que validar.
@@ -232,20 +311,32 @@ class LoteSerializer(serializers.ModelSerializer):
         # cantidad_actual arranca igual a cantidad_inicial
         validated_data["cantidad_actual"] = validated_data["cantidad_inicial"]
 
-        lote = Lote.objects.create(**validated_data)
+        with transaction.atomic():
+            # Se bloquea la línea de la compra: dos altas simultáneas no pueden
+            # asignar el mismo lote comprado.
+            linea = LineaCompra.objects.select_for_update().get(pk=self._linea.pk)
+            if linea.id_lote_id is not None:
+                raise serializers.ValidationError({
+                    "id_linea_compra": "Ese lote ya fue asignado a un galpón."
+                })
 
-        # fecha_inicio = fecha de ingreso del lote
-        # fecha_fin = fecha_inicio + 28 días (4 semanas fijas)
-        fecha_inicio = fecha_ingreso
-        fecha_fin = fecha_inicio + datetime.timedelta(days=28)
+            lote = Lote.objects.create(**validated_data)
 
-        PlanTransicion.objects.create(
-            id_lote=lote,
-            estado=PlanTransicion.ESTADO_EN_CURSO,
-            fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin,
-            **plan_data,
-        )
+            # fecha_inicio = fecha de ingreso del lote
+            # fecha_fin = fecha_inicio + 28 días (4 semanas fijas)
+            fecha_inicio = fecha_ingreso
+            fecha_fin = fecha_inicio + datetime.timedelta(days=28)
+
+            PlanTransicion.objects.create(
+                id_lote=lote,
+                estado=PlanTransicion.ESTADO_EN_CURSO,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                **plan_data,
+            )
+
+            linea.id_lote = lote
+            linea.save(update_fields=["id_lote"])
 
         return lote
 

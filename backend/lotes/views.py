@@ -18,7 +18,9 @@ class LoteViewSet(viewsets.ModelViewSet):
 
     CU42  GET    /api/lotes/                        listar (con ?search=, ?estado=, ?id_galpon=)
     CU42  GET    /api/lotes/{id}/                   detalle
-    CU43  POST   /api/lotes/                        crear (incluye plan de transición)
+    CU43  POST   /api/lotes/                        crear (incluye plan de transición);
+                                                    exige un lote comprado a asignar
+                                                    (id_linea_compra, ver Compras)
     CU44  PATCH  /api/lotes/{id}/                   modificar
     CU45  DELETE /api/lotes/{id}/                   eliminar
     CU46  POST   /api/lotes/{id}/iniciar-produccion/ Transición → Producción
@@ -42,7 +44,9 @@ class LoteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         usuario = self.request.user
-        qs = Lote.objects.select_related("id_galpon", "plan_transicion")
+        qs = Lote.objects.select_related(
+            "id_galpon", "plan_transicion", "linea_compra__id_compra__id_proveedor"
+        )
         if usuario.rol == Usuario.ROL_OPERARIO:
             # El operario solo ve los lotes de los galpones que tiene asignados
             return qs.filter(
