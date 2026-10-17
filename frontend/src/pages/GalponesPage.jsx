@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon } from "../api/galpones";
+import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon, getExistenciasGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
 
@@ -7,6 +7,20 @@ import { useAuth } from "../context/AuthContext";
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
 function formatCodigo(id) {
   return `G-${String(id).padStart(2, "0")}`;
+}
+
+function formatCantidad(valor) {
+  const n = Number(valor);
+  return Number.isNaN(n) ? "—" : n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
+}
+
+function formatFechaCorta(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export default function GalponesPage() {
@@ -22,6 +36,9 @@ export default function GalponesPage() {
   // los roles arranca sin filtro (ve todos, activos e inactivos).
   const [estadoFilter, setEstadoFilter] = useState(esOperario ? "A" : "");
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+  // Existencia estimada de materias primas del galpón seleccionado (null = cargando).
+  const [existencias, setExistencias] = useState(null);
+  const [existenciasError, setExistenciasError] = useState(false);
 
   async function fetchGalpones() {
     setLoading(true);
@@ -46,6 +63,29 @@ export default function GalponesPage() {
     fetchGalpones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, estadoFilter]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setExistencias([]);
+      return;
+    }
+    let cancelado = false;
+    setExistencias(null);
+    setExistenciasError(false);
+    getExistenciasGalpon(selectedId)
+      .then((d) => {
+        if (!cancelado) setExistencias(d);
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setExistencias([]);
+          setExistenciasError(true);
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [selectedId]);
 
   const selected = useMemo(
     () => galpones.find((g) => g.id_galpon === selectedId) || null,
@@ -217,6 +257,59 @@ export default function GalponesPage() {
                   <div className="form-hint" style={{ marginBottom: 10 }}>
                     Este galpón no tiene un lote activo.
                   </div>
+                )}
+
+                {/* Materias primas en el galpón (estimadas) */}
+                <div className="detail-sec-title">Materias primas en el galpón</div>
+                {existencias === null ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>Cargando...</div>
+                ) : existenciasError ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    No se pudo cargar la existencia de materias primas.
+                  </div>
+                ) : existencias.length === 0 ? (
+                  <div className="form-hint" style={{ marginBottom: 10 }}>
+                    Este galpón todavía no recibió materias primas.
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      {existencias.map((e) => (
+                        <div
+                          key={e.id_materia_prima}
+                          style={{ padding: "8px 0", borderBottom: "1px dashed var(--gray-200)" }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "baseline",
+                              gap: 12,
+                            }}
+                          >
+                            <span style={{ fontWeight: 500 }}>{e.materia_prima}</span>
+                            <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                              {formatCantidad(e.existencia_estimada)} {e.unidad}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
+                            Último ingreso: {formatCantidad(e.ultimo_ingreso)} {e.unidad} ·{" "}
+                            {formatFechaCorta(e.ultimo_ingreso_fecha)}
+                            {Number(e.descartado_desde_entonces) > 0 &&
+                              ` · Descartado desde entonces: ${formatCantidad(
+                                e.descartado_desde_entonces
+                              )} ${e.unidad}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="form-hint" style={{ marginTop: 6 }}>
+                      <i className="fa-solid fa-circle-info"></i> Estimada, como máximo: último
+                      ingreso finalizado menos los descartes del galpón posteriores. Supone que la
+                      carga anterior ya se consumió y no descuenta el consumo diario de las
+                      gallinas.
+                    </div>
+                  </>
                 )}
 
                 {/* Operarios asignados */}

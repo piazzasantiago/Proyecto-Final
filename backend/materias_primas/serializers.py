@@ -12,6 +12,7 @@ UNIDADES_VALIDAS = ["kg", "g", "L", "mL", "unid.", "dosis", "bolsa", "saco"]
 class MateriaPrimaSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_descartado = serializers.SerializerMethodField()
+    stock_entradas = serializers.SerializerMethodField()
     stock_actual = serializers.SerializerMethodField()
 
     def get_stock_descartado(self, obj):
@@ -28,14 +29,31 @@ class MateriaPrimaSerializer(serializers.ModelSerializer):
 
         return descartado_materia_prima(obj.pk)
 
+    def get_stock_entradas(self, obj):
+        """
+        Total que salió a galpones en entradas finalizadas. Igual que el
+        descartado: lo anota el ViewSet y, si falta, se calcula acá.
+        """
+        anotado = getattr(obj, "stock_entradas", None)
+        if anotado is not None:
+            return anotado
+        # Import diferido: entradas depende de materias primas, no al revés.
+        from entradas.stock import ingresado_materia_prima
+
+        return ingresado_materia_prima(obj.pk)
+
     def get_stock_actual(self, obj):
         """
-        Por ahora: stock_inicial (stock de partida/ajuste manual) menos lo
-        descartado en descartes de stock finalizados.
-        Cuando existan Entradas y Compras, se calculará como:
-          stock_inicial + compras - entradas_a_galpones - descartes
+        stock_inicial (stock de partida/ajuste manual) menos lo descartado en
+        descartes de stock finalizados y lo enviado a galpones en entradas
+        finalizadas. Cuando exista el módulo Compras, también se le sumarán las
+        compras.
         """
-        return obj.stock_inicial - self.get_stock_descartado(obj)
+        return (
+            obj.stock_inicial
+            - self.get_stock_descartado(obj)
+            - self.get_stock_entradas(obj)
+        )
 
     def validate_materia_prima(self, value):
         """El nombre es único sin distinguir mayúsculas ni tildes ("Maíz" == "maiz")."""
@@ -90,6 +108,7 @@ class MateriaPrimaSerializer(serializers.ModelSerializer):
             "stock_minimo",
             "stock_inicial",
             "stock_descartado",
+            "stock_entradas",
             "stock_actual",
         ]
         read_only_fields = ["id_materia_prima", "estado"]

@@ -230,6 +230,16 @@ de la base de datos.
 | CU12 | DELETE | `/api/galpones/{id}/` | Administrador |
 | CU13 | POST | `/api/galpones/{id}/alta/` | Administrador |
 | CU14 | POST | `/api/galpones/{id}/baja/` | Administrador |
+| — (info del detalle) | GET | `/api/galpones/{id}/existencias/` | autenticado (el operario, solo sus galpones) |
+
+`existencias` devuelve, por materia prima que ingresó al galpón: `ultimo_ingreso` y
+`ultimo_ingreso_fecha` (entrada finalizada más reciente), `descartado_desde_entonces`
+(descartes de galpón finalizados posteriores a esa entrada), `existencia_estimada`
+(`ultimo_ingreso − descartado_desde_entonces`, nunca negativa) y la unidad.
+No es un caso de uso aparte: es información adicional del detalle del galpón,
+mostrada en la sección "Materias primas en el galpón". Es una **estimación**, porque el
+sistema no registra el consumo diario de las gallinas. El cálculo vive en
+`entradas/stock.py` (ver `docs-entradas.md`) y sus tests, en `entradas/tests.py`.
 
 **Filtros de CU09:** `?search=` (nombre o descripción), `?estado=A|I`,
 `?ordering=galpon|capacidad|superficie`
@@ -427,6 +437,9 @@ consulta, o usuarios dados de baja.
 ---
 
 ## 10. Pendientes
+
+- **Existencia real de materias primas por galpón:** requiere un registro de consumo
+  (alimentación diaria) que hoy no existe; la existencia mostrada es una estimación.
 
 - ~~**Asociación con lotes:** cuando se implemente `feature/lotes`, un galpón
   dado de baja con lotes activos podría requerir validación adicional.~~

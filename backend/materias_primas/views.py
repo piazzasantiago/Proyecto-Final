@@ -36,11 +36,14 @@ class MateriaPrimaViewSet(viewsets.ModelViewSet):
     ordering_fields = ["materia_prima"]
 
     def get_queryset(self):
-        """Anota cada materia prima con lo descartado (stock_descartado)."""
-        # Import diferido: descartes depende de materias primas, no al revés.
+        """Anota cada materia prima con lo descartado y lo enviado a galpones."""
+        # Imports diferidos: descartes y entradas dependen de materias primas,
+        # no al revés.
         from descartes.stock import anotar_descartado
+        from entradas.stock import anotar_ingresado
 
-        return anotar_descartado(MateriaPrima.objects.all(), "id_materia_prima")
+        qs = anotar_descartado(MateriaPrima.objects.all(), "id_materia_prima")
+        return anotar_ingresado(qs)
 
     def update(self, request, *args, **kwargs):
         instancia = self.get_object()

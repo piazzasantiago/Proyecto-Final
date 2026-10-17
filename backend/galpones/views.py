@@ -21,6 +21,7 @@ class GalponViewSet(viewsets.ModelViewSet):
     CU12  DELETE /api/galpones/{id}/         eliminar
     CU13  POST   /api/galpones/{id}/alta/    dar de alta (Inactivo → Activo)
     CU14  POST   /api/galpones/{id}/baja/    dar de baja (Activo → Inactivo)
+          GET    /api/galpones/{id}/existencias/  materias primas estimadas en el galpón
 
     Permisos: consultar requiere estar autenticado con cualquier rol; crear,
     modificar y eliminar requiere rol Administrador.
@@ -53,6 +54,19 @@ class GalponViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         galpon = serializer.save()
         return Response(GalponSerializer(galpon).data)
+
+    @action(detail=True, methods=["get"])
+    def existencias(self, request, pk=None):
+        """
+        Existencia estimada de cada materia prima dentro del galpón
+        (ingresado por entradas − descartado en el galpón). Es información
+        adicional del detalle del galpón, no un caso de uso aparte. Lo puede
+        ver cualquier usuario que pueda ver el galpón (el operario, solo los suyos).
+        """
+        from entradas.stock import existencias_galpon
+
+        galpon = self.get_object()
+        return Response(existencias_galpon(galpon.pk))
 
     @action(detail=True, methods=["post"])
     def alta(self, request, pk=None):
