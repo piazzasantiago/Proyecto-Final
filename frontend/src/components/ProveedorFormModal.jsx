@@ -70,6 +70,19 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
     }
   }
 
+  // Mensajes de validación del navegador en español.
+  const validacion = {
+    onInvalid: (e) => {
+      const v = e.target.validity;
+      let msg = "";
+      if (v.valueMissing) msg = "Completá este campo.";
+      else if (v.typeMismatch) msg = "Ingresá un email válido, por ejemplo nombre@dominio.com.";
+      else if (v.tooLong) msg = `Máximo ${e.target.maxLength} caracteres.`;
+      e.target.setCustomValidity(msg);
+    },
+    onInput: (e) => e.target.setCustomValidity(""),
+  };
+
   const fieldError = (campo) =>
     errors[campo] && (
       <span className="form-error">
@@ -98,6 +111,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
+                  {...validacion}
                   required
                   maxLength={100}
                   placeholder="Ej: Agro Sur S.R.L."
@@ -121,6 +135,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   name="cuit"
                   value={form.cuit}
                   onChange={handleChange}
+                  {...validacion}
                   maxLength={20}
                   placeholder="20-12345678-6 (opcional)"
                 />
@@ -133,6 +148,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   name="telefono"
                   value={form.telefono}
                   onChange={handleChange}
+                  {...validacion}
                   required
                   maxLength={45}
                   placeholder="381-455-0102"
@@ -147,6 +163,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
+                  {...validacion}
                   required
                   maxLength={150}
                   placeholder="ventas@proveedor.com"
@@ -160,6 +177,7 @@ export default function ProveedorFormModal({ initialData, onClose, onSubmit }) {
                   name="direccion"
                   value={form.direccion}
                   onChange={handleChange}
+                  {...validacion}
                   maxLength={150}
                   placeholder="Calle, número, localidad (opcional)"
                 />
