@@ -3,6 +3,7 @@ import { descargarInforme, getInforme } from "../api/informes";
 import { listGalpones } from "../api/galpones";
 import { listMateriasPrimas } from "../api/materias-primas";
 import GraficoIndicador from "../components/GraficoIndicador";
+import { BarrasHorizontales, COLORES, Dona } from "../components/GraficosInforme";
 
 const TABS = [
   { id: "produccion", ruta: "produccion", texto: "Producción", icono: "fa-egg", cu: "CU85" },
@@ -60,6 +61,58 @@ async function traerTodas(listFn, params) {
   return resultados;
 }
 
+// ── Datos de los gráficos (salen de las filas del informe ya cargado) ────────
+
+const promedio = (valores) => valores.reduce((a, b) => a + b, 0) / valores.length;
+
+/** Postura promedio de cada galpón; los galpones sin recolecciones quedan en "—". */
+function posturaPorGalpon(informe, galpones, idGalpon) {
+  const porGalpon = {};
+  for (const f of informe.filas) {
+    if (f.postura_promedio !== null) (porGalpon[f.id_galpon] ||= []).push(f.postura_promedio);
+  }
+  return galpones
+    .filter((g) => !idGalpon || String(g.id_galpon) === String(idGalpon))
+    .map((g) => {
+      const valor = porGalpon[g.id_galpon] ? promedio(porGalpon[g.id_galpon]) : null;
+      // Por debajo de 70 % se vacía el galpón (criterio del productor).
+      const color = valor === null ? COLORES.gris : valor < 70 ? COLORES.rojo : valor < 85 ? COLORES.dorado : COLORES.verde;
+      return { etiqueta: g.galpon, valor, texto: valor === null ? "—" : `${nfDecimal.format(valor)}%`, color };
+    });
+}
+
+/** Mortandad total de los lotes de cada galpón. */
+function mortandadPorGalpon(informe) {
+  const porGalpon = {};
+  for (const f of informe.filas) porGalpon[f.galpon] = (porGalpon[f.galpon] || 0) + f.mortandad;
+  const maximo = Math.max(0, ...Object.values(porGalpon));
+  const filas = Object.entries(porGalpon).map(([galpon, valor]) => {
+    const peso = maximo ? valor / maximo : 0;
+    const color = !maximo ? COLORES.gris : peso >= 0.8 ? COLORES.rojo : peso < 0.25 ? COLORES.verde : COLORES.dorado;
+    return { etiqueta: galpon, valor, texto: nfEntero.format(valor), color };
+  });
+  return { filas, maximo };
+}
+
+/** Cantidad de registros de descarte agrupados por la clave que devuelva `clave(fila)`. */
+function contarPor(filas, clave) {
+  const cuenta = {};
+  for (const f of filas) {
+    const k = clave(f);
+    if (k) cuenta[k] = (cuenta[k] || 0) + 1;
+  }
+  return Object.entries(cuenta).map(([etiqueta, valor]) => ({ etiqueta, valor })).sort((a, b) => b.valor - a.valor);
+}
+
+/** Los 5 más frecuentes y el resto agrupado en "Otros". */
+function conOtros(items, maximoItems = 5) {
+  if (items.length <= maximoItems + 1) return items;
+  const resto = items.slice(maximoItems).reduce((a, i) => a + i.valor, 0);
+  return [...items.slice(0, maximoItems), { etiqueta: "Otros", valor: resto }];
+}
+
+const COLORES_RANKING = [COLORES.rojo, COLORES.dorado, COLORES.verde];
+
 function TablaInforme({ informe }) {
   const { columnas, filas, totales } = informe;
   if (filas.length === 0) {
@@ -110,6 +163,41 @@ function TablaInforme({ informe }) {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function GraficosDescartes({ informe }) {
+  const porGalpon = conOtros(contarPor(informe.filas, (f) => (f.galpon === "—" ? "Stock" : f.galpon)), 6);
+  const materias = contarPor(informe.filas, (f) => (f.tipo === "Materia prima" ? f.item : null));
+  const totalMaterias = materias.reduce((a, m) => a + m.valor, 0);
+  const rankingMaterias = conOtros(materias).map((m, i) => ({
+    etiqueta: m.etiqueta,
+    valor: (m.valor / totalMaterias) * 100,
+    texto: `${nfDecimal.format((m.valor / totalMaterias) * 100)}%`,
+    color: m.etiqueta === "Otros" ? COLORES.gris : COLORES_RANKING[Math.min(i, 2)],
+  }));
+  return (
+    <div className="grid-2" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 16 }}>
+      <Dona
+        titulo="Descartes por galpón"
+        segmentos={porGalpon}
+        centro={{ numero: nfEntero.format(informe.filas.length), texto: "Registros" }}
+        nota='Los descartes de stock no pertenecen a un galpón y figuran como "Stock".'
+      />
+      {rankingMaterias.length > 0 ? (
+        <BarrasHorizontales
+          titulo="Descartes por materia prima"
+          filas={rankingMaterias}
+          maximo={100}
+          nota="Porcentaje de los registros de descarte de materias primas."
+        />
+      ) : (
+        <div className="card">
+          <div className="card-title"><h3>Descartes por materia prima</h3></div>
+          <div className="empty-state">No hay descartes de materias primas en este período.</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -335,6 +423,26 @@ export default function InformesPage() {
               "Consumido" es lo enviado a los galpones en entradas finalizadas. El stock actual es el total, no solo el del período.
             </div>
           )}
+          {tab === "produccion" && informe.filas.length > 0 && galpones.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <BarrasHorizontales
+                titulo="Postura por galpón"
+                filas={posturaPorGalpon(informe, galpones, idGalpon)}
+                maximo={100}
+                nota="Verde: 85 % o más · Dorado: entre 70 % y 85 % · Rojo: menos de 70 % (criterio de vaciado sanitario)."
+              />
+            </div>
+          )}
+          {tab === "lotes" && informe.filas.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <BarrasHorizontales
+                titulo="Mortandad por galpón"
+                {...mortandadPorGalpon(informe)}
+                nota="Gallinas perdidas desde el ingreso de los lotes (iniciales menos actuales)."
+              />
+            </div>
+          )}
+          {tab === "descartes" && informe.filas.length > 0 && <GraficosDescartes informe={informe} />}
           <TablaInforme informe={informe} />
         </>
       )}
