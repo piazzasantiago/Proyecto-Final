@@ -20,7 +20,7 @@ migraciones propias. Cada informe se ve en pantalla y se puede exportar a **Exce
 - Exportación de cada informe a Excel y a PDF con los filtros elegidos.
 - Gráfica de indicadores contra un valor objetivo que escribe el usuario.
 - Acceso para Administrador y Consulta; el Operario no ve la sección.
-- 53 tests automatizados.
+- 54 tests automatizados.
 
 ### Qué no incluye
 
@@ -117,7 +117,9 @@ los endpoints son de solo lectura (un `POST` devuelve 405).
 - **Descartado de stock** (informe de materias primas): solo cuentan los descartes
   de stock, que son los que restan del stock; los de galpón ya salieron de él al
   enviarse a los galpones. Así las columnas respetan la fórmula del stock actual.
-- **Mortandad** = gallinas descartadas.
+- **Mortandad** de un lote = sus gallinas descartadas (descartes finalizados de
+  gallinas de ese lote, que pertenece a un galpón). No se calcula con la cantidad
+  actual del lote, así el informe coincide siempre con los descartes registrados.
 - **Valor objetivo en pantalla.** No toca el modelo de datos ni agrega un caso de
   uso de configuración que no está en la lista.
 - **Exportación en el backend.** Con `?formato=xlsx|pdf` el mismo endpoint de cada
@@ -167,7 +169,7 @@ por día), `promedio`, `unidad` y `resumen`.
 
 ## 7. Tests
 
-`python manage.py test informes` — 53 tests en 8 clases:
+`python manage.py test informes` — 54 tests en 8 clases:
 
 | Clase | Qué verifica |
 |-------|--------------|

@@ -228,6 +228,8 @@ class InformeLotesTests(DatosBase):
             self.g1, 800, actual=760, estado=Lote.ESTADO_FINALIZADO,
             fecha_ingreso=datetime.date(2025, 1, 1), fecha_vaciado=datetime.date(2025, 1, 31),
         )
+        d = make_descarte(2, galpon=self.g1)
+        LineaDescarte.objects.create(id_descarte=d, id_galpon=self.g1, id_lote=self.l3, cantidad=40, motivo="Calor")
 
     def filas(self, **params):
         resp = self.get("lotes", **params)
@@ -250,6 +252,16 @@ class InformeLotesTests(DatosBase):
         self.assertEqual(f3["edad_dias"], 30)
         self.assertEqual(f3["edad_semanas"], 4)
         self.assertEqual(f3["mortandad"], 40)
+
+    def test_la_mortandad_son_las_gallinas_descartadas_del_lote(self):
+        # No depende de cantidad_actual: cuenta los descartes finalizados de gallinas
+        # del lote (el descarte pendiente del escenario base no cuenta).
+        Lote.objects.filter(pk=self.l2.pk).update(cantidad_actual=123)
+        filas, _ = self.filas()
+        self.assertEqual(filas[self.l2.codigo]["mortandad"], 0)
+        self.assertEqual(filas[self.l1.codigo]["mortandad"], 100)
+        # Los descartes de otro lote no se mezclan.
+        self.assertEqual(filas[self.l3.codigo]["mortandad"], 40)
 
     def test_edad_de_un_lote_activo_llega_hasta_hoy(self):
         from django.utils import timezone

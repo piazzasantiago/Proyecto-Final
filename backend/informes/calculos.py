@@ -232,11 +232,20 @@ def informe_lotes(estado=None, galpon=None):
     if galpon is not None:
         qs = qs.filter(id_galpon=galpon)
 
+    lotes = list(qs)
+    # Mortandad de un lote = sus gallinas descartadas (descartes finalizados).
+    bajas_por_lote = defaultdict(int)
+    for id_lote, cantidad in LineaDescarte.objects.filter(
+        id_descarte__estado=Descarte.ESTADO_FINALIZADO,
+        id_lote__in=[l.pk for l in lotes],
+    ).values_list("id_lote", "cantidad"):
+        bajas_por_lote[id_lote] += int(cantidad)
+
     filas = []
-    for lote in qs:
+    for lote in lotes:
         fin = lote.fecha_vaciado or hoy
         dias = max((fin - lote.fecha_ingreso).days, 0)
-        bajas = lote.cantidad_inicial - lote.cantidad_actual
+        bajas = bajas_por_lote.get(lote.pk, 0)
         filas.append({
             "id_lote": lote.pk,
             "lote": lote.codigo,
