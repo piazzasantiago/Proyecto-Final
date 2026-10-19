@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { listLotes, deleteLote, iniciarProduccion, vaciarLote } from "../api/lotes";
 import { listGalpones } from "../api/galpones";
+import { listLotesPendientes } from "../api/compras";
 import LoteFormModal from "../components/LoteFormModal";
 import { useAuth } from "../context/AuthContext";
 
@@ -41,6 +42,8 @@ export default function LotesPage() {
 
   const [lotes, setLotes] = useState([]);
   const [galpones, setGalpones] = useState([]);
+  // Lotes comprados (compras finalizadas) que esperan ser asignados a un galpón.
+  const [lotesPendientes, setLotesPendientes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,6 +71,15 @@ export default function LotesPage() {
     }
   }
 
+  async function fetchLotesPendientes() {
+    try {
+      const data = await listLotesPendientes();
+      setLotesPendientes(data.results ?? data);
+    } catch {
+      setLotesPendientes([]);
+    }
+  }
+
   useEffect(() => {
     fetchLotes();
     listGalpones({ estado: "A" })
@@ -75,6 +87,10 @@ export default function LotesPage() {
       .catch(() => setGalpones([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, galponFilter]);
+
+  useEffect(() => {
+    fetchLotesPendientes();
+  }, []);
 
   const selected = useMemo(
     () => lotes.find((l) => l.id_lote === selectedId) || null,
@@ -90,6 +106,7 @@ export default function LotesPage() {
   async function handleCreate(data) {
     setModalMode(null);
     await fetchLotes();
+    await fetchLotesPendientes();
   }
 
   async function handleUpdate(data) {
@@ -103,6 +120,8 @@ export default function LotesPage() {
     await deleteLote(selected.id_lote);
     setSelectedId(null);
     await fetchLotes();
+    // Si el lote venía de una compra, vuelve a quedar pendiente de asignar.
+    await fetchLotesPendientes();
   }
 
   async function handleIniciarProduccion() {
@@ -233,9 +252,43 @@ export default function LotesPage() {
           <div className="desc">Seguimiento del ciclo de vida productivo de cada lote, desde su ingreso hasta el vaciado sanitario.</div>
         </div>
         {esAdministrador && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nuevo lote
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {lotesPendientes.length > 0 && (
+              <div
+                role="alert"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "#fee2e2",
+                  border: "1px solid #fca5a5",
+                  color: "#b91c1c",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                <i className="fa-solid fa-triangle-exclamation"></i>
+                {lotesPendientes.length === 1
+                  ? "Hay 1 lote esperando ser asignado a un galpón"
+                  : `Hay ${lotesPendientes.length} lotes esperando ser asignados a un galpón`}
+              </div>
+            )}
+            <button
+              className="btn btn-green"
+              onClick={() => setModalMode("create")}
+              disabled={lotesPendientes.length === 0}
+              title={
+                lotesPendientes.length === 0
+                  ? "No hay lotes comprados para asignar. Registrá y finalizá una compra de lotes."
+                  : undefined
+              }
+              style={lotesPendientes.length === 0 ? { opacity: 0.55, cursor: "not-allowed" } : undefined}
+            >
+              <i className="fa-solid fa-plus"></i> Nuevo lote
+            </button>
+          </div>
         )}
       </div>
 
@@ -304,6 +357,9 @@ export default function LotesPage() {
                 {renderStepper(selected)}
 
                 <div className="detail-sec-title" style={{ marginTop: 14 }}>Datos del lote</div>
+                {selected.compra && (
+                  <div className="detail-row"><span>Compra</span><span>{selected.compra.nro_factura} · {selected.compra.proveedor}</span></div>
+                )}
                 <div className="detail-row"><span>Cantidad inicial</span><span>{selected.cantidad_inicial?.toLocaleString("es-AR")}</span></div>
                 <div className="detail-row"><span>Cantidad actual</span><span>{selected.cantidad_actual?.toLocaleString("es-AR")}</span></div>
                 <div className="detail-row"><span>Fecha de ingreso</span><span>{formatFecha(selected.fecha_ingreso)}</span></div>
@@ -356,7 +412,7 @@ export default function LotesPage() {
               <div className="detail-panel" style={{ padding: 24 }}>
                 <div className="empty-state">
                   {esAdministrador
-                    ? 'No hay lotes registrados todavía. Creá el primero con "Nuevo lote".'
+                    ? "No hay lotes registrados todavía. Comprá un lote en Compras y asignalo a un galpón con \"Nuevo lote\"."
                     : "No hay lotes disponibles para tu usuario."}
                 </div>
               </div>
@@ -368,6 +424,7 @@ export default function LotesPage() {
       {modalMode === "create" && (
         <LoteFormModal
           galpones={galpones}
+          lotesPendientes={lotesPendientes}
           onClose={() => setModalMode(null)}
           onSubmit={handleCreate}
           onCreated={(id) => setSelectedId(id)}

@@ -3,7 +3,7 @@ Tests automatizados del módulo Lotes.
 
 Clases de tests:
     BuscarLoteTests             (6)  CU42 – listar, buscar, filtrar por estado y galpón
-    NuevoLoteTests              (9)  CU43 – crear lote con plan de transición
+    NuevoLoteTests             (12)  CU43 – crear lote con plan de transición (exige una compra de lotes)
     ModificarLoteTests          (5)  CU44 – modificar lote y plan de transición
     BorrarLoteTests             (3)  CU45 – eliminar
     IniciarProduccionTests      (5)  CU46 – Transición → Producción
@@ -11,15 +11,18 @@ Clases de tests:
     PermisosLotesTests         (12)  matriz rol × operación
     FiltradoPorRolTests         (5)  operario ve solo lotes de sus galpones asignados
 
-Total: 50 tests
+Total: 53 tests
 """
 
 import datetime
+import itertools
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from compras.models import Compra, LineaCompra
 from galpones.models import Galpon, UsuarioDelGalpon
+from proveedores.models import Proveedor
 from usuarios.models import Usuario
 from .models import Lote, PlanTransicion
 
@@ -67,12 +70,38 @@ def token_de(client, usuario_obj):
     return token
 
 
-def payload_lote(galpon, **kwargs):
-    """Payload mínimo válido para crear un lote."""
+_nro_factura = itertools.count(1)
+
+
+def crear_lote_comprado(cantidad=2500, finalizada=True, categoria=Compra.CATEGORIA_LOTES):
+    """
+    Crea una compra con una línea y devuelve la línea. Por defecto es una compra
+    de lotes finalizada: un lote esperando que lo asignen a un galpón.
+    """
+    proveedor, _ = Proveedor.objects.get_or_create(nombre="Granja Madre S.A.")
+    compra = Compra.objects.create(
+        id_proveedor=proveedor,
+        categoria=categoria,
+        nro_factura=f"0001-{next(_nro_factura):08d}",
+        fecha=datetime.date(2026, 1, 10),
+        estado=Compra.ESTADO_FINALIZADA if finalizada else Compra.ESTADO_PENDIENTE,
+    )
+    return LineaCompra.objects.create(
+        id_compra=compra, cantidad=cantidad, precio_unitario="1500.00"
+    )
+
+
+def payload_lote(galpon, linea=None, **kwargs):
+    """
+    Payload mínimo válido para crear un lote. Si no se pasa la línea de compra,
+    crea una compra de lotes finalizada para asignar.
+    """
+    if linea is None:
+        linea = crear_lote_comprado()
     base = dict(
         id_galpon_id=galpon.id_galpon,
+        id_linea_compra=linea.pk,
         fecha_ingreso="2026-01-18",
-        cantidad_inicial=2500,
         observaciones="",
         plan_transicion=dict(
             agua_semana1="4.20",
@@ -199,11 +228,53 @@ class NuevoLoteTests(TestCase):
         fecha_fin = datetime.date.fromisoformat(plan["fecha_fin"])
         self.assertEqual((fecha_fin - fecha_inicio).days, 28)
 
-    def test_cantidad_inicial_cero_error(self):
+    def test_cantidad_inicial_sale_de_la_compra(self):
+        """Lo que mande el cliente en cantidad_inicial se ignora."""
+        linea = crear_lote_comprado(cantidad=1800)
         resp = self.client.post(
-            "/api/lotes/", payload_lote(self.galpon, cantidad_inicial=0), format="json"
+            "/api/lotes/",
+            payload_lote(self.galpon, linea, cantidad_inicial=99),
+            format="json",
         )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data["cantidad_inicial"], 1800)
+        self.assertEqual(resp.data["cantidad_actual"], 1800)
+
+    def test_sin_lote_comprado_error(self):
+        payload = payload_lote(self.galpon)
+        del payload["id_linea_compra"]
+        resp = self.client.post("/api/lotes/", payload, format="json")
         self.assertEqual(resp.status_code, 400)
+        self.assertIn("id_linea_compra", resp.data)
+        self.assertEqual(Lote.objects.count(), 0)
+
+    def test_lote_comprado_vincula_la_linea(self):
+        linea = crear_lote_comprado()
+        resp = self.client.post(
+            "/api/lotes/", payload_lote(self.galpon, linea), format="json"
+        )
+        self.assertEqual(resp.status_code, 201)
+        linea.refresh_from_db()
+        self.assertEqual(linea.id_lote_id, resp.data["id_lote"])
+        self.assertEqual(resp.data["compra"]["nro_factura"], linea.id_compra.nro_factura)
+
+    def test_lote_comprado_no_disponible_error(self):
+        """Compra pendiente, de materias primas o ya asignada: no se puede asignar."""
+        otro = crear_galpon("Galpón B")
+        for linea in (
+            crear_lote_comprado(finalizada=False),
+            crear_lote_comprado(categoria=Compra.CATEGORIA_MATERIAS_PRIMAS),
+        ):
+            resp = self.client.post(
+                "/api/lotes/", payload_lote(self.galpon, linea), format="json"
+            )
+            self.assertEqual(resp.status_code, 400)
+        linea = crear_lote_comprado()
+        ok = self.client.post("/api/lotes/", payload_lote(self.galpon, linea), format="json")
+        self.assertEqual(ok.status_code, 201)
+        repetido = self.client.post("/api/lotes/", payload_lote(otro, linea), format="json")
+        self.assertEqual(repetido.status_code, 400)
+        self.assertIn("ya fue asignado", str(repetido.data["id_linea_compra"]))
 
     def test_galpon_inactivo_no_aceptado(self):
         galpon_inactivo = crear_galpon("Inactivo", estado=Galpon.ESTADO_INACTIVO)

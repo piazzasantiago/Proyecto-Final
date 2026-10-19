@@ -15,6 +15,7 @@ function emptyPlan() {
 function initForm(initialData) {
   if (!initialData) {
     return {
+      id_linea_compra: "",
       id_galpon_id: "",
       fecha_ingreso: "",
       cantidad_inicial: "",
@@ -47,7 +48,20 @@ function initForm(initialData) {
 
 const hoyISO = new Date().toISOString().slice(0, 10);
 
-export default function LoteFormModal({ galpones = [], initialData, onClose, onSubmit, onCreated }) {
+function formatFechaCorta(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
+
+export default function LoteFormModal({
+  galpones = [],
+  lotesPendientes = [],
+  initialData,
+  onClose,
+  onSubmit,
+  onCreated,
+}) {
   const isEdit = Boolean(initialData);
   const [form, setForm] = useState(() => initForm(initialData));
   const [errors, setErrors] = useState({});
@@ -58,6 +72,16 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
     e.target.setCustomValidity("");
     setForm((f) => ({ ...f, [name]: value }));
   }
+
+  function handleLoteCompradoInvalid(e) {
+    e.target.setCustomValidity("Debe seleccionar el lote comprado que quiere asignar");
+  }
+
+  // Lote comprado elegido: de ahí sale la cantidad inicial.
+  const loteElegido = lotesPendientes.find(
+    (l) => String(l.id_linea_compra) === String(form.id_linea_compra)
+  );
+  const cantidadInicial = isEdit ? form.cantidad_inicial : loteElegido?.cantidad ?? "";
 
   function handleGalponInvalid(e) {
     e.target.setCustomValidity("Debe seleccionar un galpón");
@@ -87,7 +111,6 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
       const payload = {
         ...form,
         id_galpon_id: Number(form.id_galpon_id),
-        cantidad_inicial: Number(form.cantidad_inicial),
         plan_transicion: {
           agua_semana1: form.plan_transicion.agua_semana1,
           alimento_semana1: form.plan_transicion.alimento_semana1,
@@ -104,10 +127,15 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
         },
       };
 
+      // La cantidad inicial no se envía: sale de la compra del lote.
+      delete payload.cantidad_inicial;
+      delete payload.id_linea_compra;
+
       let result;
       if (isEdit) {
         result = await updateLote(initialData.id_lote, payload);
       } else {
+        payload.id_linea_compra = Number(form.id_linea_compra);
         result = await createLote(payload);
         if (onCreated) onCreated(result.id_lote);
       }
@@ -138,6 +166,38 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
 
             {/* ---- Datos del lote ---- */}
             <div className="form-row">
+              {!isEdit && (
+                <div className="form-group full">
+                  <label>Lotes a asignar</label>
+                  <select
+                    name="id_linea_compra"
+                    value={form.id_linea_compra}
+                    onChange={handleChange}
+                    onInvalid={handleLoteCompradoInvalid}
+                    required
+                  >
+                    <option value="">Seleccioná un lote comprado...</option>
+                    {lotesPendientes.map((l) => (
+                      <option key={l.id_linea_compra} value={l.id_linea_compra}>
+                        Factura {l.nro_factura} · {l.proveedor_nombre} ·{" "}
+                        {Number(l.cantidad).toLocaleString("es-AR")} aves · comprado el{" "}
+                        {formatFechaCorta(l.fecha_compra)}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.id_linea_compra && (
+                    <span className="form-error">
+                      {Array.isArray(errors.id_linea_compra)
+                        ? errors.id_linea_compra.join(" ")
+                        : errors.id_linea_compra}
+                    </span>
+                  )}
+                  <span className="form-hint">
+                    Son los lotes de compras finalizadas que todavía no se asignaron a un galpón.
+                  </span>
+                </div>
+              )}
+
               <div className="form-group full">
                 <label>Galpón</label>
                 <select
@@ -182,12 +242,12 @@ export default function LoteFormModal({ galpones = [], initialData, onClose, onS
                   type="number"
                   step="1"
                   min="1"
-                  value={form.cantidad_inicial}
-                  onChange={handleChange}
-                  required
-                  disabled={isEdit}
-                  placeholder="2500"
+                  value={cantidadInicial}
+                  readOnly
+                  disabled
+                  placeholder="Se completa con el lote elegido"
                 />
+                <span className="form-hint">La cantidad inicial viene de la compra.</span>
                 {errors.cantidad_inicial && <span className="form-error">{Array.isArray(errors.cantidad_inicial) ? errors.cantidad_inicial.join(" ") : errors.cantidad_inicial}</span>}
               </div>
 

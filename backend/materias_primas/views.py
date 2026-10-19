@@ -1,3 +1,4 @@
+from django.db.models import ProtectedError
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -36,14 +37,36 @@ class MateriaPrimaViewSet(viewsets.ModelViewSet):
     ordering_fields = ["materia_prima"]
 
     def get_queryset(self):
-        """Anota cada materia prima con lo descartado y lo enviado a galpones."""
-        # Imports diferidos: descartes y entradas dependen de materias primas,
-        # no al revés.
+        """Anota cada materia prima con lo comprado, descartado y enviado a galpones."""
+        # Imports diferidos: compras, descartes y entradas dependen de materias
+        # primas, no al revés.
+        from compras.stock import anotar_comprado
         from descartes.stock import anotar_descartado
         from entradas.stock import anotar_ingresado
 
         qs = anotar_descartado(MateriaPrima.objects.all(), "id_materia_prima")
-        return anotar_ingresado(qs)
+        qs = anotar_ingresado(qs)
+        return anotar_comprado(qs)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        CU58 — Una materia prima con registros asociados (compras, entradas o
+        descartes) no se borra: se da de baja para conservar el historial.
+        """
+        mp = self.get_object()
+        try:
+            mp.delete()
+        except ProtectedError:
+            return Response(
+                {
+                    "detail": (
+                        "No se puede eliminar la materia prima porque tiene registros "
+                        "asociados (compras, entradas o descartes). Desactivala en su lugar."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def update(self, request, *args, **kwargs):
         instancia = self.get_object()

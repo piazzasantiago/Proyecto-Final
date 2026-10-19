@@ -12,10 +12,10 @@ Proyecto Final de Ingeniería en Computación — FACET, UNT
 
 ## Estado actual
 
-El sistema cuenta con **autenticación real y control de acceso por rol**, y nueve
+El sistema cuenta con **autenticación real y control de acceso por rol**, y once
 módulos funcionales de punta a punta: **Usuarios**, **Galpones**, **Lotes de
 Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
-**Descartes**, **Entradas** y **Salidas**.
+**Descartes**, **Entradas**, **Salidas**, **Proveedores** y **Compras**.
 
 | Módulo | Casos de uso | Estado |
 |---|---|---|
@@ -30,7 +30,8 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Entradas a galpones | CU33 a CU41 | Funcional |
 | Salidas de productos | CU76 a CU84 | Funcional |
 | Gestión de Proveedores | CU70 a CU75 | Funcional |
-| Compras, Informes, Dashboard | — | Solo vista previa |
+| Gestión de Compras | — | Funcional |
+| Informes, Dashboard | — | Solo vista previa |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -41,7 +42,7 @@ galpón; es estadístico y solo las gallinas descuentan del lote) y *Stock* (baj
 productos y materias primas almacenados, que sí reduce su stock actual). El stock
 de productos y de materias primas no se guarda: se calcula a partir de las
 recolecciones, los descartes y las salidas finalizadas (productos) o de los
-descartes y las entradas a galpones finalizadas (materias primas).
+descartes, las entradas a galpones y las compras finalizadas (materias primas).
 
 Las **Entradas** retiran materias primas del stock y las pasan a un galpón: al
 finalizarlas descuentan el stock de cada materia prima.
@@ -49,6 +50,13 @@ finalizarlas descuentan el stock de cada materia prima.
 Las **Salidas** registran los productos que dejan la granja (por ejemplo, un
 camión que se lleva los huevos para la venta): al finalizarlas descuentan el
 stock de cada producto.
+
+Las **Compras** se le hacen a un proveedor y son de dos categorías: de *materias
+primas* (al finalizarlas suman al stock de cada materia prima) o de *lotes de
+gallinas* (al finalizarlas, el lote queda esperando que se lo asigne a un galpón:
+Lotes de gallinas muestra un cartel rojo y el alta de un lote exige elegir uno de
+esos lotes comprados). Solo el Administrador las gestiona; Consulta solo lee y el
+Operario no ve la sección.
 
 Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
 por el tutor: **no leen ni guardan datos**, y sus botones no realizan
@@ -109,6 +117,7 @@ backend/
 ├── entradas/        módulo de Entradas a galpones
 ├── salidas/         módulo de Salidas de productos
 ├── proveedores/     módulo de Proveedores
+├── compras/         módulo de Compras (materias primas y lotes)
 └── manage.py
 ```
 
@@ -235,6 +244,7 @@ python manage.py test descartes
 python manage.py test entradas
 python manage.py test salidas
 python manage.py test proveedores
+python manage.py test compras
 ```
 
 ---
@@ -260,7 +270,7 @@ python manage.py test proveedores
 | POST | `/api/usuarios/{id}/baja/` | Dar de baja usuario | Administrador |
 | POST | `/api/usuarios/{id}/restablecer-password/` | Restablecer contraseña | Administrador |
 | GET | `/api/lotes/` | Listar lotes (`?estado=`, `?id_galpon=`) | autenticado |
-| POST | `/api/lotes/` | Crear lote con plan de transición | Administrador |
+| POST | `/api/lotes/` | Crear lote con plan de transición; exige `id_linea_compra` (un lote comprado sin asignar) | Administrador |
 | GET | `/api/lotes/{id}/` | Detalle del lote | autenticado |
 | PATCH | `/api/lotes/{id}/` | Modificar lote o plan | Administrador |
 | DELETE | `/api/lotes/{id}/` | Eliminar lote | Administrador |
@@ -305,6 +315,13 @@ python manage.py test proveedores
 | POST | `/api/proveedores/{id}/alta/` | Dar de alta | Adm. |
 | POST | `/api/proveedores/{id}/baja/` | Dar de baja | Adm. |
 | GET | `/api/proveedores/similares/` | Nombres iguales o parecidos | Adm. / Consulta |
+| GET | `/api/compras/` | Listar compras (`?search=` por Nº de factura, `?categoria=M\|L`, `?estado=`, `?id_proveedor=`, `?fecha_desde=`, `?fecha_hasta=`) | Adm. / Consulta |
+| POST | `/api/compras/` | Crear compra de materias primas o de lotes con líneas | Adm. |
+| GET | `/api/compras/{id}/` | Detalle de compra | Adm. / Consulta |
+| PATCH | `/api/compras/{id}/` | Modificar compra PENDIENTE | Adm. |
+| DELETE | `/api/compras/{id}/` | Eliminar compra PENDIENTE (409 si está finalizada) | Adm. |
+| POST | `/api/compras/{id}/finalizar/` | Finalizar: suma stock de materias primas o deja el lote por asignar | Adm. |
+| GET | `/api/compras/lotes-pendientes/` | Lotes comprados esperando galpón | autenticado |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -372,6 +389,7 @@ En `docs/`:
 | `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
+| `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
@@ -413,10 +431,7 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Compras** — próximo módulo a implementar (ya existen Proveedores). Cuando
-   exista, el stock de materias primas sumará lo comprado.
-
-2. **Informes e indicadores productivos** (CU85 a CU89).
+1. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en

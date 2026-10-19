@@ -233,9 +233,10 @@ export default function MateriaPrimasPage() {
                   </div>
                 )}
 
-                <div className="detail-sec-title">Compras recientes</div>
-                <div className="empty-state" style={{ margin: "8px 0", fontSize: "0.85rem" }}>
-                  El módulo de compras estará disponible próximamente.
+                <div className="detail-sec-title">Movimientos de stock</div>
+                <div className="detail-row">
+                  <span>Comprado (compras finalizadas)</span>
+                  <span>{selected.stock_compras} {selected.unidad}</span>
                 </div>
               </div>
 

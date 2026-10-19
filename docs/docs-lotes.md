@@ -90,6 +90,19 @@ de baja no puede recibir nuevas aves.
 `cantidad_inicial` debe ser mayor que cero. `cantidad_actual` se inicializa
 igual a `cantidad_inicial` al crear el lote.
 
+### Un lote sale de una compra
+
+Un lote ya no se crea "de la nada": `POST /api/lotes/` exige `id_linea_compra`,
+la línea de una **compra de lotes finalizada** que todavía no se asignó a un
+galpón (ver `docs-compras.md`). La cantidad inicial es la comprada: lo que se
+envíe en `cantidad_inicial` se ignora, y un lote que viene de una compra no
+permite modificarla (400). Se rechaza con 400 si no hay lote elegido, si la compra
+no está finalizada o no es de lotes, o si el lote ya fue asignado. Al crear el
+lote la línea de la compra queda vinculada a él; si el lote se elimina, vuelve a
+quedar pendiente de asignar. Los lotes cargados antes de Compras no tienen compra
+asociada. La lectura incluye `compra` (`id_compra`, `nro_factura`, `proveedor`)
+o `null`.
+
 ### Fecha de ingreso no puede ser futura
 
 `fecha_ingreso` no puede ser posterior a la fecha actual. Se valida tanto en
@@ -161,8 +174,8 @@ ver los lotes de sus galpones asignados; cualquier otro devuelve `404`.
 ```json
 {
   "id_galpon_id": 1,
+  "id_linea_compra": 12,
   "fecha_ingreso": "2026-01-18",
-  "cantidad_inicial": 2500,
   "observaciones": "",
   "plan_transicion": {
     "agua_semana1": "4.20",
@@ -273,8 +286,10 @@ mantener los círculos alineados horizontalmente en cualquier tamaño de pantall
 
 Modal de dos secciones:
 
-1. **Datos del lote:** galpón (select con galpones activos), fecha de ingreso,
-   cantidad inicial y observaciones.
+1. **Datos del lote:** **Lotes a asignar** (select con los lotes comprados sin
+   asignar, antes del galpón; solo al crear), galpón (select con galpones
+   activos), fecha de ingreso, cantidad inicial (de solo lectura, sale de la
+   compra) y observaciones.
 2. **Plan de transición:** tabla de 4 semanas × 3 parámetros (agua, alimento,
    horas de luz).
 
@@ -292,12 +307,12 @@ muestra el navegador por defecto.
 
 Ubicación: `backend/lotes/tests.py`
 
-**Total: 50 tests — 50/50 ✅**
+**Total: 53 tests — 53/53 ✅**
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
 | `BuscarLoteTests` | 6 | CU42: listar, filtrar por estado, filtrar por galpón, detalle con plan |
-| `NuevoLoteTests` | 9 | CU43: creación exitosa, estado inicial, plan creado, validaciones de negocio, galpón ocupado |
+| `NuevoLoteTests` | 12 | CU43: creación exitosa, estado inicial, plan creado, validaciones de negocio, galpón ocupado, lote comprado obligatorio y no disponible, cantidad inicial desde la compra |
 | `ModificarLoteTests` | 5 | CU44: modificar campos y plan, inmutabilidad del estado via PATCH |
 | `BorrarLoteTests` | 3 | CU45: borrar lote y plan en cascada, 404 en lote inexistente |
 | `IniciarProduccionTests` | 5 | CU46: transición exitosa, persistencia, plan finalizado, 409 desde estado incorrecto |
