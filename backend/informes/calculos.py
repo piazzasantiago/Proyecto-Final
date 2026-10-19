@@ -58,6 +58,20 @@ def parsear_periodo(params):
     return desde, hasta
 
 
+def parsear_objetivo(params):
+    """Valor objetivo opcional (número no negativo) para dibujarlo en el gráfico."""
+    texto = params.get("objetivo")
+    if texto in (None, ""):
+        return None
+    try:
+        valor = float(str(texto).replace(",", "."))
+    except ValueError:
+        raise ValidationError({"objetivo": "El valor objetivo debe ser un número."})
+    if valor < 0 or valor != valor or valor in (float("inf"),):
+        raise ValidationError({"objetivo": "El valor objetivo debe ser un número mayor o igual a cero."})
+    return valor
+
+
 def parsear_id(params, nombre, modelo, etiqueta):
     """Valor opcional de un filtro por id; devuelve la instancia o None."""
     valor = params.get(nombre)
@@ -473,7 +487,7 @@ def _serie_consumo(desde, hasta, materia, id_galpon=None):
     ]
 
 
-def indicadores(desde, hasta, indicador, galpon=None, materia=None):
+def indicadores(desde, hasta, indicador, galpon=None, materia=None, objetivo=None):
     id_galpon = galpon.pk if galpon else None
     if indicador not in INDICADORES:
         raise ValidationError({"indicador": "Indicador inválido. Usá postura, mortandad o consumo."})
@@ -502,6 +516,20 @@ def indicadores(desde, hasta, indicador, galpon=None, materia=None):
         ).count(),
     }
     promedio = _promedio(valores)
+    etiqueta_valor = f"{nombre} ({unidad})" if unidad else nombre
+    columnas = [
+        {"clave": "fecha", "titulo": "Fecha", "tipo": "fecha"},
+        {"clave": "valor", "titulo": etiqueta_valor, "tipo": "decimal"},
+    ]
+    filas = serie
+    totales = {"fecha": "Promedio", "valor": _redondear(promedio, 2)}
+    series_grafico = [{"nombre": nombre, "valores": [p["valor"] for p in serie]}]
+    if objetivo is not None:
+        # El valor objetivo lo escribe el usuario: sale como una línea constante.
+        columnas.append({"clave": "objetivo", "titulo": "Valor objetivo", "tipo": "decimal"})
+        filas = [{**p, "objetivo": objetivo} for p in serie]
+        totales["objetivo"] = objetivo
+        series_grafico.append({"nombre": "Valor objetivo", "valores": [objetivo] * len(serie)})
     return {
         "titulo": f"Indicador: {nombre}",
         "periodo": {"desde": desde.isoformat(), "hasta": hasta.isoformat()},
@@ -512,10 +540,14 @@ def indicadores(desde, hasta, indicador, galpon=None, materia=None):
         "promedio": _redondear(promedio, 2),
         "total": _redondear(sum(valores), 2) if indicador != "postura" else None,
         "resumen": resumen,
-        "columnas": [
-            {"clave": "fecha", "titulo": "Fecha", "tipo": "fecha"},
-            {"clave": "valor", "titulo": f"{nombre} ({unidad})" if unidad else nombre, "tipo": "decimal"},
-        ],
-        "filas": serie,
-        "totales": {"fecha": "Promedio", "valor": _redondear(promedio, 2)},
+        "objetivo": objetivo,
+        "columnas": columnas,
+        "filas": filas,
+        "totales": totales,
+        # Gráfica que acompaña a las exportaciones (PDF y Excel).
+        "grafico": {
+            "etiquetas": [p["fecha"] for p in serie],
+            "series": series_grafico,
+            "unidad": unidad,
+        },
     }

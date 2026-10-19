@@ -515,6 +515,41 @@ class ExportacionInformesTests(DatosBase):
         self.assertEqual(ws["A6"].value, "Galpón 2")
         self.assertEqual(ws["A7"].value, "Total")
 
+    def test_indicador_con_objetivo_en_json(self):
+        resp = self.get("indicadores", indicador="postura", objetivo="90", **PERIODO)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["objetivo"], 90.0)
+        self.assertEqual([c["clave"] for c in resp.data["columnas"]], ["fecha", "valor", "objetivo"])
+        self.assertEqual({f["objetivo"] for f in resp.data["filas"]}, {90.0})
+        self.assertEqual([s["nombre"] for s in resp.data["grafico"]["series"]], ["Postura", "Valor objetivo"])
+        # Sin objetivo no hay columna ni serie de objetivo.
+        resp = self.get("indicadores", indicador="postura", **PERIODO)
+        self.assertIsNone(resp.data["objetivo"])
+        self.assertEqual([c["clave"] for c in resp.data["columnas"]], ["fecha", "valor"])
+
+    def test_objetivo_invalido(self):
+        for malo in ["abc", "-5"]:
+            resp = self.get("indicadores", objetivo=malo, **PERIODO)
+            self.assertEqual(resp.status_code, 400, malo)
+            self.assertIn("objetivo", resp.data)
+        self.assertEqual(self.get("indicadores", objetivo="87,5", **PERIODO).data["objetivo"], 87.5)
+
+    def test_el_excel_de_indicadores_trae_la_grafica(self):
+        for objetivo in ("90", ""):
+            resp = self.get("indicadores", formato="xlsx", objetivo=objetivo, **PERIODO)
+            ws = load_workbook(BytesIO(resp.content)).active
+            self.assertEqual(len(ws._charts), 1, objetivo)
+        # Los informes en tabla no llevan gráfica.
+        resp = self.get("produccion", formato="xlsx", **PERIODO)
+        self.assertEqual(len(load_workbook(BytesIO(resp.content)).active._charts), 0)
+
+    def test_pdf_de_indicadores_con_y_sin_datos(self):
+        for periodo in (PERIODO, {"fecha_desde": "2026-07-01", "fecha_hasta": "2026-07-10"}):
+            for indicador in ("postura", "mortandad"):
+                resp = self.get("indicadores", formato="pdf", indicador=indicador, objetivo="90", **periodo)
+                self.assertEqual(resp.status_code, 200)
+                self.assertTrue(resp.content.startswith(b"%PDF"))
+
     def test_nombres_con_caracteres_especiales_en_el_pdf(self):
         MateriaPrima.objects.create(materia_prima="Maíz & <soja> ñandú", unidad="kg", stock_minimo=1, stock_inicial=1)
         resp = self.get("materias-primas", formato="pdf", **PERIODO)

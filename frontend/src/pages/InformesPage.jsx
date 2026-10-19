@@ -292,7 +292,8 @@ export default function InformesPage() {
     setDescargando(formato);
     setError(null);
     try {
-      await descargarInforme(actual.ruta, params, formato);
+      const extra = tab === "indicadores" && objetivo !== "" ? { objetivo } : {};
+      await descargarInforme(actual.ruta, { ...params, ...extra }, formato);
     } catch (err) {
       setError(err.message);
     } finally {

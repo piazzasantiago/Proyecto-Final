@@ -8,7 +8,7 @@ from materias_primas.models import MateriaPrima
 from usuarios.permissions import LecturaAdministradorYConsulta_EscrituraAdministrador
 
 from . import calculos, exportacion
-from .calculos import parsear_id, parsear_periodo
+from .calculos import parsear_id, parsear_objetivo, parsear_periodo
 FORMATOS = ("json", "xlsx", "pdf")
 
 
@@ -89,11 +89,14 @@ class IndicadoresView(InformeView):
     CU89 — Visualizar Indicadores Productivos.
     ?indicador=postura|mortandad|consumo &fecha_desde= &fecha_hasta= &id_galpon= &id_materia_prima=
     (id_materia_prima es obligatorio para el consumo). El valor objetivo lo define
-    la pantalla: el backend solo entrega la serie real.
+    la pantalla; `?objetivo=` es opcional y solo sirve para dibujarlo en el gráfico
+    de las exportaciones (el backend entrega la serie real).
     """
 
     def construir(self, params):
         desde, hasta = parsear_periodo(params)
         galpon = parsear_id(params, "id_galpon", Galpon, "Galpón")
         materia = parsear_id(params, "id_materia_prima", MateriaPrima, "Materia prima")
-        return calculos.indicadores(desde, hasta, params.get("indicador", "postura"), galpon, materia)
+        return calculos.indicadores(
+            desde, hasta, params.get("indicador", "postura"), galpon, materia, parsear_objetivo(params)
+        )

@@ -6,11 +6,14 @@ from io import BytesIO
 
 from django.utils import timezone
 from openpyxl import Workbook
+from openpyxl.chart import LineChart, Reference
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.shapes import Drawing, Line, String
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
@@ -104,6 +107,9 @@ def a_xlsx(informe):
     if informe.get("totales"):
         escribir(fila, informe["totales"], negrita=True)
 
+    if informe.get("grafico"):
+        _grafico_excel(ws, informe, fila_encabezado, fila_encabezado + len(informe["filas"]))
+
     for i, col in enumerate(columnas, start=1):
         largo = max([len(col["titulo"])] + [len(str(f.get(col["clave"]) or "")) for f in informe["filas"]])
         ws.column_dimensions[get_column_letter(i)].width = min(max(largo + 2, 12), 45)
@@ -112,6 +118,99 @@ def a_xlsx(informe):
     salida = BytesIO()
     wb.save(salida)
     return salida.getvalue()
+
+
+def _grafico_excel(ws, informe, fila_encabezado, ultima_fila):
+    """Gráfica de líneas con la serie real y, si hay, el valor objetivo."""
+    columnas = informe["columnas"]
+    claves = [c["clave"] for c in columnas]
+    grafico = LineChart()
+    grafico.title = informe["titulo"].replace("Indicador: ", "")
+    grafico.height, grafico.width = 9, 20
+    grafico.y_axis.title = informe["grafico"].get("unidad") or None
+    grafico.y_axis.delete = False
+    grafico.x_axis.delete = False
+    grafico.x_axis.number_format = "DD/MM"
+    grafico.y_axis.scaling.min = 0
+    for clave in ("valor", "objetivo"):
+        if clave in claves:
+            col = claves.index(clave) + 1
+            grafico.add_data(
+                Reference(ws, min_col=col, min_row=fila_encabezado, max_row=ultima_fila), titles_from_data=True
+            )
+    grafico.set_categories(Reference(ws, min_col=1, min_row=fila_encabezado + 1, max_row=ultima_fila))
+    serie_real = grafico.series[0]
+    serie_real.graphicalProperties.line.solidFill = "2E7D4F"
+    serie_real.marker.symbol = "circle"
+    serie_real.smooth = False
+    if len(grafico.series) > 1:
+        objetivo = grafico.series[1]
+        objetivo.graphicalProperties.line.solidFill = "C9962B"
+        objetivo.graphicalProperties.line.dashStyle = "dash"
+        objetivo.marker.symbol = "none"
+        objetivo.smooth = False
+    ws.add_chart(grafico, f"{get_column_letter(len(columnas) + 2)}5")
+
+
+def _grafico_pdf(informe):
+    """Dibujo de líneas (reportlab) con la serie real y el valor objetivo."""
+    g = informe["grafico"]
+    ancho, alto = 24 * cm, 8 * cm
+    dibujo = Drawing(ancho, alto)
+    n = len(g["etiquetas"])
+    colores = [colors.HexColor("#2E7D4F"), colors.HexColor("#C9962B")]
+
+    # Los días sin dato (None) cortan la línea: cada tramo es una serie propia.
+    datos, estilos = [], []
+    for k, serie in enumerate(g["series"]):
+        tramo = []
+        for i, v in enumerate(serie["valores"] + [None]):
+            if v is None:
+                if tramo:
+                    datos.append(tramo)
+                    estilos.append(k)
+                tramo = []
+            else:
+                tramo.append((i, v))
+    if not datos:
+        return None
+
+    grafico = LinePlot()
+    grafico.x, grafico.y = 1.6 * cm, 1.2 * cm
+    grafico.width, grafico.height = ancho - 2.4 * cm, alto - 2 * cm
+    grafico.data = datos
+    maximo = max(v for tramo in datos for _, v in tramo)
+    grafico.yValueAxis.valueMin = 0
+    grafico.yValueAxis.valueMax = maximo * 1.1 if maximo > 0 else 10
+    grafico.xValueAxis.valueMin = 0
+    grafico.xValueAxis.valueMax = max(n - 1, 1)
+    paso = max(1, -(-n // 10))
+    grafico.xValueAxis.valueSteps = list(range(0, n, paso))
+    grafico.xValueAxis.labelTextFormat = lambda i: _fecha_es(g["etiquetas"][int(i)])[:5] if 0 <= int(i) < n else ""
+    grafico.xValueAxis.labels.fontSize = 7
+    grafico.yValueAxis.labels.fontSize = 7
+    grafico.yValueAxis.gridStrokeColor = colors.HexColor("#E4E9E6")
+    grafico.yValueAxis.visibleGrid = True
+    for i, k in enumerate(estilos):
+        grafico.lines[i].strokeColor = colores[k]
+        grafico.lines[i].strokeWidth = 1.8
+        grafico.lines[i].symbol = None
+        if k == 1:
+            grafico.lines[i].strokeDashArray = (4, 3)
+        elif len(datos[i]) == 1:
+            from reportlab.graphics.widgets.markers import makeMarker
+            grafico.lines[i].symbol = makeMarker("FilledCircle")
+            grafico.lines[i].symbol.size = 4
+            grafico.lines[i].symbol.fillColor = colores[k]
+    dibujo.add(grafico)
+
+    # Leyenda.
+    x = 1.6 * cm
+    for k, serie in enumerate(g["series"]):
+        dibujo.add(Line(x, alto - 0.5 * cm, x + 0.8 * cm, alto - 0.5 * cm, strokeColor=colores[k], strokeWidth=2))
+        dibujo.add(String(x + 1 * cm, alto - 0.75 * cm, serie["nombre"], fontSize=8))
+        x += 7 * cm
+    return dibujo
 
 
 def a_pdf(informe):
@@ -128,6 +227,11 @@ def a_pdf(informe):
         Paragraph(f"Generado el {timezone.localtime():%d/%m/%Y %H:%M}", estilos["Italic"]),
         Spacer(1, 0.5 * cm),
     ]
+
+    if informe.get("grafico"):
+        dibujo = _grafico_pdf(informe)
+        if dibujo is not None:
+            historia += [dibujo, Spacer(1, 0.4 * cm)]
 
     celda = estilos["BodyText"]
     celda.fontSize = 8
