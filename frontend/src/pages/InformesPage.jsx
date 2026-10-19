@@ -140,12 +140,15 @@ export default function InformesPage() {
 
   const [galpones, setGalpones] = useState([]);
   const [materias, setMaterias] = useState([]);
-  const [informe, setInforme] = useState(null);
+  // El informe se guarda junto con la pestaña que lo pidió: al cambiar de pestaña
+  // no se debe mostrar, ni por un instante, el informe de la anterior.
+  const [resultado, setResultado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [descargando, setDescargando] = useState(null);
 
   const actual = TABS.find((t) => t.id === tab);
+  const informe = resultado && resultado.tab === tab ? resultado.data : null;
   const usaPeriodo = tab !== "lotes";
   const usaGalpon = tab === "produccion" || tab === "lotes" || tab === "descartes" || tab === "indicadores";
   const usaMateria = tab === "materias" || (tab === "indicadores" && indicador === "consumo");
@@ -175,7 +178,7 @@ export default function InformesPage() {
 
   useEffect(() => {
     if (faltaFiltro || periodoInvalido) {
-      setInforme(null);
+      setResultado(null);
       setError(null);
       setLoading(false);
       return undefined;
@@ -184,10 +187,10 @@ export default function InformesPage() {
     setLoading(true);
     setError(null);
     getInforme(actual.ruta, params)
-      .then((data) => !cancelado && setInforme(data))
+      .then((data) => !cancelado && setResultado({ tab: actual.id, data }))
       .catch((err) => {
         if (cancelado) return;
-        setInforme(null);
+        setResultado(null);
         setError(err.status === 0 ? err.message : err.message || "No se pudo generar el informe.");
       })
       .finally(() => !cancelado && setLoading(false));
