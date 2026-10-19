@@ -40,7 +40,8 @@ migraciones propias. Cada informe se ve en pantalla y se puede exportar a **Exce
 
 Tabla por galpón y lote para un rango de fechas, con los huevos producidos, los
 días con registro, el promedio diario y la postura promedio. Incluye una fila de
-totales. Filtro opcional por galpón.
+totales y el gráfico **Postura por galpón** (verde desde 85 %, dorado entre 70 % y
+85 %, rojo por debajo de 70 %). Filtro opcional por galpón.
 
 ### CU86 – Generar Informe de Lotes
 
@@ -66,7 +67,9 @@ del mínimo se marca en rojo en pantalla. Filtro opcional por materia prima.
 Historial de líneas de descarte del período, de la más reciente a la más antigua:
 fecha, origen (galpón o stock), galpón, tipo (gallinas, materia prima o producto),
 qué se descartó, cantidad, unidad y motivo. Filtros: galpón y tipo. Muestra el
-total de registros por tipo.
+total de registros por tipo y dos gráficos: **Descartes por galpón** (dona) y
+**Descartes por materia prima** (barras). Ambos cuentan registros de descarte,
+no cantidades, porque las unidades se mezclan (gallinas, kg, dosis).
 
 ### CU89 – Visualizar Indicadores Productivos
 
@@ -155,6 +158,8 @@ por día), `promedio`, `unidad` y `resumen`.
   botones de exportación. Reemplaza la vista estática.
 - `frontend/src/components/GraficoIndicador.jsx`: gráfica de línea en SVG con la
   línea del valor objetivo.
+- `frontend/src/components/GraficosInforme.jsx`: barras horizontales y dona de los
+  informes en tabla. Se calculan en pantalla con las filas del informe ya cargado.
 - `frontend/src/api/informes.js`: consulta de informes y descarga de archivos.
 - Las pestañas usan estilos nuevos al final de `index.css`.
 
@@ -183,7 +188,8 @@ por día), `promedio`, `unidad` y `resumen`.
 backend/informes/{calculos,exportacion,views,urls,apps,tests}.py
 backend/requirements.txt          (openpyxl y reportlab)
 backend/config/{settings,urls}.py
-frontend/src/{api/informes.js, components/GraficoIndicador.jsx, pages/InformesPage.jsx}
+frontend/src/{api/informes.js, components/GraficoIndicador.jsx, components/GraficosInforme.jsx,
+              pages/InformesPage.jsx}
 frontend/src/{App.jsx, index.css}
 ```
 
