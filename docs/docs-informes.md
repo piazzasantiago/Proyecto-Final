@@ -20,7 +20,7 @@ migraciones propias. Cada informe se ve en pantalla y se puede exportar a **Exce
 - Exportación de cada informe a Excel y a PDF con los filtros elegidos.
 - Gráfica de indicadores contra un valor objetivo que escribe el usuario.
 - Acceso para Administrador y Consulta; el Operario no ve la sección.
-- 54 tests automatizados.
+- 58 tests automatizados.
 
 ### Qué no incluye
 
@@ -81,7 +81,8 @@ indicadores son **postura** (%), **mortandad** (gallinas) y **consumo** de una
 materia prima. El usuario puede escribir un **valor objetivo**: se dibuja como una
 línea constante y se muestra cuánto se aleja el promedio del objetivo. Los días
 sin dato (por ejemplo, sin recolección) cortan la línea en lugar de contarse como
-cero.
+cero. El PDF y el Excel de este informe incluyen la **gráfica** del indicador (con
+la línea del objetivo si se escribió uno).
 
 ---
 
@@ -126,6 +127,11 @@ los endpoints son de solo lectura (un `POST` devuelve 405).
   informe devuelve el archivo; la pantalla lo descarga con el token. Excel con
   `openpyxl` y PDF con `reportlab` (nuevas dependencias en `requirements.txt`:
   hay que correr `pip install -r requirements.txt`).
+- **Valor objetivo en la exportación.** Si el usuario lo escribió, la pantalla lo envía
+  como `?objetivo=` (número mayor o igual a cero; admite coma decimal). El informe
+  de indicadores devuelve entonces la columna "Valor objetivo" y el campo `grafico`,
+  con el que se dibuja la gráfica en el PDF (`reportlab`) y en el Excel (gráfico de
+  líneas de `openpyxl`). Sin objetivo, la gráfica trae solo la serie real.
 - **Gráfica en SVG propio**, sin librerías de gráficos.
 - **Tope de 366 días** por informe, para evitar consultas enormes por un error de
   tipeo.
@@ -169,7 +175,7 @@ por día), `promedio`, `unidad` y `resumen`.
 
 ## 7. Tests
 
-`python manage.py test informes` — 54 tests en 8 clases:
+`python manage.py test informes` — 58 tests en 8 clases:
 
 | Clase | Qué verifica |
 |-------|--------------|
