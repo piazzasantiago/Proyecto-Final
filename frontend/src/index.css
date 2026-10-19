@@ -803,3 +803,13 @@
       order:2;
     }
   }
+
+  /* ===== Pestañas (Informes) ===== */
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; border-bottom:1px solid var(--gray-200);}
+  .tab-btn{
+    display:inline-flex; align-items:center; gap:7px; padding:10px 14px; background:transparent; border:none;
+    border-bottom:3px solid transparent; font-size:15px; font-weight:600; font-family:inherit;
+    color:var(--gray-500); cursor:pointer; margin-bottom:-1px;
+  }
+  .tab-btn:hover{color:var(--green-700);}
+  .tab-btn.tab-active{color:var(--green-700); border-bottom-color:var(--green-600);}
