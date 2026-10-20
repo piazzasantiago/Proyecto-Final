@@ -31,8 +31,7 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Salidas de productos | CU76 a CU84 | Funcional |
 | Gestión de Proveedores | CU70 a CU75 | Funcional |
 | Gestión de Compras | — | Funcional |
-| Informes e indicadores | CU85 a CU89 | Funcional |
-| Dashboard | — | Solo vista previa |
+| Informes, Dashboard | — | Solo vista previa |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -119,7 +118,6 @@ backend/
 ├── salidas/         módulo de Salidas de productos
 ├── proveedores/     módulo de Proveedores
 ├── compras/         módulo de Compras (materias primas y lotes)
-├── informes/        módulo de Informes (solo lectura, Excel y PDF)
 └── manage.py
 ```
 
@@ -247,7 +245,6 @@ python manage.py test entradas
 python manage.py test salidas
 python manage.py test proveedores
 python manage.py test compras
-python manage.py test informes
 ```
 
 ---
@@ -325,11 +322,6 @@ python manage.py test informes
 | DELETE | `/api/compras/{id}/` | Eliminar compra PENDIENTE (409 si está finalizada) | Adm. |
 | POST | `/api/compras/{id}/finalizar/` | Finalizar: suma stock de materias primas o deja el lote por asignar | Adm. |
 | GET | `/api/compras/lotes-pendientes/` | Lotes comprados esperando galpón | autenticado |
-| GET | `/api/informes/produccion/` | Informe de producción (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`) | Adm. / Consulta |
-| GET | `/api/informes/lotes/` | Informe de lotes (`?estado=`, `?id_galpon=`) | Adm. / Consulta |
-| GET | `/api/informes/materias-primas/` | Informe de materias primas (`?fecha_desde=`, `?fecha_hasta=`, `?id_materia_prima=`) | Adm. / Consulta |
-| GET | `/api/informes/descartes/` | Informe de descartes (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`, `?tipo=`) | Adm. / Consulta |
-| GET | `/api/informes/indicadores/` | Indicadores (`?indicador=postura\|mortandad\|consumo`, fechas, `?id_galpon=`, `?id_materia_prima=`) | Adm. / Consulta |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -398,7 +390,6 @@ En `docs/`:
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
 | `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
-| `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
@@ -440,9 +431,7 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Dashboard** con datos reales (hoy es una vista previa).
-
-2. **Correcciones finales**: protección de borrados en Productos y Galpones, reglas al finalizar con registros dados de baja y atomicidad al guardar compras.
+1. **Informes e indicadores productivos** (CU85 a CU89).
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
