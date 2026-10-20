@@ -17,3 +17,4 @@ msg.txt
 
 # Script para poblar la bd
 seed_materias_primas.py
+seed.py
