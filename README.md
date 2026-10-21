@@ -119,8 +119,6 @@ backend/
 ├── salidas/         módulo de Salidas de productos
 ├── proveedores/     módulo de Proveedores
 ├── compras/         módulo de Compras (materias primas y lotes)
-├── informes/        módulo de Informes (solo lectura, Excel y PDF)
-├── poblar_datos.py  script para cargar datos de ejemplo
 └── manage.py
 ```
 
@@ -248,53 +246,7 @@ python manage.py test entradas
 python manage.py test salidas
 python manage.py test proveedores
 python manage.py test compras
-python manage.py test informes
 ```
-
----
-
-## 6. Cargar datos de ejemplo (opcional)
-
-Para probar o mostrar el sistema con información ya cargada, el script
-`backend/poblar_datos.py` llena la base con un historial de datos coherentes.
-Hay que tener las tablas creadas (`python manage.py migrate`) y correrlo desde
-`backend/` con el entorno virtual activo:
-
-```bash
-python poblar_datos.py                  # carga los datos (solo si la base está vacía)
-python poblar_datos.py --limpiar        # borra los datos de negocio y los vuelve a cargar
-python poblar_datos.py --limpiar --si   # igual, sin pedir confirmación
-python poblar_datos.py --dias 120       # historial más largo (30 a 365 días; por defecto 90)
-python poblar_datos.py --semilla 7      # otra variante de los mismos datos
-```
-
-Si la base ya tiene datos y no se usa `--limpiar`, el script no hace nada.
-`--limpiar` borra galpones, lotes, productos, materias primas, proveedores,
-compras, recolecciones, entradas, descartes y salidas (los usuarios no se
-tocan), así que **no conviene usarlo sobre datos reales**.
-
-**Qué carga** (las fechas son relativas al día en que se corre):
-
-- **Usuarios de prueba:** `admin.demo` (Administrador), `consulta.demo`
-  (Consulta) y `operario1`, `operario2` y `operario3` (Operario). La contraseña
-  de todos es `AviGest2026!`. Si ya existen, no se modifican.
-- **Estructura:** 6 galpones (uno inactivo) con sus operarios asignados, 4
-  productos, 12 materias primas y 7 proveedores.
-- **Lotes:** 5 lotes en distintas etapas (finalizado, producción y transición),
-  cada uno con su compra y su plan de transición, más una compra de lotes
-  finalizada **sin asignar** (aparece el cartel rojo en Lotes de gallinas) y
-  otra pendiente.
-- **Movimientos:** recolección diaria de los galpones en producción, compras de
-  materias primas periódicas, entradas a galpones, descartes (de galpón y de
-  stock) y salidas de huevos.
-- **Para probar estados y alertas:** hay registros pendientes recientes en cada
-  módulo y cuatro materias primas por debajo de su stock mínimo.
-
-El script simula el stock día por día, por lo que el stock de productos y de
-materias primas nunca queda negativo, y respeta las reglas del sistema (un solo
-lote activo por galpón, lotes que salen de una compra finalizada, etc.). Los
-datos se escriben directamente en la base y dentro de una transacción: si algo
-falla, no queda nada a medias.
 
 ---
 
@@ -371,11 +323,6 @@ falla, no queda nada a medias.
 | DELETE | `/api/compras/{id}/` | Eliminar compra PENDIENTE (409 si está finalizada) | Adm. |
 | POST | `/api/compras/{id}/finalizar/` | Finalizar: suma stock de materias primas o deja el lote por asignar | Adm. |
 | GET | `/api/compras/lotes-pendientes/` | Lotes comprados esperando galpón | autenticado |
-| GET | `/api/informes/produccion/` | Informe de producción (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`) | Adm. / Consulta |
-| GET | `/api/informes/lotes/` | Informe de lotes (`?estado=`, `?id_galpon=`) | Adm. / Consulta |
-| GET | `/api/informes/materias-primas/` | Informe de materias primas (`?fecha_desde=`, `?fecha_hasta=`, `?id_materia_prima=`) | Adm. / Consulta |
-| GET | `/api/informes/descartes/` | Informe de descartes (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`, `?tipo=`) | Adm. / Consulta |
-| GET | `/api/informes/indicadores/` | Indicadores (`?indicador=postura\|mortandad\|consumo`, fechas, `?id_galpon=`, `?id_materia_prima=`) | Adm. / Consulta |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -444,7 +391,6 @@ En `docs/`:
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
 | `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
-| `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
@@ -486,9 +432,27 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Dashboard** con datos reales (hoy es una vista previa).
-
-2. **Correcciones finales**: protección de borrados en Productos y Galpones, reglas al finalizar con registros dados de baja y atomicidad al guardar compras.
+1. **Dashboard con alertas.** Es el único módulo que sigue como vista previa.
+   Se desarrolla después de refinar lo ya construido.
+2. **Fixes planificados**, a trabajar en ramas `fix/*` hacia `develop`:
+   - **Recolecciones:** ocultar "Eliminar" en las finalizadas y agregar filtros
+     por fecha desde, fecha hasta y lote.
+   - **Paginación** en Recolecciones, Descartes, Salidas, Entradas y Compras
+     (y evaluar si hace falta en las secciones de tarjetas: Galpones, Materias
+     Primas, Proveedores, Usuarios y Productos).
+   - **Lotes:** limitar la columna "Finalizado", impedir asignar un lote a un
+     galpón cuya capacidad no alcanza y mostrar la capacidad del galpón en el
+     formulario.
+   - **Proveedores:** corregir el desborde visual del email largo y mostrar sus
+     compras recientes en el detalle.
+   - **Compras:** botón "Agregar materia prima" que lleve al alta de una nueva,
+     más medios de pago (débito y crédito) y guardado atómico (transacción).
+   - **Materias Primas:** mostrar las compras recientes en el detalle.
+   - **Productos y Galpones:** responder 409 con un mensaje claro al eliminar
+     registros con datos asociados.
+   - **Registro de auditoría** (`ModeloAuditable`, ver más abajo).
+   - **Limpieza de mockups** estáticos que ya no se usan.
+3. **Despliegue.**
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
