@@ -31,7 +31,8 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Salidas de productos | CU76 a CU84 | Funcional |
 | Gestión de Proveedores | CU70 a CU75 | Funcional |
 | Gestión de Compras | — | Funcional |
-| Informes, Dashboard | — | Solo vista previa |
+| Informes e indicadores | CU85 a CU89 | Funcional |
+| Dashboard | — | Solo vista previa |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -431,7 +432,27 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Informes e indicadores productivos** (CU85 a CU89).
+1. **Dashboard con alertas.** Es el único módulo que sigue como vista previa.
+   Se desarrolla después de refinar lo ya construido.
+2. **Fixes planificados**, a trabajar en ramas `fix/*` hacia `develop`:
+   - **Recolecciones:** ocultar "Eliminar" en las finalizadas y agregar filtros
+     por fecha desde, fecha hasta y lote.
+   - **Paginación** en Recolecciones, Descartes, Salidas, Entradas y Compras
+     (y evaluar si hace falta en las secciones de tarjetas: Galpones, Materias
+     Primas, Proveedores, Usuarios y Productos).
+   - **Lotes:** limitar la columna "Finalizado", impedir asignar un lote a un
+     galpón cuya capacidad no alcanza y mostrar la capacidad del galpón en el
+     formulario.
+   - **Proveedores:** corregir el desborde visual del email largo y mostrar sus
+     compras recientes en el detalle.
+   - **Compras:** botón "Agregar materia prima" que lleve al alta de una nueva,
+     más medios de pago (débito y crédito) y guardado atómico (transacción).
+   - **Materias Primas:** mostrar las compras recientes en el detalle.
+   - **Productos y Galpones:** responder 409 con un mensaje claro al eliminar
+     registros con datos asociados.
+   - **Registro de auditoría** (`ModeloAuditable`, ver más abajo).
+   - **Limpieza de mockups** estáticos que ya no se usan.
+3. **Despliegue.**
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
 backend, endpoints con DRF, permisos por rol, pantalla React, tests en
