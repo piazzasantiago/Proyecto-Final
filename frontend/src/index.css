@@ -813,3 +813,10 @@
   }
   .tab-btn:hover{color:var(--green-700);}
   .tab-btn.tab-active{color:var(--green-700); border-bottom-color:var(--green-600);}
+
+  /* Paginación de listados */
+  .paginacion{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 14px; border-top:1px solid var(--gray-200);}
+  .paginacion-info{font-size:14px; color:var(--gray-500);}
+  .paginacion-controles{display:flex; align-items:center; gap:10px;}
+  .paginacion-pagina{font-size:14px; color:var(--gray-700); font-weight:500;}
+  .paginacion .btn:disabled{opacity:.45; cursor:not-allowed;}

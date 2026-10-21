@@ -6,11 +6,27 @@ import {
 } from "../api/recolecciones";
 import { listGalpones } from "../api/galpones";
 import { listProductos } from "../api/productos";
+import { listLotes } from "../api/lotes";
 import RecoleccionFormModal from "../components/RecoleccionFormModal";
+import Paginacion from "../components/Paginacion";
 import { useAuth } from "../context/AuthContext";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
+// Registros por página: entran en pantalla junto al panel de detalle.
+const PAGE_SIZE = 16;
+
+/** Recorre todas las páginas de un listado paginado de DRF. */
+async function traerTodas(listFn, params) {
+  const resultados = [];
+  for (let page = 1; page <= 50; page++) {
+    const data = await listFn({ ...params, page });
+    if (Array.isArray(data)) return data;
+    resultados.push(...data.results);
+    if (!data.next) break;
+  }
+  return resultados;
+}
 
 function formatFecha(iso) {
   if (!iso) return "—";
@@ -40,29 +56,49 @@ export default function RecoleccionesPage() {
   const [recolecciones, setRecolecciones] = useState([]);
   const [galpones, setGalpones] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [lotes, setLotes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [galponFilter, setGalponFilter] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
+  const [loteFilter, setLoteFilter] = useState("");
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   async function fetchRecolecciones() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: PAGE_SIZE };
       if (galponFilter) params.id_galpon = galponFilter;
+      if (loteFilter) params.id_lote = loteFilter;
       if (estadoFilter) params.estado = estadoFilter;
+      if (fechaDesde) params.fecha_desde = fechaDesde;
+      if (fechaHasta) params.fecha_hasta = fechaHasta;
       const data = await listRecolecciones(params);
       const lista = data.results ?? data;
       setRecolecciones(lista);
-      if (!selectedId && lista.length > 0) {
-        setSelectedId(lista[0].id_recoleccion);
+      setCount(data.count ?? lista.length);
+      // Si la recolección seleccionada no está en esta página, se muestra la primera.
+      setSelectedId((actual) =>
+        lista.some((r) => r.id_recoleccion === actual)
+          ? actual
+          : (lista[0]?.id_recoleccion ?? null)
+      );
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
       }
-    } catch {
       setError(
-        "No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?"
+        err.status === 400
+          ? err.message
+          : "No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?"
       );
     } finally {
       setLoading(false);
@@ -78,7 +114,23 @@ export default function RecoleccionesPage() {
       .then((d) => setProductos(d.results ?? d))
       .catch(() => setProductos([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [galponFilter, estadoFilter]);
+  }, [galponFilter, loteFilter, estadoFilter, fechaDesde, fechaHasta, page]);
+
+  // Lotes para el filtro: todos (activos y finalizados), porque hay recolecciones
+  // de lotes ya cerrados.
+  useEffect(() => {
+    traerTodas(listLotes, {})
+      .then(setLotes)
+      .catch(() => setLotes([]));
+  }, []);
+
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
 
   const selected = useMemo(
     () => recolecciones.find((r) => r.id_recoleccion === selectedId) || null,
@@ -87,6 +139,10 @@ export default function RecoleccionesPage() {
 
   async function handleCreate() {
     setModalMode(null);
+    if (page !== 1) {
+      setPage(1); // el efecto recarga la lista
+      return;
+    }
     await fetchRecolecciones();
   }
 
@@ -103,9 +159,12 @@ export default function RecoleccionesPage() {
       )
     )
       return;
-    await deleteRecoleccion(selected.id_recoleccion);
-    setSelectedId(null);
-    await fetchRecolecciones();
+    try {
+      await deleteRecoleccion(selected.id_recoleccion);
+      await fetchRecolecciones();
+    } catch (err) {
+      alert(err.message || "No se pudo eliminar la recolección.");
+    }
   }
 
   async function handleFinalizar() {
@@ -149,15 +208,32 @@ export default function RecoleccionesPage() {
         )}
       </div>
 
-      {/* Filtros */}
+      {/* Filtros: fechas, galpón, lote y estado */}
       <div className="toolbar">
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
+          <span style={{ color: "var(--gray-500)" }}>Desde</span>
+          <input
+            type="date"
+            className="filter-date"
+            value={fechaDesde}
+            max={fechaHasta || undefined}
+            onChange={(e) => cambiarFiltro(setFechaDesde)(e.target.value)}
+          />
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
+          <span style={{ color: "var(--gray-500)" }}>Hasta</span>
+          <input
+            type="date"
+            className="filter-date"
+            value={fechaHasta}
+            min={fechaDesde || undefined}
+            onChange={(e) => cambiarFiltro(setFechaHasta)(e.target.value)}
+          />
+        </label>
         <select
           className="select-filter"
           value={galponFilter}
-          onChange={(e) => {
-            setGalponFilter(e.target.value);
-            setSelectedId(null);
-          }}
+          onChange={(e) => cambiarFiltro(setGalponFilter)(e.target.value)}
         >
           <option value="">Galpón: Todos</option>
           {galpones.map((g) => (
@@ -168,16 +244,41 @@ export default function RecoleccionesPage() {
         </select>
         <select
           className="select-filter"
+          value={loteFilter}
+          onChange={(e) => cambiarFiltro(setLoteFilter)(e.target.value)}
+        >
+          <option value="">Lote: Todos</option>
+          {lotes.map((l) => (
+            <option key={l.id_lote} value={l.id_lote}>
+              {l.codigo}
+              {l.galpon?.galpon ? ` · ${l.galpon.galpon}` : ""}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select-filter"
           value={estadoFilter}
-          onChange={(e) => {
-            setEstadoFilter(e.target.value);
-            setSelectedId(null);
-          }}
+          onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}
         >
           <option value="">Estado: Todos</option>
           <option value={ESTADO_PENDIENTE}>Pendiente</option>
           <option value={ESTADO_FINALIZADA}>Finalizada</option>
         </select>
+        {(fechaDesde || fechaHasta || galponFilter || loteFilter || estadoFilter) && (
+          <button
+            className="btn btn-outline"
+            onClick={() => {
+              setFechaDesde("");
+              setFechaHasta("");
+              setGalponFilter("");
+              setLoteFilter("");
+              setEstadoFilter("");
+              setPage(1);
+            }}
+          >
+            <i className="fa-solid fa-xmark"></i> Limpiar filtros
+          </button>
+        )}
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
@@ -189,9 +290,11 @@ export default function RecoleccionesPage() {
           <div className="list-panel">
             {recolecciones.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
-                {puedeEscribir
-                  ? 'No hay recolecciones registradas. Creá la primera con "Nueva recolección".'
-                  : "No hay recolecciones disponibles."}
+                {fechaDesde || fechaHasta || galponFilter || loteFilter || estadoFilter
+                  ? "No hay recolecciones que coincidan con los filtros."
+                  : puedeEscribir
+                    ? 'No hay recolecciones registradas. Creá la primera con "Nueva recolección".'
+                    : "No hay recolecciones disponibles."}
               </div>
             ) : (
               <table className="data-table">
@@ -243,6 +346,7 @@ export default function RecoleccionesPage() {
                 </tbody>
               </table>
             )}
+            <Paginacion page={page} count={count} pageSize={PAGE_SIZE} onChange={setPage} />
           </div>
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
@@ -367,16 +471,7 @@ export default function RecoleccionesPage() {
                     style={{ color: "var(--gray-500)", fontSize: 13 }}
                   >
                     <i className="fa-solid fa-lock"></i> Recolección finalizada. No se
-                    puede editar.
-                    {esAdministrador && (
-                      <button
-                        className="btn btn-outline btn-danger-ghost"
-                        style={{ marginLeft: "auto" }}
-                        onClick={handleDelete}
-                      >
-                        <i className="fa-solid fa-trash"></i> Eliminar
-                      </button>
-                    )}
+                    puede editar ni eliminar.
                   </div>
                 )
               )}
