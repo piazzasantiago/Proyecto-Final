@@ -215,10 +215,9 @@ no al revés.
 
 Un descarte de stock se valida al **crear/modificar** (para avisar enseguida) y
 otra vez al **finalizar**, porque entre una cosa y otra pudo cambiar el stock
-(otro descarte finalizado, una recolección borrada). Al revés también se
-cuida: no se puede borrar una recolección finalizada si lo recolectado ya se
-descartó y el stock quedaría en negativo (409, ver `docs-recolecciones.md`). Así
-el stock nunca queda negativo.
+(otro descarte finalizado). Las recolecciones finalizadas no se pueden borrar
+(409, ver `docs-recolecciones.md`), así que lo recolectado nunca se resta por un
+borrado. Así el stock nunca queda negativo.
 
 ### Los finalizados no se borran
 

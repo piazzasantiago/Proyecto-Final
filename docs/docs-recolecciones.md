@@ -19,9 +19,17 @@ modifican siempre a través de la recolección a la que pertenecen (ver cada CU)
 **Actor:** cualquier usuario autenticado (Administrador, Operario y Consulta).
 
 Lista las recolecciones con sus líneas, lote, galpón y usuario que las cargó.
-Permite filtrar por galpón (`?id_galpon=`) y por estado (`?estado=P|F`); los
-filtros se pueden combinar. El detalle de una recolección se obtiene con
-`GET /api/recolecciones/{id}/`. No hay filtro por rango de fechas todavía.
+Permite filtrar por galpón (`?id_galpon=`), lote (`?id_lote=`), estado
+(`?estado=P|F`) y rango de fechas (`?fecha_desde=AAAA-MM-DD` y
+`?fecha_hasta=AAAA-MM-DD`); los filtros se pueden combinar. Las fechas son
+inclusivas y se comparan por día, de modo que una recolección de las 23:00 entra
+con `fecha_hasta` de ese mismo día. Una fecha con formato inválido, o una
+`fecha_desde` posterior a `fecha_hasta`, devuelve 400. El detalle de una
+recolección se obtiene con `GET /api/recolecciones/{id}/`.
+
+El listado está **paginado de a 16 registros** (`?page=N`). Se puede pedir otro
+tamaño con `?page_size=N` (máximo 100). La respuesta trae `count`, `next`,
+`previous` y `results`; los filtros se aplican antes de paginar.
 
 #### CU25 – Nueva Recolección
 
@@ -53,13 +61,11 @@ Las validaciones de fecha, observaciones y líneas son las mismas que en CU25.
 
 **Actor:** Administrador.
 
-Elimina físicamente la recolección y, en cascada, todas sus líneas. Puede
-borrarse tanto una Pendiente como una Finalizada; en este último caso la
-cantidad deja de contarse en el stock de Productos (ver "Impacto en el stock
-de Productos"). Si al quitarla el stock de algún producto quedaría en negativo
-(porque parte de lo recolectado ya se descartó), la API responde 409 con un
-mensaje que indica el producto y las cantidades, y no borra nada. Una Pendiente
-siempre se puede borrar, porque no suma stock. El Operario recibe 403.
+Elimina físicamente la recolección y, en cascada, todas sus líneas. **Solo se
+puede borrar una recolección Pendiente.** Una Finalizada ya sumó stock y forma
+parte del historial: la API responde **409** (*"No se puede eliminar una
+recolección finalizada."*) y no borra nada. La interfaz tampoco muestra el botón
+"Eliminar" en las finalizadas. El Operario recibe 403.
 
 #### CU28 – Finalizar Recolección
 
@@ -116,7 +122,7 @@ por completo se usa CU27.
 | CU24 Buscar Avanzado Recolecciones | Sí | Sí | Sí |
 | CU25 Nueva Recolección | Sí | Sí | No |
 | CU26 Modificar Recolección (Pendiente) | Sí | Sí | No |
-| CU27 Borrar Recolección | Sí | No | No |
+| CU27 Borrar Recolección (Pendiente) | Sí | No | No |
 | CU28 Finalizar Recolección | Sí | Sí | No |
 | CU29 Listar Líneas de Recolección | Sí | Sí | Sí |
 | CU30 Nueva Línea de Recolección | Sí | Sí | No |
@@ -246,7 +252,7 @@ disponible, o el nombre de usuario como fallback.
 | Crear recolección (CU25, CU30) | ✅ | ✅ | ❌ |
 | Editar recolección PENDIENTE (CU26, CU30 a CU32) | ✅ | ✅ | ❌ |
 | Finalizar recolección (CU28) | ✅ | ✅ | ❌ |
-| Eliminar recolección (CU27) | ✅ | ❌ | ❌ |
+| Eliminar recolección PENDIENTE (CU27) | ✅ | ❌ | ❌ |
 
 La combinación Administrador-o-Operario se implementa con la clase
 `EsAdministradorOOperario` en `usuarios/permissions.py`, en lugar de usar el
@@ -294,11 +300,8 @@ El stock de cada producto (ver `docs-productos.md`) suma lo recolectado en
 recolecciones **finalizadas**: al pasar una recolección a Finalizada, la cantidad
 de cada una de sus líneas se incorpora al `stock_actual` del producto. Las
 pendientes no suman. No se guarda nada al finalizar: el stock se calcula en cada
-consulta, de modo que borrar una recolección finalizada (solo el Administrador)
-lo baja automáticamente. Para que el stock no quede en negativo, ese borrado se
-rechaza con **409** si lo recolectado en ella ya se descartó (ver CU27): el
-cálculo reutiliza `descartes/stock.py` mediante un import diferido, porque
-Descartes depende de Recolecciones y no al revés.
+consulta. Como una recolección finalizada no se puede eliminar (ver CU27), lo
+recolectado nunca se resta por un borrado.
 
 ### Lote en Transición
 
@@ -314,11 +317,11 @@ cualquier otro. No se bloquea ni se muestra aviso.
 
 | CU | Método | Ruta | Descripción | Rol |
 |---|---|---|---|---|
-| CU24, CU29 | GET | `/api/recolecciones/` | Listar con líneas (`?id_galpon=`, `?estado=`) | autenticado |
+| CU24, CU29 | GET | `/api/recolecciones/` | Listar paginado, con líneas (`?id_galpon=`, `?id_lote=`, `?estado=`, `?fecha_desde=`, `?fecha_hasta=`, `?page=`, `?page_size=`) | autenticado |
 | CU25, CU30 | POST | `/api/recolecciones/` | Crear con líneas | Adm. / Operario |
 | CU24, CU29 | GET | `/api/recolecciones/{id}/` | Detalle | autenticado |
 | CU26, CU30 a CU32 | PUT/PATCH | `/api/recolecciones/{id}/` | Editar, incluidas las líneas (solo PENDIENTE) | Adm. / Operario |
-| CU27 | DELETE | `/api/recolecciones/{id}/` | Eliminar | Administrador |
+| CU27 | DELETE | `/api/recolecciones/{id}/` | Eliminar (solo PENDIENTE; finalizada → 409) | Administrador |
 | CU28 | POST | `/api/recolecciones/{id}/finalizar/` | Finalizar | Adm. / Operario |
 
 ### Ejemplo de payload para crear
@@ -373,15 +376,15 @@ automáticamente.
 
 ## Tests
 
-Se implementaron **81 tests** en `backend/recolecciones/tests.py`, organizados
-en 14 clases:
+Se implementaron **90 tests** en `backend/recolecciones/tests.py`, organizados
+en 16 clases:
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
 | `BuscarRecoleccionTests` | 5 | Listar, filtrar por galpón y estado, ver detalle con líneas y lote |
 | `CrearRecoleccionTests` | 9 | Creación exitosa, estado inicial, lote asignado automáticamente, validaciones (sin líneas, producto duplicado, producto inactivo, galpón sin lote activo) |
 | `EditarRecoleccionTests` | 6 | Editar observaciones, reemplazar líneas, bloqueo de recolección finalizada, imposibilidad de editar el estado vía PATCH, producto duplicado en edición |
-| `BorrarRecoleccionTests` | 4 | Borrado exitoso, cascade a líneas, borrado de finalizada (permitido para Admin), 404 en inexistente |
+| `BorrarRecoleccionTests` | 3 | Borrado exitoso de una pendiente, cascade a líneas, 404 en inexistente |
 | `FinalizarRecoleccionTests` | 5 | Finalizar exitoso, persistencia en base, idempotencia (ya finalizada → 400), 404 en inexistente, respuesta incluye lote |
 | `PermisosRecoleccionTests` | 10 | Matriz completa: Admin puede crear/listar/eliminar; Operario puede crear/listar pero no eliminar; Consulta solo lista; sin token → 401 |
 | `LoteFKTests` | 3 | FK guardada al crear, FK no cambia cuando el lote del galpón cambia, galpón sin lote activo devuelve 400 |
@@ -390,8 +393,10 @@ en 14 clases:
 | `ObservacionesRecoleccionTests` | 3 | 500 caracteres es válido, 501 → 400, no se puede editar a más de 500 |
 | `UnaRecoleccionPorDiaTests` | 7 | Segunda recolección del mismo día y galpón → 400, otro galpón u otro día válidos, la finalizada también cuenta, medianoche (días distintos), editar dentro del mismo día, mover la fecha a un día ocupado → 400 |
 | `ProductoDesactivadoTests` | 4 | Conservar un producto desactivado al editar, sumar uno activo, no agregar uno inactivo nuevo, no crear con inactivo |
-| `StockDeProductosTests` | 6 | El stock de Productos: sin recolecciones es el inicial, las pendientes no suman, las finalizadas sí, finalizar por la API lo sube, suma varias y separa por producto, borrar una finalizada lo baja |
-| `BorrarRecoleccionStockTests` | 6 | Borrar una finalizada se rechaza (409) si lo recolectado ya se descartó, se permite si el stock alcanza o lo cubre otra recolección, los descartes pendientes no cuentan, una pendiente siempre se borra, con varios productos basta uno que quede negativo |
+| `StockDeProductosTests` | 5 | El stock de Productos: sin recolecciones es el inicial, las pendientes no suman, las finalizadas sí, finalizar por la API lo sube, suma varias y separa por producto |
+| `BorrarFinalizadaBloqueadoTests` | 4 | Una finalizada devuelve 409 al Administrador, el Operario sigue recibiendo 403, el stock y las líneas no cambian, una pendiente sí se elimina |
+| `FiltrosRecoleccionTests` | 8 | Fecha desde y hasta inclusivas (una recolección de las 23:00 entra con ese día), rango, mismo día, filtro por lote, filtros combinados, fecha inválida → 400, desde posterior a hasta → 400 |
+| `PaginacionRecoleccionTests` | 5 | 16 por página, última página con el resto, página inexistente → 404, `page_size` con tope de 100, el filtro se aplica antes de paginar |
 
 Ejecutar:
 
@@ -412,9 +417,10 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/migrations/0002_recoleccion_id_lote.py` | Agrega FK `id_lote` |
 | `recolecciones/migrations/0003_recoleccion_id_usuario.py` | Agrega FK `id_usuario` |
 | `recolecciones/serializers.py` | Nuevo: serializers cabecera-líneas con `LoteResumenSerializer` y `UsuarioResumenSerializer` |
-| `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` (inyecta `id_lote` e `id_usuario`) y acción `/finalizar/` |
+| `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` (inyecta `id_lote` e `id_usuario`), acción `/finalizar/`, filtros por galpón, lote, estado y fechas, paginación y borrado solo de pendientes (409 en finalizadas) |
+| `config/pagination.py` | Nuevo: `PaginacionListado` (16 por página, `page_size` hasta 100), reutilizable por otros módulos |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 81 tests |
+| `recolecciones/tests.py` | Nuevo: 90 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/migrations/0002_alter_usuario_options.py` | Sincroniza opciones de Meta (`verbose_name`, `verbose_name_plural`) |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
@@ -425,5 +431,7 @@ python manage.py test recolecciones --verbosity=2
 | Archivo | Cambio |
 |---|---|
 | `src/api/recolecciones.js` | Nuevo: `listRecolecciones`, `createRecoleccion`, `updateRecoleccion`, `deleteRecoleccion`, `finalizarRecoleccion` |
-| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle y filtros; incluye columna y fila de detalle "Cargado por" |
+| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
+| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N") |
+| `src/index.css` | Estilos de la barra de paginación |
 | `src/components/RecoleccionFormModal.jsx` | Nuevo: modal de alta y edición con gestión dinámica de líneas |
