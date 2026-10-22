@@ -119,6 +119,8 @@ backend/
 ├── salidas/         módulo de Salidas de productos
 ├── proveedores/     módulo de Proveedores
 ├── compras/         módulo de Compras (materias primas y lotes)
+├── informes/        módulo de Informes (solo lectura, Excel y PDF)
+├── poblar_datos.py  script que carga datos de ejemplo para probar el sistema
 └── manage.py
 ```
 
@@ -217,6 +219,42 @@ npm run dev
 Abrir `http://localhost:5173` e iniciar sesión con el usuario creado en el paso
 anterior.
 
+### Cargar datos de ejemplo (opcional)
+
+Para probar todas las funciones sin cargar todo a mano, el script
+`backend/poblar_datos.py` llena la base con datos de ejemplo. Se corre desde la
+carpeta `backend`, con el entorno virtual activo y las migraciones aplicadas:
+
+```bash
+python poblar_datos.py                 # carga los datos (si la base está vacía)
+python poblar_datos.py --limpiar       # borra los datos de negocio y los vuelve a cargar
+python poblar_datos.py --limpiar --si  # igual, sin pedir confirmación
+python poblar_datos.py --dias 120      # historial más largo (por defecto 90 días)
+python poblar_datos.py --semilla 7     # otra variante de los mismos datos
+```
+
+En Windows se usa `py` en lugar de `python`.
+
+Genera usuarios de prueba, galpones, productos, materias primas, proveedores,
+lotes en distintas etapas, y recolecciones, compras, entradas, descartes y
+salidas de los últimos días (siempre relativos a la fecha de hoy). Las
+cantidades se simulan día por día, así que el stock nunca queda negativo y se
+respetan las reglas del sistema. También deja algunos registros pendientes, una
+compra de lotes sin asignar y materias primas bajo el stock mínimo, para probar
+los estados y las alertas.
+
+Usuarios de prueba (todos con la clave `AviGest2026!`):
+
+| Usuario | Rol |
+|---------|-----|
+| `admin.demo` | Administrador |
+| `consulta.demo` | Consulta |
+| `operario1`, `operario2`, `operario3` | Operario |
+
+> **Cuidado con `--limpiar`:** borra los datos de negocio (galpones, lotes,
+> compras, recolecciones, etc.) antes de cargar los de ejemplo. No usarlo sobre
+> una base con datos reales.
+
 ## 5. Correr los tests
 
 ```bash
@@ -246,6 +284,7 @@ python manage.py test entradas
 python manage.py test salidas
 python manage.py test proveedores
 python manage.py test compras
+python manage.py test informes
 ```
 
 ---
@@ -323,6 +362,11 @@ python manage.py test compras
 | DELETE | `/api/compras/{id}/` | Eliminar compra PENDIENTE (409 si está finalizada) | Adm. |
 | POST | `/api/compras/{id}/finalizar/` | Finalizar: suma stock de materias primas o deja el lote por asignar | Adm. |
 | GET | `/api/compras/lotes-pendientes/` | Lotes comprados esperando galpón | autenticado |
+| GET | `/api/informes/produccion/` | Informe de producción (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`) | Adm. / Consulta |
+| GET | `/api/informes/lotes/` | Informe de lotes (`?estado=`, `?id_galpon=`) | Adm. / Consulta |
+| GET | `/api/informes/materias-primas/` | Informe de materias primas (`?fecha_desde=`, `?fecha_hasta=`, `?id_materia_prima=`) | Adm. / Consulta |
+| GET | `/api/informes/descartes/` | Informe de descartes (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`, `?tipo=`) | Adm. / Consulta |
+| GET | `/api/informes/indicadores/` | Indicadores (`?indicador=postura\|mortandad\|consumo`, fechas, `?id_galpon=`, `?id_materia_prima=`) | Adm. / Consulta |
 | GET | `/api/galpones/{id}/existencias/` | Existencia estimada de materias primas en el galpón | autenticado |
 | — | `/admin/` | Panel de administración de Django | Administrador con `is_staff` |
 
@@ -391,6 +435,7 @@ En `docs/`:
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
 | `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
+| `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
