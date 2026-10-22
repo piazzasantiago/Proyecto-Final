@@ -31,6 +31,9 @@ El listado está **paginado de a 16 registros** (`?page=N`). Se puede pedir otro
 tamaño con `?page_size=N` (máximo 100). La respuesta trae `count`, `next`,
 `previous` y `results`; los filtros se aplican antes de paginar.
 
+En la pantalla, la barra de paginación permite elegir las **filas por página**
+(10, 16, 25 o 50; 16 por defecto). La elección se recuerda en el navegador.
+
 #### CU25 – Nueva Recolección
 
 **Actor:** Administrador, Operario.
@@ -432,6 +435,6 @@ python manage.py test recolecciones --verbosity=2
 |---|---|
 | `src/api/recolecciones.js` | Nuevo: `listRecolecciones`, `createRecoleccion`, `updateRecoleccion`, `deleteRecoleccion`, `finalizarRecoleccion` |
 | `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
-| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N") |
+| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N", selector de filas por página y hook `useTamanoPagina` que recuerda la elección) |
 | `src/index.css` | Estilos de la barra de paginación |
 | `src/components/RecoleccionFormModal.jsx` | Nuevo: modal de alta y edición con gestión dinámica de líneas |

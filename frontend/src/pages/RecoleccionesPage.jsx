@@ -8,12 +8,12 @@ import { listGalpones } from "../api/galpones";
 import { listProductos } from "../api/productos";
 import { listLotes } from "../api/lotes";
 import RecoleccionFormModal from "../components/RecoleccionFormModal";
-import Paginacion from "../components/Paginacion";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { useAuth } from "../context/AuthContext";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
-// Registros por página: entran en pantalla junto al panel de detalle.
+// Registros por página por defecto; el usuario puede cambiarlo en la barra de paginación.
 const PAGE_SIZE = 16;
 
 /** Recorre todas las páginas de un listado paginado de DRF. */
@@ -66,6 +66,7 @@ export default function RecoleccionesPage() {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("recolecciones", PAGE_SIZE);
   const [count, setCount] = useState(0);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
@@ -73,7 +74,7 @@ export default function RecoleccionesPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = { page, page_size: PAGE_SIZE };
+      const params = { page, page_size: pageSize };
       if (galponFilter) params.id_galpon = galponFilter;
       if (loteFilter) params.id_lote = loteFilter;
       if (estadoFilter) params.estado = estadoFilter;
@@ -114,7 +115,7 @@ export default function RecoleccionesPage() {
       .then((d) => setProductos(d.results ?? d))
       .catch(() => setProductos([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [galponFilter, loteFilter, estadoFilter, fechaDesde, fechaHasta, page]);
+  }, [galponFilter, loteFilter, estadoFilter, fechaDesde, fechaHasta, page, pageSize]);
 
   // Lotes para el filtro: todos (activos y finalizados), porque hay recolecciones
   // de lotes ya cerrados.
@@ -346,7 +347,16 @@ export default function RecoleccionesPage() {
                 </tbody>
               </table>
             )}
-            <Paginacion page={page} count={count} pageSize={PAGE_SIZE} onChange={setPage} />
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
