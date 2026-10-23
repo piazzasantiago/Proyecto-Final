@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from materias_primas.normalizacion import normalizar_nombre
 from usuarios.permissions import LecturaAdministradorYConsulta_EscrituraAdministrador
 
+from config.pagination import PaginacionListado
 from .models import Proveedor
 from .serializers import ProveedorSerializer
 
@@ -31,6 +32,7 @@ class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
     permission_classes = [LecturaAdministradorYConsulta_EscrituraAdministrador]
+    pagination_class = PaginacionListado
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["estado"]
     search_fields = ["nombre", "cuit", "email", "telefono", "direccion"]

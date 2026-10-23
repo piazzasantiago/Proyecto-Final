@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from config.pagination import PaginacionListado
 from .models import Usuario
 from .permissions import EsAdministrador
 from .serializers import (
@@ -108,6 +109,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     queryset = Usuario.objects.all()
     permission_classes = [EsAdministrador]
+    pagination_class = PaginacionListado
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["rol", "estado"]
     search_fields = ["nombre", "apellido", "usuario", "email", "dni"]

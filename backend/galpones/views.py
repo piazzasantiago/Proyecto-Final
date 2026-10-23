@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from usuarios.models import Usuario
 from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 
+from config.pagination import PaginacionListado
 from .models import Galpon
 from .serializers import GalponSerializer
 
@@ -34,6 +35,7 @@ class GalponViewSet(viewsets.ModelViewSet):
 
     serializer_class = GalponSerializer
     permission_classes = [LecturaAutenticados_EscrituraAdministrador]
+    pagination_class = PaginacionListado
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["estado"]
     search_fields = ["galpon", "descripcion"]

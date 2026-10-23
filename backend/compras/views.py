@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from usuarios.permissions import LecturaAdministradorYConsulta_EscrituraAdministrador
 
+from config.pagination import PaginacionListado
 from .models import Compra
 from .serializers import CompraSerializer, LotePendienteSerializer
 from .stock import lotes_pendientes_de_asignar
@@ -59,6 +60,7 @@ class CompraViewSet(viewsets.ModelViewSet):
     )
     serializer_class = CompraSerializer
     permission_classes = [LecturaAdministradorYConsulta_EscrituraAdministrador]
+    pagination_class = PaginacionListado
     filter_backends = [
         django_filters.DjangoFilterBackend,
         filters.SearchFilter,

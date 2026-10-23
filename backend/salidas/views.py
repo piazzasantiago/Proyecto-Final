@@ -10,6 +10,7 @@ from descartes.stock import verificar_stock
 from productos.models import Producto
 from usuarios.permissions import EsAdministradorOOperario
 
+from config.pagination import PaginacionListado
 from .models import Salida
 from .serializers import SalidaSerializer
 
@@ -58,6 +59,7 @@ class SalidaViewSet(viewsets.ModelViewSet):
         .all()
     )
     serializer_class = SalidaSerializer
+    pagination_class = PaginacionListado
     filter_backends = [django_filters.DjangoFilterBackend]
     filterset_class = SalidaFilter
 

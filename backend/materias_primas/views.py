@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 
+from config.pagination import PaginacionListado
 from .models import MateriaPrima
 from .normalizacion import normalizar_nombre
 from .serializers import MateriaPrimaSerializer
@@ -31,6 +32,7 @@ class MateriaPrimaViewSet(viewsets.ModelViewSet):
     queryset = MateriaPrima.objects.all()  # get_queryset() agrega el stock descartado
     serializer_class = MateriaPrimaSerializer
     permission_classes = [LecturaAutenticados_EscrituraAdministrador]
+    pagination_class = PaginacionListado
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["estado"]
     search_fields = ["materia_prima", "descripcion"]
