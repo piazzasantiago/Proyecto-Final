@@ -3,6 +3,8 @@ import { listSalidas, deleteSalida, finalizarSalida } from "../api/salidas";
 import { listProductos } from "../api/productos";
 import SalidaFormModal from "../components/SalidaFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import { traerTodas } from "../api/paginado";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -31,18 +33,6 @@ function totalUnidades(s) {
   return (s.lineas ?? []).reduce((acc, l) => acc + Number(l.cantidad || 0), 0);
 }
 
-/** Recorre todas las páginas de un listado paginado de DRF. */
-async function traerTodas(listFn, params) {
-  const resultados = [];
-  for (let page = 1; page <= 50; page++) {
-    const data = await listFn({ ...params, page });
-    if (Array.isArray(data)) return data;
-    resultados.push(...data.results);
-    if (!data.next) break;
-  }
-  return resultados;
-}
-
 export default function SalidasPage() {
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
@@ -50,6 +40,9 @@ export default function SalidasPage() {
   const [salidas, setSalidas] = useState([]);
   const [productos, setProductos] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("salidas", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fechaDesde, setFechaDesde] = useState("");
@@ -64,19 +57,26 @@ export default function SalidasPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
       if (productoFilter) params.id_producto = productoFilter;
       if (estadoFilter) params.estado = estadoFilter;
-      const lista = await traerTodas(listSalidas, params);
+      const data = await listSalidas(params);
+      const lista = data.results ?? data;
       setSalidas(lista);
+      setCount(data.count ?? lista.length);
       setSelectedId((actual) => {
         if (seleccionar) return seleccionar;
         if (actual && lista.some((s) => s.id_salida === actual)) return actual;
         return lista.length > 0 ? lista[0].id_salida : null;
       });
-    } catch {
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
+      }
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -86,7 +86,7 @@ export default function SalidasPage() {
   useEffect(() => {
     fetchSalidas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaDesde, fechaHasta, productoFilter, estadoFilter]);
+  }, [fechaDesde, fechaHasta, productoFilter, estadoFilter, page, pageSize]);
 
   // Catálogo de productos para el formulario y el filtro: se carga una vez.
   useEffect(() => {
@@ -98,7 +98,16 @@ export default function SalidasPage() {
     [salidas, selectedId]
   );
 
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
+
   function limpiarFiltros() {
+    setPage(1);
     setFechaDesde("");
     setFechaHasta("");
     setProductoFilter("");
@@ -116,7 +125,14 @@ export default function SalidasPage() {
   }
 
   async function handleSaved(result) {
+    const eraAlta = modalMode === "create";
     setModalMode(null);
+    if (eraAlta && page !== 1) {
+      // El alta queda primera: se vuelve a la página 1 (el efecto recarga la lista).
+      setSelectedId(result?.id_salida ?? null);
+      setPage(1);
+      return;
+    }
     await fetchSalidas(result?.id_salida);
   }
 
@@ -181,7 +197,7 @@ export default function SalidasPage() {
             className="filter-date"
             value={fechaDesde}
             max={fechaHasta || undefined}
-            onChange={(e) => setFechaDesde(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaDesde)(e.target.value)}
           />
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
@@ -191,13 +207,13 @@ export default function SalidasPage() {
             className="filter-date"
             value={fechaHasta}
             min={fechaDesde || undefined}
-            onChange={(e) => setFechaHasta(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaHasta)(e.target.value)}
           />
         </label>
         <select
           className="select-filter"
           value={productoFilter}
-          onChange={(e) => setProductoFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setProductoFilter)(e.target.value)}
         >
           <option value="">Producto: Todos</option>
           {productos.map((p) => (
@@ -210,7 +226,7 @@ export default function SalidasPage() {
         <select
           className="select-filter"
           value={estadoFilter}
-          onChange={(e) => setEstadoFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}
         >
           <option value="">Estado: Todos</option>
           <option value={ESTADO_PENDIENTE}>Pendiente</option>
@@ -280,6 +296,16 @@ export default function SalidasPage() {
                 </tbody>
               </table>
             )}
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {/* ── Panel de detalle ────────────────────────────────────── */}

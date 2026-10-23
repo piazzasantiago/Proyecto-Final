@@ -9,12 +9,16 @@ import {
 } from "../api/productos";
 import ProductoFormModal from "../components/ProductoFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function ProductosPage() {
   const { esAdministrador } = useAuth();
 
   const [productos, setProductos] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("productos", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -26,15 +30,23 @@ export default function ProductosPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (search) params.search = search;
       if (estadoFilter) params.estado = estadoFilter;
       const data = await listProductos(params);
-      setProductos(data.results ?? data);
-      if (!selectedId && (data.results ?? data).length > 0) {
-        setSelectedId((data.results ?? data)[0].id_producto);
+      const lista = data.results ?? data;
+      setProductos(lista);
+      setCount(data.count ?? lista.length);
+      // Si el elemento seleccionado no está en esta página, se muestra el primero.
+      setSelectedId((actual) =>
+        lista.some((x) => x.id_producto === actual) ? actual : (lista[0]?.id_producto ?? null)
+      );
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
       }
-    } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -44,7 +56,15 @@ export default function ProductosPage() {
   useEffect(() => {
     fetchProductos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, estadoFilter]);
+  }, [search, estadoFilter, page, pageSize]);
+
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
 
   const selected = useMemo(
     () => productos.find((p) => p.id_producto === selectedId) || null,
@@ -54,6 +74,12 @@ export default function ProductosPage() {
   async function handleCreate(data) {
     const created = await createProducto(data);
     setModalMode(null);
+    if (page !== 1) {
+      // El alta puede quedar en la primera página: se vuelve a ella (el efecto recarga).
+      setSelectedId(created.id_producto);
+      setPage(1);
+      return;
+    }
     await fetchProductos();
     setSelectedId(created.id_producto);
   }
@@ -128,10 +154,10 @@ export default function ProductosPage() {
             type="text"
             placeholder="Buscar por nombre o descripción..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
-        <select className="select-filter" value={estadoFilter} onChange={(e) => setEstadoFilter(e.target.value)}>
+        <select className="select-filter" value={estadoFilter} onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}>
           <option value="">Estado: Todos</option>
           <option value="A">Activo</option>
           <option value="I">Inactivo</option>
@@ -143,36 +169,48 @@ export default function ProductosPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="producto-grid">
-            {productos.length === 0 && (
-              <div className="empty-state">
-                {esAdministrador
-                  ? 'No hay productos registrados todavía. Creá el primero con "Nuevo producto".'
-                  : "No hay productos registrados."}
-              </div>
-            )}
-            {productos.map((p) => (
-              <div
-                key={p.id_producto}
-                className={`producto-card ${p.id_producto === selectedId ? "card-selected" : ""}`}
-                onClick={() => { setSelectedId(p.id_producto); setActionError(null); }}
-              >
-                <div className="pc-top">
-                  <div className="pc-icon"><i className="fa-solid fa-egg"></i></div>
-                  <span className={`badge ${p.estado === "A" ? "badge-green" : "badge-red"}`}>
-                    {p.estado_display}
-                  </span>
+          <div className="card-column">
+            <div className="producto-grid">
+              {productos.length === 0 && (
+                <div className="empty-state">
+                  {esAdministrador
+                    ? 'No hay productos registrados todavía. Creá el primero con "Nuevo producto".'
+                    : "No hay productos registrados."}
                 </div>
-                <div>
-                  <div className="pc-name">{p.producto}</div>
-                  {p.descripcion && <div className="pc-desc">{p.descripcion}</div>}
+              )}
+              {productos.map((p) => (
+                <div
+                  key={p.id_producto}
+                  className={`producto-card ${p.id_producto === selectedId ? "card-selected" : ""}`}
+                  onClick={() => { setSelectedId(p.id_producto); setActionError(null); }}
+                >
+                  <div className="pc-top">
+                    <div className="pc-icon"><i className="fa-solid fa-egg"></i></div>
+                    <span className={`badge ${p.estado === "A" ? "badge-green" : "badge-red"}`}>
+                      {p.estado_display}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="pc-name">{p.producto}</div>
+                    {p.descripcion && <div className="pc-desc">{p.descripcion}</div>}
+                  </div>
+                  <div className="pc-stock">
+                    <span className="pc-stock-value">{p.stock_actual}</span>
+                    <span className="pc-stock-label">en stock</span>
+                  </div>
                 </div>
-                <div className="pc-stock">
-                  <span className="pc-stock-value">{p.stock_actual}</span>
-                  <span className="pc-stock-label">en stock</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {selected && (

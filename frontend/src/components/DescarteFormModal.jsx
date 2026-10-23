@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createDescarte, updateDescarte } from "../api/descartes";
 import { listLotes } from "../api/lotes";
+import { traerTodas } from "../api/paginado";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -141,9 +142,9 @@ export default function DescarteFormModal({
       return;
     }
     let cancelado = false;
-    listLotes({ id_galpon: form.id_galpon })
-      .then((d) => {
-        if (!cancelado) setLotes(d.results ?? d);
+    traerTodas(listLotes, { id_galpon: form.id_galpon })
+      .then((lista) => {
+        if (!cancelado) setLotes(lista);
       })
       .catch(() => {
         if (!cancelado) setLotes([]);

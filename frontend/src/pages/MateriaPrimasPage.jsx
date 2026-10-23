@@ -9,12 +9,16 @@ import {
 } from "../api/materias-primas";
 import MateriaPrimaFormModal from "../components/MateriaPrimaFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function MateriaPrimasPage() {
   const { esAdministrador } = useAuth();
 
   const [materias, setMaterias] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("materias-primas", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -26,15 +30,23 @@ export default function MateriaPrimasPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (search) params.search = search;
       if (estadoFilter) params.estado = estadoFilter;
       const data = await listMateriasPrimas(params);
-      setMaterias(data.results ?? data);
-      if (!selectedId && (data.results ?? data).length > 0) {
-        setSelectedId((data.results ?? data)[0].id_materia_prima);
+      const lista = data.results ?? data;
+      setMaterias(lista);
+      setCount(data.count ?? lista.length);
+      // Si el elemento seleccionado no está en esta página, se muestra el primero.
+      setSelectedId((actual) =>
+        lista.some((x) => x.id_materia_prima === actual) ? actual : (lista[0]?.id_materia_prima ?? null)
+      );
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
       }
-    } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -44,7 +56,15 @@ export default function MateriaPrimasPage() {
   useEffect(() => {
     fetchMaterias();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, estadoFilter]);
+  }, [search, estadoFilter, page, pageSize]);
+
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
 
   const selected = useMemo(
     () => materias.find((m) => m.id_materia_prima === selectedId) || null,
@@ -54,6 +74,12 @@ export default function MateriaPrimasPage() {
   async function handleCreate(data) {
     const created = await createMateriaPrima(data);
     setModalMode(null);
+    if (page !== 1) {
+      // El alta puede quedar en la primera página: se vuelve a ella (el efecto recarga).
+      setSelectedId(created.id_materia_prima);
+      setPage(1);
+      return;
+    }
     await fetchMaterias();
     setSelectedId(created.id_materia_prima);
   }
@@ -127,10 +153,10 @@ export default function MateriaPrimasPage() {
             type="text"
             placeholder="Buscar por nombre o descripción..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
-        <select className="select-filter" value={estadoFilter} onChange={(e) => setEstadoFilter(e.target.value)}>
+        <select className="select-filter" value={estadoFilter} onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}>
           <option value="">Estado: Todos</option>
           <option value="A">Activo</option>
           <option value="I">Inactivo</option>
@@ -142,46 +168,58 @@ export default function MateriaPrimasPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="card-grid">
-            {materias.length === 0 && (
-              <div className="empty-state">
-                {esAdministrador
-                  ? 'No hay materias primas registradas todavía. Creá la primera con "Nueva materia prima".'
-                  : "No hay materias primas registradas."}
-              </div>
-            )}
-            {materias.map((m) => {
-              const stockBajo = Number(m.stock_actual) < Number(m.stock_minimo);
-              return (
-                <div
-                  key={m.id_materia_prima}
-                  className={`galpon-card ${m.id_materia_prima === selectedId ? "card-selected" : ""}`}
-                  onClick={() => { setSelectedId(m.id_materia_prima); setActionError(null); }}
-                >
-                  <div className="gc-top">
-                    <div>
-                      <div className="gc-name" style={{ fontSize: "1rem", fontWeight: 600, color: "var(--gray-900)" }}>{m.materia_prima}</div>
-                    </div>
-                    <span className={`badge ${m.estado === "A" ? "badge-green" : "badge-red"}`}>
-                      {m.estado_display}
-                    </span>
-                  </div>
-                  <div className="gc-stats">
-                    <div className="gc-stat">
-                      <i className="fa-solid fa-cubes-stacked"></i> Stock actual: <strong>{m.stock_actual} {m.unidad}</strong>
-                    </div>
-                    <div className="gc-stat">
-                      <i className="fa-solid fa-arrow-down-to-line"></i> Mínimo: {m.stock_minimo} {m.unidad}
-                    </div>
-                    {stockBajo && (
-                      <div className="gc-stat" style={{ color: "#c0392b", fontWeight: 500 }}>
-                        <i className="fa-solid fa-triangle-exclamation"></i> Stock por debajo del mínimo
-                      </div>
-                    )}
-                  </div>
+          <div className="card-column">
+            <div className="card-grid">
+              {materias.length === 0 && (
+                <div className="empty-state">
+                  {esAdministrador
+                    ? 'No hay materias primas registradas todavía. Creá la primera con "Nueva materia prima".'
+                    : "No hay materias primas registradas."}
                 </div>
-              );
-            })}
+              )}
+              {materias.map((m) => {
+                const stockBajo = Number(m.stock_actual) < Number(m.stock_minimo);
+                return (
+                  <div
+                    key={m.id_materia_prima}
+                    className={`galpon-card ${m.id_materia_prima === selectedId ? "card-selected" : ""}`}
+                    onClick={() => { setSelectedId(m.id_materia_prima); setActionError(null); }}
+                  >
+                    <div className="gc-top">
+                      <div>
+                        <div className="gc-name" style={{ fontSize: "1rem", fontWeight: 600, color: "var(--gray-900)" }}>{m.materia_prima}</div>
+                      </div>
+                      <span className={`badge ${m.estado === "A" ? "badge-green" : "badge-red"}`}>
+                        {m.estado_display}
+                      </span>
+                    </div>
+                    <div className="gc-stats">
+                      <div className="gc-stat">
+                        <i className="fa-solid fa-cubes-stacked"></i> Stock actual: <strong>{m.stock_actual} {m.unidad}</strong>
+                      </div>
+                      <div className="gc-stat">
+                        <i className="fa-solid fa-arrow-down-to-line"></i> Mínimo: {m.stock_minimo} {m.unidad}
+                      </div>
+                      {stockBajo && (
+                        <div className="gc-stat" style={{ color: "#c0392b", fontWeight: 500 }}>
+                          <i className="fa-solid fa-triangle-exclamation"></i> Stock por debajo del mínimo
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {selected && (

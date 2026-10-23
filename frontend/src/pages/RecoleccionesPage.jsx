@@ -9,24 +9,13 @@ import { listProductos } from "../api/productos";
 import { listLotes } from "../api/lotes";
 import RecoleccionFormModal from "../components/RecoleccionFormModal";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import { traerTodas } from "../api/paginado";
 import { useAuth } from "../context/AuthContext";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
 // Registros por página por defecto; el usuario puede cambiarlo en la barra de paginación.
 const PAGE_SIZE = 16;
-
-/** Recorre todas las páginas de un listado paginado de DRF. */
-async function traerTodas(listFn, params) {
-  const resultados = [];
-  for (let page = 1; page <= 50; page++) {
-    const data = await listFn({ ...params, page });
-    if (Array.isArray(data)) return data;
-    resultados.push(...data.results);
-    if (!data.next) break;
-  }
-  return resultados;
-}
 
 function formatFecha(iso) {
   if (!iso) return "—";
@@ -108,11 +97,11 @@ export default function RecoleccionesPage() {
 
   useEffect(() => {
     fetchRecolecciones();
-    listGalpones({ estado: "A" })
-      .then((d) => setGalpones(d.results ?? d))
+    traerTodas(listGalpones, { estado: "A" })
+      .then(setGalpones)
       .catch(() => setGalpones([]));
-    listProductos({ estado: "A" })
-      .then((d) => setProductos(d.results ?? d))
+    traerTodas(listProductos, { estado: "A" })
+      .then(setProductos)
       .catch(() => setProductos([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [galponFilter, loteFilter, estadoFilter, fechaDesde, fechaHasta, page, pageSize]);

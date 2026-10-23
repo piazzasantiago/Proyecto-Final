@@ -4,6 +4,8 @@ import { listGalpones } from "../api/galpones";
 import { listMateriasPrimas } from "../api/materias-primas";
 import EntradaFormModal from "../components/EntradaFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import { traerTodas } from "../api/paginado";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -34,18 +36,6 @@ function formatCantidad(valor) {
   return Number.isNaN(n) ? "—" : n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
 }
 
-/** Recorre todas las páginas de un listado paginado de DRF. */
-async function traerTodas(listFn, params) {
-  const resultados = [];
-  for (let page = 1; page <= 50; page++) {
-    const data = await listFn({ ...params, page });
-    if (Array.isArray(data)) return data;
-    resultados.push(...data.results);
-    if (!data.next) break;
-  }
-  return resultados;
-}
-
 export default function EntradasPage() {
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
@@ -54,6 +44,9 @@ export default function EntradasPage() {
   const [galpones, setGalpones] = useState([]);
   const [materiasPrimas, setMateriasPrimas] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("entradas", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fechaDesde, setFechaDesde] = useState("");
@@ -71,20 +64,27 @@ export default function EntradasPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
       if (galponFilter) params.id_galpon = galponFilter;
       if (materiaFilter) params.id_materia_prima = materiaFilter;
       if (estadoFilter) params.estado = estadoFilter;
-      const lista = await traerTodas(listEntradas, params);
+      const data = await listEntradas(params);
+      const lista = data.results ?? data;
       setEntradas(lista);
+      setCount(data.count ?? lista.length);
       setSelectedId((actual) => {
         if (seleccionar) return seleccionar;
         if (actual && lista.some((e) => e.id_entrada === actual)) return actual;
         return lista.length > 0 ? lista[0].id_entrada : null;
       });
-    } catch {
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
+      }
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -94,7 +94,7 @@ export default function EntradasPage() {
   useEffect(() => {
     fetchEntradas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaDesde, fechaHasta, galponFilter, materiaFilter, estadoFilter]);
+  }, [fechaDesde, fechaHasta, galponFilter, materiaFilter, estadoFilter, page, pageSize]);
 
   // Catálogos para el formulario y los filtros: se cargan una vez.
   useEffect(() => {
@@ -107,7 +107,16 @@ export default function EntradasPage() {
     [entradas, selectedId]
   );
 
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
+
   function limpiarFiltros() {
+    setPage(1);
     setFechaDesde("");
     setFechaHasta("");
     setGalponFilter("");
@@ -126,7 +135,14 @@ export default function EntradasPage() {
   }
 
   async function handleSaved(result) {
+    const eraAlta = modalMode === "create";
     setModalMode(null);
+    if (eraAlta && page !== 1) {
+      // El alta queda primera: se vuelve a la página 1 (el efecto recarga la lista).
+      setSelectedId(result?.id_entrada ?? null);
+      setPage(1);
+      return;
+    }
     await fetchEntradas(result?.id_entrada);
   }
 
@@ -191,7 +207,7 @@ export default function EntradasPage() {
             className="filter-date"
             value={fechaDesde}
             max={fechaHasta || undefined}
-            onChange={(e) => setFechaDesde(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaDesde)(e.target.value)}
           />
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
@@ -201,13 +217,13 @@ export default function EntradasPage() {
             className="filter-date"
             value={fechaHasta}
             min={fechaDesde || undefined}
-            onChange={(e) => setFechaHasta(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaHasta)(e.target.value)}
           />
         </label>
         <select
           className="select-filter"
           value={galponFilter}
-          onChange={(e) => setGalponFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setGalponFilter)(e.target.value)}
         >
           <option value="">Galpón: Todos</option>
           {galpones.map((g) => (
@@ -219,7 +235,7 @@ export default function EntradasPage() {
         <select
           className="select-filter"
           value={materiaFilter}
-          onChange={(e) => setMateriaFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setMateriaFilter)(e.target.value)}
         >
           <option value="">Materia prima: Todas</option>
           {materiasPrimas.map((m) => (
@@ -231,7 +247,7 @@ export default function EntradasPage() {
         <select
           className="select-filter"
           value={estadoFilter}
-          onChange={(e) => setEstadoFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}
         >
           <option value="">Estado: Todos</option>
           <option value={ESTADO_PENDIENTE}>Pendiente</option>
@@ -301,6 +317,16 @@ export default function EntradasPage() {
                 </tbody>
               </table>
             )}
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {/* ── Panel de detalle ────────────────────────────────────── */}

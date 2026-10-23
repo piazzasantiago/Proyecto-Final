@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-/** Opciones de "filas por página" que ofrece la barra. */
+/** Opciones de "elementos por página" que ofrece la barra. */
 export const TAMANOS_PAGINA = [10, 16, 25, 50];
 
 /**
@@ -74,14 +74,15 @@ export function numerosDePagina(actual, total, vecinas = 2) {
  *   pageSize          registros por página (debe coincidir con el `page_size` pedido)
  *   onChange          recibe el número de página a la que ir
  *   onPageSizeChange  (opcional) recibe el nuevo tamaño; si se pasa, se muestra
- *                     el selector de "Filas por página"
+ *                     el selector de "Elementos por página"
  *
- * No se muestra si todo entra en la página más chica.
+ * Se muestra siempre que haya registros, aunque haya una sola página: en ese caso
+ * el único número queda activo y Anterior / Siguiente deshabilitados. Cambiar los
+ * elementos por página no altera lo que se ve si todo sigue entrando en una página.
  */
 export default function Paginacion({ page, count, pageSize, onChange, onPageSizeChange }) {
   const totalPaginas = Math.max(1, Math.ceil(count / pageSize));
-  const minimo = onPageSizeChange ? Math.min(...TAMANOS_PAGINA) : pageSize;
-  if (count <= minimo) return null;
+  if (count === 0) return null;
 
   const desde = (page - 1) * pageSize + 1;
   const hasta = Math.min(page * pageSize, count);
@@ -95,7 +96,7 @@ export default function Paginacion({ page, count, pageSize, onChange, onPageSize
       <div className="paginacion-controles">
         {onPageSizeChange && (
           <label className="paginacion-tamano">
-            Filas por página
+            Elementos por página
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}

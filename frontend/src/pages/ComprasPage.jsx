@@ -4,6 +4,8 @@ import { listProveedores } from "../api/proveedores";
 import { listMateriasPrimas } from "../api/materias-primas";
 import CompraFormModal from "../components/CompraFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import { traerTodas } from "../api/paginado";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -35,18 +37,6 @@ function formatPrecio(valor) {
       });
 }
 
-/** Recorre todas las páginas de un listado paginado de DRF. */
-async function traerTodas(listFn, params) {
-  const resultados = [];
-  for (let page = 1; page <= 50; page++) {
-    const data = await listFn({ ...params, page });
-    if (Array.isArray(data)) return data;
-    resultados.push(...data.results);
-    if (!data.next) break;
-  }
-  return resultados;
-}
-
 export default function ComprasPage() {
   // Solo el administrador escribe; el rol Consulta únicamente lee.
   const { esAdministrador } = useAuth();
@@ -55,6 +45,9 @@ export default function ComprasPage() {
   const [proveedores, setProveedores] = useState([]);
   const [materiasPrimas, setMateriasPrimas] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("compras", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -73,21 +66,28 @@ export default function ComprasPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (search) params.search = search;
       if (proveedorFilter) params.id_proveedor = proveedorFilter;
       if (categoriaFilter) params.categoria = categoriaFilter;
       if (estadoFilter) params.estado = estadoFilter;
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
-      const lista = await traerTodas(listCompras, params);
+      const data = await listCompras(params);
+      const lista = data.results ?? data;
       setCompras(lista);
+      setCount(data.count ?? lista.length);
       setSelectedId((actual) => {
         if (seleccionar) return seleccionar;
         if (actual && lista.some((c) => c.id_compra === actual)) return actual;
         return lista.length > 0 ? lista[0].id_compra : null;
       });
-    } catch {
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
+      }
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -97,7 +97,7 @@ export default function ComprasPage() {
   useEffect(() => {
     fetchCompras();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, proveedorFilter, categoriaFilter, estadoFilter, fechaDesde, fechaHasta]);
+  }, [search, proveedorFilter, categoriaFilter, estadoFilter, fechaDesde, fechaHasta, page, pageSize]);
 
   // Catálogos para el formulario y los filtros: se cargan una vez.
   useEffect(() => {
@@ -112,7 +112,16 @@ export default function ComprasPage() {
     [compras, selectedId]
   );
 
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
+
   function limpiarFiltros() {
+    setPage(1);
     setSearch("");
     setProveedorFilter("");
     setCategoriaFilter("");
@@ -122,7 +131,14 @@ export default function ComprasPage() {
   }
 
   async function handleSaved(result) {
+    const eraAlta = modalMode === "create";
     setModalMode(null);
+    if (eraAlta && page !== 1) {
+      // El alta queda primera: se vuelve a la página 1 (el efecto recarga la lista).
+      setSelectedId(result?.id_compra ?? null);
+      setPage(1);
+      return;
+    }
     await fetchCompras(result?.id_compra);
   }
 
@@ -188,13 +204,13 @@ export default function ComprasPage() {
             type="text"
             placeholder="Buscar por Nº de factura..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
         <select
           className="select-filter"
           value={proveedorFilter}
-          onChange={(e) => setProveedorFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setProveedorFilter)(e.target.value)}
         >
           <option value="">Proveedor: Todos</option>
           {proveedores.map((p) => (
@@ -206,7 +222,7 @@ export default function ComprasPage() {
         <select
           className="select-filter"
           value={categoriaFilter}
-          onChange={(e) => setCategoriaFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setCategoriaFilter)(e.target.value)}
         >
           <option value="">Categoría: Todas</option>
           <option value="M">Materias primas</option>
@@ -215,7 +231,7 @@ export default function ComprasPage() {
         <select
           className="select-filter"
           value={estadoFilter}
-          onChange={(e) => setEstadoFilter(e.target.value)}
+          onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}
         >
           <option value="">Estado: Todos</option>
           <option value={ESTADO_PENDIENTE}>Pendiente</option>
@@ -228,7 +244,7 @@ export default function ComprasPage() {
             className="filter-date"
             value={fechaDesde}
             max={fechaHasta || undefined}
-            onChange={(e) => setFechaDesde(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaDesde)(e.target.value)}
           />
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
@@ -238,7 +254,7 @@ export default function ComprasPage() {
             className="filter-date"
             value={fechaHasta}
             min={fechaDesde || undefined}
-            onChange={(e) => setFechaHasta(e.target.value)}
+            onChange={(e) => cambiarFiltro(setFechaHasta)(e.target.value)}
           />
         </label>
         {hayFiltros && (
@@ -309,6 +325,16 @@ export default function ComprasPage() {
                 </tbody>
               </table>
             )}
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {/* ── Panel de detalle ────────────────────────────────────── */}

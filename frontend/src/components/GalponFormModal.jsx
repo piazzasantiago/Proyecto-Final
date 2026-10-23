@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { listOperarios } from "../api/usuarios";
+import { traerTodas } from "../api/paginado";
 
 const emptyForm = {
   galpon: "",
@@ -37,8 +38,8 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    listOperarios()
-      .then((data) => setOperariosDisponibles(data.results ?? data))
+    traerTodas(listOperarios)
+      .then(setOperariosDisponibles)
       .catch(() => setOperariosDisponibles([]));
   }, []);
 
