@@ -32,6 +32,40 @@ export function useTamanoPagina(clave, porDefecto = 16) {
 }
 
 /**
+ * Números de página a mostrar, con "…" para los tramos omitidos. Siempre
+ * incluye la primera, la última y las vecinas de la actual:
+ * El ancho es constante (9 elementos) para que la barra no "salte" al cambiar
+ * de página:
+ *   total 5             -> 1 2 3 4 5
+ *   total 20, actual 1  -> 1 2 3 4 5 6 7 … 20
+ *   total 20, actual 9  -> 1 … 7 8 9 10 11 … 20
+ *   total 20, actual 20 -> 1 … 14 15 16 17 18 19 20
+ */
+export function numerosDePagina(actual, total, vecinas = 2) {
+  const visibles = vecinas * 2 + 5; // primera, última, actual, vecinas y 2 "…"
+  if (total <= visibles) return Array.from({ length: total }, (_, i) => i + 1);
+
+  // Ventana de números alrededor de la actual, sin salirse de 2..total-1;
+  // pegada al borde cuando la actual está cerca del principio o del final.
+  const largo = vecinas * 2 + 3;
+  let desde = Math.max(2, actual - vecinas);
+  let hasta = Math.min(total - 1, actual + vecinas);
+  if (actual <= vecinas + 2) {
+    desde = 2;
+    hasta = largo;
+  } else if (actual >= total - vecinas - 1) {
+    hasta = total - 1;
+    desde = total - largo + 1;
+  }
+  const paginas = [1];
+  if (desde > 2) paginas.push("…");
+  for (let n = desde; n <= hasta; n++) paginas.push(n);
+  if (hasta < total - 1) paginas.push("…");
+  paginas.push(total);
+  return paginas;
+}
+
+/**
  * Barra de paginación reutilizable para listados paginados por el backend.
  *
  * Props:
@@ -82,9 +116,25 @@ export default function Paginacion({ page, count, pageSize, onChange, onPageSize
         >
           <i className="fa-solid fa-chevron-left"></i> Anterior
         </button>
-        <span className="paginacion-pagina">
-          Página {page} de {totalPaginas}
-        </span>
+        <nav className="paginacion-numeros" aria-label="Páginas">
+          {numerosDePagina(page, totalPaginas).map((n, i) =>
+            n === "…" ? (
+              <span key={`gap-${i}`} className="paginacion-puntos">
+                …
+              </span>
+            ) : (
+              <button
+                key={n}
+                className={`paginacion-numero ${n === page ? "activo" : ""}`}
+                onClick={() => n !== page && onChange(n)}
+                aria-label={`Página ${n}`}
+                aria-current={n === page ? "page" : undefined}
+              >
+                {n}
+              </button>
+            )
+          )}
+        </nav>
         <button
           className="btn btn-outline"
           onClick={() => onChange(page + 1)}
