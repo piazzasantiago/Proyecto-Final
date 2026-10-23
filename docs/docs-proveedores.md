@@ -191,6 +191,24 @@ por eso se agregaron `nombre` y `cuit`. Ver `modelo-relacional/anotaciones.md`.
 
 ---
 
+### Paginación del listado
+
+`GET /api/proveedores/` devuelve los resultados paginados de a **16 registros**
+(`?page=N`), con la forma `count`, `next`, `previous` y `results`. Se puede pedir
+otro tamaño con `?page_size=` (máximo 100) y los filtros y la búsqueda se aplican
+**antes** de paginar. Usa `PaginacionListado` (`backend/config/pagination.py`), la
+misma clase que Recolecciones.
+
+Las tarjetas se paginan y la barra de paginación queda debajo de la grilla (`src/pages/ProveedoresPage.jsx`): "Mostrando X–Y de N", Anterior / Siguiente, números de
+página clickeables y selector de elementos por página (la barra se muestra siempre, también con una sola página), que se recuerda en el
+navegador (`useTamanoPagina("proveedores")`). Al cambiar un filtro o la búsqueda se vuelve
+a la página 1, y si al eliminar un registro la página queda vacía se retrocede a
+la anterior. El desplegable de proveedores de Compras los trae con `traerTodas`.
+
+Tests: `PaginacionProveedoresTests` en `backend/config/tests_pagination.py` (7 tests: 16 por página,
+última página con el resto, `page_size`, páginas sin repetidos, página inexistente
+→ 404 y filtro aplicado antes de paginar).
+
 ## 8. Tests
 
 `python manage.py test proveedores` — 64 tests en 8 clases: Buscar, Nuevo,
