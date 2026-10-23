@@ -23,8 +23,9 @@ Permite filtrar por galpón (`?id_galpon=`), lote (`?id_lote=`), estado
 (`?estado=P|F`) y rango de fechas (`?fecha_desde=AAAA-MM-DD` y
 `?fecha_hasta=AAAA-MM-DD`); los filtros se pueden combinar. Las fechas son
 inclusivas y se comparan por día, de modo que una recolección de las 23:00 entra
-con `fecha_hasta` de ese mismo día. Una fecha con formato inválido, o una
-`fecha_desde` posterior a `fecha_hasta`, devuelve 400. El detalle de una
+con `fecha_hasta` de ese mismo día. Una fecha con formato inválido, una
+`fecha_desde` posterior a `fecha_hasta`, o un `id_galpon` / `id_lote` que no sea un
+número entero válido, devuelve 400. El detalle de una
 recolección se obtiene con `GET /api/recolecciones/{id}/`.
 
 El listado está **paginado de a 16 registros** (`?page=N`). Se puede pedir otro
@@ -33,6 +34,11 @@ tamaño con `?page_size=N` (máximo 100). La respuesta trae `count`, `next`,
 
 En la pantalla, la barra de paginación permite elegir las **filas por página**
 (10, 16, 25 o 50; 16 por defecto). La elección se recuerda en el navegador.
+Entre "Anterior" y "Siguiente" se muestran los **números de página**, que se
+pueden tocar para ir directo a esa página. La cantidad de páginas se calcula con
+las filas elegidas, y cuando son muchas se muestran la primera, la última y las
+cercanas a la actual, con "…" en los tramos omitidos (por ejemplo
+`1 … 7 8 9 10 11 … 20`). Al cambiar las filas por página se vuelve a la página 1.
 
 #### CU25 – Nueva Recolección
 
@@ -379,7 +385,7 @@ automáticamente.
 
 ## Tests
 
-Se implementaron **90 tests** en `backend/recolecciones/tests.py`, organizados
+Se implementaron **95 tests** en `backend/recolecciones/tests.py`, organizados
 en 16 clases:
 
 | Clase | Tests | Qué verifica |
@@ -398,7 +404,7 @@ en 16 clases:
 | `ProductoDesactivadoTests` | 4 | Conservar un producto desactivado al editar, sumar uno activo, no agregar uno inactivo nuevo, no crear con inactivo |
 | `StockDeProductosTests` | 5 | El stock de Productos: sin recolecciones es el inicial, las pendientes no suman, las finalizadas sí, finalizar por la API lo sube, suma varias y separa por producto |
 | `BorrarFinalizadaBloqueadoTests` | 4 | Una finalizada devuelve 409 al Administrador, el Operario sigue recibiendo 403, el stock y las líneas no cambian, una pendiente sí se elimina |
-| `FiltrosRecoleccionTests` | 8 | Fecha desde y hasta inclusivas (una recolección de las 23:00 entra con ese día), rango, mismo día, filtro por lote, filtros combinados, fecha inválida → 400, desde posterior a hasta → 400 |
+| `FiltrosRecoleccionTests` | 13 | Fecha desde y hasta inclusivas (una recolección de las 23:00 entra con ese día), rango, mismo día, filtro por lote, filtros combinados, fecha inválida → 400, desde posterior a hasta → 400, `id_lote` / `id_galpon` no numérico o fuera de rango → 400, lote o galpón inexistente → lista vacía, `page_size` inválido usa el valor por defecto, Consulta y Operario pueden filtrar |
 | `PaginacionRecoleccionTests` | 5 | 16 por página, última página con el resto, página inexistente → 404, `page_size` con tope de 100, el filtro se aplica antes de paginar |
 
 Ejecutar:
@@ -423,7 +429,7 @@ python manage.py test recolecciones --verbosity=2
 | `recolecciones/views.py` | Nuevo: `RecoleccionViewSet` con `perform_create` (inyecta `id_lote` e `id_usuario`), acción `/finalizar/`, filtros por galpón, lote, estado y fechas, paginación y borrado solo de pendientes (409 en finalizadas) |
 | `config/pagination.py` | Nuevo: `PaginacionListado` (16 por página, `page_size` hasta 100), reutilizable por otros módulos |
 | `recolecciones/urls.py` | Nuevo: router DRF |
-| `recolecciones/tests.py` | Nuevo: 90 tests |
+| `recolecciones/tests.py` | Nuevo: 95 tests |
 | `usuarios/models.py` | Agrega propiedad `es_operario` al modelo `Usuario` |
 | `usuarios/migrations/0002_alter_usuario_options.py` | Sincroniza opciones de Meta (`verbose_name`, `verbose_name_plural`) |
 | `usuarios/permissions.py` | Agrega clases `EsOperario` y `EsAdministradorOOperario` |
@@ -434,7 +440,7 @@ python manage.py test recolecciones --verbosity=2
 | Archivo | Cambio |
 |---|---|
 | `src/api/recolecciones.js` | Nuevo: `listRecolecciones`, `createRecoleccion`, `updateRecoleccion`, `deleteRecoleccion`, `finalizarRecoleccion` |
-| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
-| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N", selector de filas por página y hook `useTamanoPagina` que recuerda la elección) |
+| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación con selector de filas por página; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
+| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N", números de página clickeables, selector de filas por página y hook `useTamanoPagina` que recuerda la elección) |
 | `src/index.css` | Estilos de la barra de paginación |
 | `src/components/RecoleccionFormModal.jsx` | Nuevo: modal de alta y edición con gestión dinámica de líneas |
