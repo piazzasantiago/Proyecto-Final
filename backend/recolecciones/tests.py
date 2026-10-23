@@ -16,10 +16,10 @@ Clases de tests:
     ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
     StockDeProductosTests         (5)  el stock de Productos suma recolecciones finalizadas
     BorrarFinalizadaBloqueadoTests (4) una finalizada no se elimina (409), sea cual sea el rol
-    FiltrosRecoleccionTests       (8)  filtros por fecha desde/hasta (inclusivos) y lote
+    FiltrosRecoleccionTests      (13)  filtros por fecha desde/hasta (inclusivos) y lote, ids inválidos, page_size inválido, roles
     PaginacionRecoleccionTests    (5)  16 por página, page_size con tope, filtros antes de paginar
 
-Total: 90 tests
+Total: 95 tests
 """
 
 import datetime
@@ -1116,6 +1116,37 @@ class FiltrosRecoleccionTests(TestCase):
             "/api/recolecciones/?fecha_desde=2026-06-20&fecha_hasta=2026-06-10"
         )
         self.assertEqual(resp.status_code, 400)
+
+    def test_id_de_lote_o_galpon_no_numerico_devuelve_400(self):
+        for query in ("id_lote=abc", "id_galpon=abc", "id_lote=1.5", "id_galpon=-1", "id_lote=1;2"):
+            with self.subTest(query=query):
+                resp = self.client.get(f"/api/recolecciones/?{query}")
+                self.assertEqual(resp.status_code, 400)
+                self.assertIn(query.split("=")[0], resp.data)
+
+    def test_id_fuera_de_rango_devuelve_400_y_no_500(self):
+        resp = self.client.get(f"/api/recolecciones/?id_lote={'9' * 30}")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("id_lote", resp.data)
+
+    def test_lote_o_galpon_inexistente_devuelve_lista_vacia(self):
+        self.assertEqual(self.client.get("/api/recolecciones/?id_lote=99999").data["count"], 0)
+        self.assertEqual(self.client.get("/api/recolecciones/?id_galpon=99999").data["count"], 0)
+
+    def test_page_size_invalido_usa_el_valor_por_defecto(self):
+        for valor in ("0", "-5", "abc"):
+            with self.subTest(page_size=valor):
+                resp = self.client.get(f"/api/recolecciones/?page_size={valor}")
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.data["count"], 3)
+
+    def test_consulta_y_operario_tambien_pueden_filtrar(self):
+        for rol in (Usuario.ROL_CONSULTA, Usuario.ROL_OPERARIO):
+            with self.subTest(rol=rol):
+                token_de(self.client, crear_usuario(f"u_{rol}", rol=rol))
+                resp = self.client.get("/api/recolecciones/?fecha_desde=2026-06-15")
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.data["count"], 2)
 
 
 # ---------------------------------------------------------------------------

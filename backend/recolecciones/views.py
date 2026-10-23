@@ -54,6 +54,13 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
                 {nombre: "Fecha inválida. Usá el formato AAAA-MM-DD."}
             )
 
+    @staticmethod
+    def _id_param(valor, nombre):
+        """Un id de filtro tiene que ser un entero positivo; si no, 400 (no 500)."""
+        if not valor.isascii() or not valor.isdigit() or int(valor) > 2_147_483_647:
+            raise ValidationError({nombre: "Debe ser un número entero válido."})
+        return int(valor)
+
     def get_queryset(self):
         qs = super().get_queryset()
         params = self.request.query_params
@@ -63,9 +70,9 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
         desde = params.get("fecha_desde")
         hasta = params.get("fecha_hasta")
         if galpon:
-            qs = qs.filter(id_galpon_id=galpon)
+            qs = qs.filter(id_galpon_id=self._id_param(galpon, "id_galpon"))
         if lote:
-            qs = qs.filter(id_lote_id=lote)
+            qs = qs.filter(id_lote_id=self._id_param(lote, "id_lote"))
         if estado:
             qs = qs.filter(estado=estado)
         # Las fechas se comparan por día (inclusivas) en la zona horaria del
