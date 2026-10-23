@@ -1,9 +1,12 @@
+import datetime
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from config.pagination import PaginacionListado
 from lotes.models import Lote
 from usuarios.permissions import EsAdministrador, EsAdministradorOOperario
 
@@ -19,8 +22,8 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
         - Administrador: acceso completo.
         - Operario: puede crear, editar y finalizar recolecciones PENDIENTES.
           No puede eliminar.
-        - Eliminar una finalizada se rechaza (409) si dejaría el stock de algún
-          producto en negativo.
+        - Solo se puede eliminar una recolección PENDIENTE: una finalizada ya
+          sumó stock y es parte del historial, se rechaza (409) para cualquier rol.
         - Consulta: solo lectura (list + retrieve).
     """
 
@@ -30,6 +33,7 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
         .all()
     )
     serializer_class = RecoleccionSerializer
+    pagination_class = PaginacionListado
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -39,16 +43,50 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
         # create, update, partial_update, finalizar
         return [EsAdministradorOOperario()]
 
-    # ── Filtros básicos ───────────────────────────────────────────────────────
+    # ── Filtros ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _fecha_param(valor, nombre):
+        try:
+            return datetime.date.fromisoformat(valor)
+        except ValueError:
+            raise ValidationError(
+                {nombre: "Fecha inválida. Usá el formato AAAA-MM-DD."}
+            )
+
+    @staticmethod
+    def _id_param(valor, nombre):
+        """Un id de filtro tiene que ser un entero positivo; si no, 400 (no 500)."""
+        if not valor.isascii() or not valor.isdigit() or int(valor) > 2_147_483_647:
+            raise ValidationError({nombre: "Debe ser un número entero válido."})
+        return int(valor)
 
     def get_queryset(self):
         qs = super().get_queryset()
-        galpon = self.request.query_params.get("id_galpon")
-        estado = self.request.query_params.get("estado")
+        params = self.request.query_params
+        galpon = params.get("id_galpon")
+        lote = params.get("id_lote")
+        estado = params.get("estado")
+        desde = params.get("fecha_desde")
+        hasta = params.get("fecha_hasta")
         if galpon:
-            qs = qs.filter(id_galpon_id=galpon)
+            qs = qs.filter(id_galpon_id=self._id_param(galpon, "id_galpon"))
+        if lote:
+            qs = qs.filter(id_lote_id=self._id_param(lote, "id_lote"))
         if estado:
             qs = qs.filter(estado=estado)
+        # Las fechas se comparan por día (inclusivas) en la zona horaria del
+        # proyecto, no por instante.
+        if desde:
+            desde = self._fecha_param(desde, "fecha_desde")
+            qs = qs.filter(fecha__date__gte=desde)
+        if hasta:
+            hasta = self._fecha_param(hasta, "fecha_hasta")
+            qs = qs.filter(fecha__date__lte=hasta)
+        if desde and hasta and desde > hasta:
+            raise ValidationError(
+                {"fecha_desde": "La fecha desde no puede ser posterior a la fecha hasta."}
+            )
         return qs
 
     # ── Creación: detecta el lote activo e inyecta id_lote e id_usuario ──────
@@ -96,36 +134,20 @@ class RecoleccionViewSet(viewsets.ModelViewSet):
             )
         return super().update(request, *args, **kwargs)
 
-    # ── Eliminación: no dejar el stock de un producto en negativo ─────────────
+    # ── Eliminación: solo pendientes ──────────────────────────────────────────
 
     def destroy(self, request, *args, **kwargs):
         """
-        Una recolección finalizada suma stock a sus productos. Si parte de eso
-        ya se descartó, borrarla dejaría el stock en negativo; en ese caso se
-        rechaza con 409 y el mensaje indica el producto afectado. Las
-        pendientes no suman stock, así que siempre se pueden borrar.
+        Una recolección finalizada ya sumó stock y forma parte del historial:
+        no se puede eliminar (409), sea cual sea el rol. Las pendientes no
+        afectan el stock y se pueden eliminar.
         """
         recoleccion = self.get_object()
         if recoleccion.estado == Recoleccion.ESTADO_FINALIZADA:
-            # Import diferido: descartes depende de recolecciones, no al revés.
-            from descartes.stock import stock_actual_producto
-
-            for linea in recoleccion.lineas.select_related("id_producto"):
-                producto = linea.id_producto
-                hay = stock_actual_producto(producto)
-                quedaria = hay - linea.cantidad
-                if quedaria < 0:
-                    return Response(
-                        {
-                            "detail": (
-                                f"No se puede eliminar la recolección: el stock de "
-                                f"'{producto.producto}' quedaría en {quedaria} (hay {hay} y "
-                                f"esta recolección aportó {linea.cantidad}). Parte de lo "
-                                f"recolectado ya se descartó."
-                            )
-                        },
-                        status=status.HTTP_409_CONFLICT,
-                    )
+            return Response(
+                {"detail": "No se puede eliminar una recolección finalizada."},
+                status=status.HTTP_409_CONFLICT,
+            )
         return super().destroy(request, *args, **kwargs)
 
     # ── Acción: finalizar ─────────────────────────────────────────────────────

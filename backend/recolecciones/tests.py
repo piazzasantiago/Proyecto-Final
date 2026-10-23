@@ -5,8 +5,7 @@ Clases de tests:
     BuscarRecoleccionTests        (5)  listar, filtrar, detalle
     CrearRecoleccionTests        (10)  CU-REC-CREATE – crear recolección con líneas
     EditarRecoleccionTests        (6)  CU-REC-EDIT – editar recolección pendiente
-    BorrarRecoleccionTests        (4)  CU-REC-DEL – eliminar
-    BorrarRecoleccionStockTests   (6)  no se borra una finalizada si el stock quedaría en negativo
+    BorrarRecoleccionTests        (3)  CU-REC-DEL – eliminar una pendiente
     FinalizarRecoleccionTests     (5)  CU-REC-FIN – finalizar recolección
     PermisosRecoleccionTests     (10)  matriz rol × operación
     LoteFKTests                   (3)  Opción B: id_lote FK en Recoleccion
@@ -15,9 +14,12 @@ Clases de tests:
     ObservacionesRecoleccionTests (3)  máximo de 500 caracteres
     UnaRecoleccionPorDiaTests     (7)  un galpón admite una sola recolección por día
     ProductoDesactivadoTests      (4)  conservar productos desactivados al editar
-    StockDeProductosTests         (6)  el stock de Productos suma recolecciones finalizadas
+    StockDeProductosTests         (5)  el stock de Productos suma recolecciones finalizadas
+    BorrarFinalizadaBloqueadoTests (4) una finalizada no se elimina (409), sea cual sea el rol
+    FiltrosRecoleccionTests      (13)  filtros por fecha desde/hasta (inclusivos) y lote, ids inválidos, page_size inválido, roles
+    PaginacionRecoleccionTests    (5)  16 por página, page_size con tope, filtros antes de paginar
 
-Total: 81 tests
+Total: 95 tests
 """
 
 import datetime
@@ -28,7 +30,6 @@ from rest_framework.test import APIClient
 
 from galpones.models import Galpon, UsuarioDelGalpon
 from lotes.models import Lote, PlanTransicion
-from descartes.models import Descarte, LineaDescarte
 from productos.models import Producto
 from usuarios.models import Usuario
 
@@ -400,14 +401,6 @@ class BorrarRecoleccionTests(TestCase):
         id_rec = rec.id_recoleccion
         self.client.delete(f"/api/recolecciones/{id_rec}/")
         self.assertFalse(LineaRecoleccion.objects.filter(id_recoleccion_id=id_rec).exists())
-
-    def test_borrar_finalizada_permitido_para_admin(self):
-        rec = crear_recoleccion(
-            self.galpon, self.lote, self.producto,
-            estado=Recoleccion.ESTADO_FINALIZADA,
-        )
-        resp = self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
-        self.assertEqual(resp.status_code, 204)
 
     def test_borrar_inexistente(self):
         resp = self.client.delete("/api/recolecciones/9999/")
@@ -990,108 +983,215 @@ class StockDeProductosTests(TestCase):
         por_nombre = {p["producto"]: p["stock_actual"] for p in resp.data["results"]}
         self.assertEqual(por_nombre, {"Huevo Nº1": 150, "Huevo Nº2": 7})
 
-    def test_al_borrar_una_recoleccion_finalizada_el_stock_baja(self):
-        rec = self._recoleccion(10, self.producto, 100, Recoleccion.ESTADO_FINALIZADA)
-        self.assertEqual(self._stock(self.producto)["stock_actual"], 100)
-        resp = self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
-        self.assertEqual(resp.status_code, 204)
-        self.assertEqual(self._stock(self.producto)["stock_actual"], 0)
-
 
 # ---------------------------------------------------------------------------
-# Borrar una recolección finalizada sin dejar el stock en negativo
+# Una recolección finalizada no se puede eliminar
 # ---------------------------------------------------------------------------
 
-class BorrarRecoleccionStockTests(TestCase):
-    """
-    El stock de un producto es stock_inicial + recolectado (finalizadas) -
-    descartado (descartes de stock finalizados). Borrar una recolección
-    finalizada que dejaría ese número en negativo se rechaza con 409.
-    """
+class BorrarFinalizadaBloqueadoTests(TestCase):
+    """Una finalizada ya sumó stock: se rechaza con 409 para cualquier rol."""
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = crear_usuario("admin_borrar_stock")
-        token_de(self.client, self.admin)
+        self.admin = crear_usuario("admin_bloq")
+        self.operario = crear_usuario("oper_bloq", rol=Usuario.ROL_OPERARIO)
         self.galpon = crear_galpon()
         self.lote = crear_lote(self.galpon)
         self.producto = crear_producto("Huevo Nº1")
-        self.otro = crear_producto("Huevo Nº2")
-
-    def _recoleccion(self, producto, cantidad, estado=Recoleccion.ESTADO_FINALIZADA, dia=15):
-        rec = Recoleccion.objects.create(
-            id_galpon=self.galpon,
-            id_lote=self.lote,
-            fecha=datetime.datetime(2026, 6, dia, 8, 0, tzinfo=timezone.get_current_timezone()),
-            estado=estado,
+        self.rec = crear_recoleccion(
+            self.galpon, self.lote, self.producto, estado=Recoleccion.ESTADO_FINALIZADA
         )
-        LineaRecoleccion.objects.create(
-            id_recoleccion=rec, id_galpon=self.galpon, id_producto=producto, cantidad=cantidad
-        )
-        return rec
 
-    def _descarte_stock(self, producto, cantidad, estado=Descarte.ESTADO_FINALIZADO):
-        d = Descarte.objects.create(
-            categoria=Descarte.CATEGORIA_STOCK,
-            fecha=datetime.datetime(2026, 6, 20, 8, 0, tzinfo=timezone.get_current_timezone()),
-            estado=estado,
-        )
-        LineaDescarte.objects.create(
-            id_descarte=d, id_producto=producto, cantidad=cantidad, motivo="rotos"
-        )
-        return d
+    def _stock(self):
+        return self.client.get(f"/api/productos/{self.producto.id_producto}/").data["stock_actual"]
 
-    def _stock(self, producto):
-        return self.client.get(f"/api/productos/{producto.id_producto}/").data["stock_actual"]
-
-    def _borrar(self, rec):
-        return self.client.delete(f"/api/recolecciones/{rec.id_recoleccion}/")
-
-    def test_rechaza_si_lo_recolectado_ya_se_descarto(self):
-        rec = self._recoleccion(self.producto, 100)
-        self._descarte_stock(self.producto, 100)
-        resp = self._borrar(rec)
+    def test_admin_recibe_409(self):
+        token_de(self.client, self.admin)
+        resp = self.client.delete(f"/api/recolecciones/{self.rec.id_recoleccion}/")
         self.assertEqual(resp.status_code, 409)
-        self.assertIn("Huevo Nº1", resp.data["detail"])
-        self.assertIn("-100", resp.data["detail"])
-        self.assertTrue(Recoleccion.objects.filter(pk=rec.pk).exists())
-        self.assertEqual(self._stock(self.producto), 0)
+        self.assertIn("finalizada", resp.data["detail"])
+        self.assertTrue(Recoleccion.objects.filter(pk=self.rec.pk).exists())
 
-    def test_permite_si_el_stock_alcanza_para_quitarla(self):
-        Producto.objects.filter(pk=self.producto.pk).update(stock_inicial=100)
-        rec = self._recoleccion(self.producto, 100)
-        self._descarte_stock(self.producto, 100)
-        self.assertEqual(self._borrar(rec).status_code, 204)
-        self.assertEqual(self._stock(self.producto), 0)
+    def test_operario_sigue_sin_poder_eliminar(self):
+        token_de(self.client, self.operario)
+        resp = self.client.delete(f"/api/recolecciones/{self.rec.id_recoleccion}/")
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(Recoleccion.objects.filter(pk=self.rec.pk).exists())
 
-    def test_descarte_pendiente_no_cuenta(self):
-        rec = self._recoleccion(self.producto, 100)
-        self._descarte_stock(self.producto, 100, estado=Descarte.ESTADO_PENDIENTE)
-        self.assertEqual(self._borrar(rec).status_code, 204)
+    def test_el_stock_no_cambia_y_las_lineas_se_conservan(self):
+        token_de(self.client, self.admin)
+        antes = self._stock()
+        self.client.delete(f"/api/recolecciones/{self.rec.id_recoleccion}/")
+        self.assertEqual(self._stock(), antes)
+        self.assertEqual(self.rec.lineas.count(), 1)
 
-    def test_pendiente_siempre_se_puede_borrar(self):
-        self._recoleccion(self.producto, 100, dia=14)
-        self._descarte_stock(self.producto, 100)
-        pendiente = self._recoleccion(
-            self.producto, 50, estado=Recoleccion.ESTADO_PENDIENTE, dia=16
+    def test_pendiente_si_se_puede_eliminar(self):
+        token_de(self.client, self.admin)
+        pendiente = crear_recoleccion(self.galpon, self.lote, self.producto)
+        resp = self.client.delete(f"/api/recolecciones/{pendiente.id_recoleccion}/")
+        self.assertEqual(resp.status_code, 204)
+
+
+# ---------------------------------------------------------------------------
+# Filtros por fecha y lote
+# ---------------------------------------------------------------------------
+
+class FiltrosRecoleccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_filtros")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.producto = crear_producto()
+        self.lote1 = crear_lote(self.galpon, estado=Lote.ESTADO_FINALIZADO)
+        self.lote2 = crear_lote(self.galpon, fecha_ingreso=datetime.date(2026, 3, 1))
+        tz = timezone.get_current_timezone()
+
+        def rec(lote, dia, hora=8):
+            r = Recoleccion.objects.create(
+                id_galpon=self.galpon,
+                id_lote=lote,
+                fecha=datetime.datetime(2026, 6, dia, hora, 0, tzinfo=tz),
+            )
+            LineaRecoleccion.objects.create(
+                id_recoleccion=r, id_galpon=self.galpon, id_producto=self.producto, cantidad=10
+            )
+            return r
+
+        self.r10 = rec(self.lote1, 10)
+        self.r15 = rec(self.lote1, 15, hora=23)
+        self.r20 = rec(self.lote2, 20)
+
+    def _ids(self, query):
+        resp = self.client.get(f"/api/recolecciones/?{query}")
+        self.assertEqual(resp.status_code, 200)
+        return {r["id_recoleccion"] for r in resp.data["results"]}
+
+    def test_fecha_desde_es_inclusiva(self):
+        self.assertEqual(
+            self._ids("fecha_desde=2026-06-15"),
+            {self.r15.pk, self.r20.pk},
         )
-        self.assertEqual(self._borrar(pendiente).status_code, 204)
 
-    def test_con_varios_productos_rechaza_si_alguno_quedaria_negativo(self):
-        rec = self._recoleccion(self.producto, 100)
-        LineaRecoleccion.objects.create(
-            id_recoleccion=rec, id_galpon=self.galpon, id_producto=self.otro, cantidad=30
+    def test_fecha_hasta_es_inclusiva_y_cuenta_todo_el_dia(self):
+        # r15 es a las 23:00: debe entrar con fecha_hasta=2026-06-15.
+        self.assertEqual(
+            self._ids("fecha_hasta=2026-06-15"),
+            {self.r10.pk, self.r15.pk},
         )
-        self._descarte_stock(self.otro, 30)
-        resp = self._borrar(rec)
-        self.assertEqual(resp.status_code, 409)
-        self.assertIn("Huevo Nº2", resp.data["detail"])
-        self.assertEqual(rec.lineas.count(), 2)
 
-    def test_otra_recoleccion_finalizada_cubre_el_descarte(self):
-        a = self._recoleccion(self.producto, 100, dia=14)
-        self._recoleccion(self.producto, 100, dia=15)
-        self._descarte_stock(self.producto, 100)
-        self.assertEqual(self._borrar(a).status_code, 204)
-        self.assertEqual(self._stock(self.producto), 0)
+    def test_rango_de_fechas(self):
+        self.assertEqual(
+            self._ids("fecha_desde=2026-06-11&fecha_hasta=2026-06-19"),
+            {self.r15.pk},
+        )
 
+    def test_mismo_dia_en_desde_y_hasta(self):
+        self.assertEqual(
+            self._ids("fecha_desde=2026-06-20&fecha_hasta=2026-06-20"),
+            {self.r20.pk},
+        )
+
+    def test_filtro_por_lote(self):
+        self.assertEqual(
+            self._ids(f"id_lote={self.lote1.id_lote}"),
+            {self.r10.pk, self.r15.pk},
+        )
+        self.assertEqual(self._ids(f"id_lote={self.lote2.id_lote}"), {self.r20.pk})
+
+    def test_filtros_combinados(self):
+        self.assertEqual(
+            self._ids(f"id_lote={self.lote1.id_lote}&fecha_desde=2026-06-12"),
+            {self.r15.pk},
+        )
+
+    def test_fecha_invalida_devuelve_400(self):
+        resp = self.client.get("/api/recolecciones/?fecha_desde=15-06-2026")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("fecha_desde", resp.data)
+
+    def test_desde_posterior_a_hasta_devuelve_400(self):
+        resp = self.client.get(
+            "/api/recolecciones/?fecha_desde=2026-06-20&fecha_hasta=2026-06-10"
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_id_de_lote_o_galpon_no_numerico_devuelve_400(self):
+        for query in ("id_lote=abc", "id_galpon=abc", "id_lote=1.5", "id_galpon=-1", "id_lote=1;2"):
+            with self.subTest(query=query):
+                resp = self.client.get(f"/api/recolecciones/?{query}")
+                self.assertEqual(resp.status_code, 400)
+                self.assertIn(query.split("=")[0], resp.data)
+
+    def test_id_fuera_de_rango_devuelve_400_y_no_500(self):
+        resp = self.client.get(f"/api/recolecciones/?id_lote={'9' * 30}")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("id_lote", resp.data)
+
+    def test_lote_o_galpon_inexistente_devuelve_lista_vacia(self):
+        self.assertEqual(self.client.get("/api/recolecciones/?id_lote=99999").data["count"], 0)
+        self.assertEqual(self.client.get("/api/recolecciones/?id_galpon=99999").data["count"], 0)
+
+    def test_page_size_invalido_usa_el_valor_por_defecto(self):
+        for valor in ("0", "-5", "abc"):
+            with self.subTest(page_size=valor):
+                resp = self.client.get(f"/api/recolecciones/?page_size={valor}")
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.data["count"], 3)
+
+    def test_consulta_y_operario_tambien_pueden_filtrar(self):
+        for rol in (Usuario.ROL_CONSULTA, Usuario.ROL_OPERARIO):
+            with self.subTest(rol=rol):
+                token_de(self.client, crear_usuario(f"u_{rol}", rol=rol))
+                resp = self.client.get("/api/recolecciones/?fecha_desde=2026-06-15")
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(resp.data["count"], 2)
+
+
+# ---------------------------------------------------------------------------
+# Paginación del listado
+# ---------------------------------------------------------------------------
+
+class PaginacionRecoleccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = crear_usuario("admin_pagina")
+        token_de(self.client, self.admin)
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon)
+        self.producto = crear_producto()
+        tz = timezone.get_current_timezone()
+        for i in range(37):
+            Recoleccion.objects.create(
+                id_galpon=self.galpon,
+                id_lote=self.lote,
+                fecha=datetime.datetime(2026, 1, 1, 8, 0, tzinfo=tz) + datetime.timedelta(days=i),
+            )
+
+    def test_la_primera_pagina_trae_16(self):
+        resp = self.client.get("/api/recolecciones/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["count"], 37)
+        self.assertEqual(len(resp.data["results"]), 16)
+        self.assertIsNotNone(resp.data["next"])
+        self.assertIsNone(resp.data["previous"])
+
+    def test_ultima_pagina_trae_el_resto(self):
+        resp = self.client.get("/api/recolecciones/?page=3")
+        self.assertEqual(len(resp.data["results"]), 5)
+        self.assertIsNone(resp.data["next"])
+
+    def test_pagina_inexistente_devuelve_404(self):
+        self.assertEqual(self.client.get("/api/recolecciones/?page=4").status_code, 404)
+
+    def test_page_size_personalizado_con_tope(self):
+        resp = self.client.get("/api/recolecciones/?page_size=30")
+        self.assertEqual(len(resp.data["results"]), 30)
+        resp = self.client.get("/api/recolecciones/?page_size=500")
+        self.assertEqual(len(resp.data["results"]), 37)
+
+    def test_el_filtro_se_aplica_antes_de_paginar(self):
+        resp = self.client.get("/api/recolecciones/?fecha_desde=2026-02-01&page_size=100")
+        self.assertEqual(resp.data["count"], 37 - 31)

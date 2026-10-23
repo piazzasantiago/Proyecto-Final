@@ -131,8 +131,8 @@ sucede con Galpones.
   **finalizadas** de ese producto (ver `docs-salidas.md`).
 - `stock_actual` — `stock_inicial + stock_recolectado − stock_descartado −
   stock_salidas`. No se guarda: se calcula en cada consulta, así que no puede
-  desfasarse (por ejemplo, si se borra una recolección finalizada, el stock baja
-  solo; si quedara en negativo, el borrado se rechaza con 409).
+  desfasarse. Una recolección finalizada no se puede eliminar (409), así que lo
+  recolectado nunca se resta por un borrado.
 
 ---
 
@@ -298,9 +298,8 @@ ajuste) y el stock que muestra la API es `stock_inicial` más lo recolectado en
 recolecciones **finalizadas**.
 
 Se eligió calcularlo en lugar de sumar al finalizar porque así no hay nada que
-mantener sincronizado: borrar una recolección finalizada, o cualquier otro
-cambio, se refleja solo, y los Descartes y las Salidas se restan en el mismo
-cálculo. Las recolecciones pendientes no
+mantener sincronizado: cualquier cambio se refleja solo, y los Descartes y las
+Salidas se restan en el mismo cálculo. Las recolecciones pendientes no
 suman: solo la finalización confirma que los huevos están contados. Del mismo
 modo, solo los descartes de **stock** finalizados restan.
 

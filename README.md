@@ -316,11 +316,11 @@ python manage.py test informes
 | DELETE | `/api/lotes/{id}/` | Eliminar lote | Administrador |
 | POST | `/api/lotes/{id}/iniciar-produccion/` | Transición → Producción | Administrador |
 | POST | `/api/lotes/{id}/vaciar/` | Producción/Transición → Finalizado | Administrador |
-| GET | `/api/recolecciones/` | Listar recolecciones (`?id_galpon=`, `?estado=`) | autenticado |
+| GET | `/api/recolecciones/` | Listar recolecciones, paginado de a 16 (`?id_galpon=`, `?id_lote=`, `?estado=`, `?fecha_desde=`, `?fecha_hasta=`, `?page=`) | autenticado |
 | POST | `/api/recolecciones/` | Crear recolección con líneas | Adm. / Operario |
 | GET | `/api/recolecciones/{id}/` | Detalle de recolección | autenticado |
 | PATCH | `/api/recolecciones/{id}/` | Modificar recolección PENDIENTE | Adm. / Operario |
-| DELETE | `/api/recolecciones/{id}/` | Eliminar recolección | Administrador |
+| DELETE | `/api/recolecciones/{id}/` | Eliminar recolección PENDIENTE (409 si está finalizada) | Administrador |
 | POST | `/api/recolecciones/{id}/finalizar/` | Marcar recolección como Finalizada | Adm. / Operario |
 | GET | `/api/materias-primas/` | Listar materias primas (`?search=`, `?estado=`) | autenticado |
 | POST | `/api/materias-primas/` | Crear materia prima | Administrador |
