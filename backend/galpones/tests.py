@@ -14,8 +14,9 @@ Clases de tests:
     OperariosInactivosTests (8)  operario dado de baja: se conserva la
                                   asignación pero no se lista, y no se pisa
                                   al editar el galpón
+    GalponesLibresTests     (6)  F-10 – ?libre=true: sin lote en curso
 
-Total: 70 tests
+Total: 76 tests
 """
 
 from django.test import TestCase
@@ -695,3 +696,54 @@ class OperariosInactivosTests(TestCase):
         ids_inactivos = [g["id_galpon"] for g in resp_inactivos.data["results"]]
         self.assertIn(galpon_inactivo.id_galpon, ids_inactivos)
         self.assertNotIn(self.galpon.id_galpon, ids_inactivos)
+
+
+# ---------------------------------------------------------------------------
+# F-10 – Galpones libres (sin lote en Transición ni Producción)
+# ---------------------------------------------------------------------------
+
+class GalponesLibresTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin10", rol=Usuario.ROL_ADMINISTRADOR))
+        self.vacio = crear_galpon("Vacío")
+        self.en_transicion = crear_galpon("En transición")
+        crear_lote(self.en_transicion, Lote.ESTADO_TRANSICION)
+        self.en_produccion = crear_galpon("En producción")
+        crear_lote(self.en_produccion, Lote.ESTADO_PRODUCCION)
+        self.con_lote_finalizado = crear_galpon("Con lote finalizado")
+        crear_lote(self.con_lote_finalizado, Lote.ESTADO_FINALIZADO)
+
+    def ids(self, **params):
+        resp = self.client.get("/api/galpones/", params)
+        self.assertEqual(resp.status_code, 200, resp.data)
+        return {g["id_galpon"] for g in resp.data["results"]}
+
+    def test_sin_filtro_lista_todos(self):
+        self.assertEqual(len(self.ids()), 4)
+
+    def test_libre_excluye_los_ocupados(self):
+        ids = self.ids(libre="true")
+        self.assertNotIn(self.en_transicion.id_galpon, ids)
+        self.assertNotIn(self.en_produccion.id_galpon, ids)
+
+    def test_libre_incluye_vacios_y_con_lote_finalizado(self):
+        ids = self.ids(libre="true")
+        self.assertIn(self.vacio.id_galpon, ids)
+        self.assertIn(self.con_lote_finalizado.id_galpon, ids)
+
+    def test_libre_se_combina_con_estado_activo(self):
+        inactivo = crear_galpon("Inactivo vacío", estado=Galpon.ESTADO_INACTIVO)
+        ids = self.ids(libre="true", estado="A")
+        self.assertNotIn(inactivo.id_galpon, ids)
+        self.assertIn(self.vacio.id_galpon, ids)
+
+    def test_libre_false_no_filtra(self):
+        self.assertEqual(len(self.ids(libre="false")), 4)
+
+    def test_libre_no_duplica_galpones_con_varios_lotes_finalizados(self):
+        crear_lote(self.con_lote_finalizado, Lote.ESTADO_FINALIZADO)
+        resp = self.client.get("/api/galpones/", {"libre": "true", "page_size": 100})
+        ids = [g["id_galpon"] for g in resp.data["results"]]
+        self.assertEqual(len(ids), len(set(ids)))

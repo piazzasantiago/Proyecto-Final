@@ -14,8 +14,7 @@ Que genera (todo relativo a la fecha de hoy, asi que siempre queda "reciente"):
   * Usuarios de prueba: 1 administrador, 1 de consulta y 3 operarios.
   * 6 galpones (uno inactivo) y la asignacion de operarios.
   * 3 productos (huevos Nº1, Nº2 y Nº3) y 12 materias primas.
-  * 20 proveedores (tres inactivos; los 7 primeros tienen compras y el resto sirve
-    para probar la paginación).
+  * 7 proveedores (uno inactivo).
   * 5 lotes de gallinas en distintas etapas (finalizado, produccion y
     transicion), cada uno con su compra y su plan de transicion, mas UNA compra
     de lotes finalizada sin asignar (aparece el cartel rojo en Lotes).
@@ -164,32 +163,6 @@ PROVEEDORES = [
      "ventas@avicolalapampa.com.ar", "3492445566", "A", 0),
     ("P7", "Molino Viejo S.R.L.", "3068887776", "San Martín 95, Monteros, Tucumán",
      "contacto@molinoviejo.com.ar", "3863415500", "I", 0),
-    ("P8", "Semillas y Granos Tafí S.A.", "3067001122", "Av. Presidente Perón 540, Tafí Viejo, Tucumán",
-     "administracion@semillasygranostafi.com.ar", "3814112233", "A", 0),
-    ("P9", "Transporte Rápido del NOA S.R.L.", "3067112233", "Ruta 9 km 1290, San Miguel de Tucumán",
-     "logistica@transporterapidonoa.com.ar", "3814223344", "A", 0),
-    ("P10", "Frigorífico Aguilares S.A.", "3067223344", "Calle 9 de Julio 780, Aguilares, Tucumán",
-     "ventas@frigorificoaguilares.com.ar", "3865334455", "A", 0),
-    ("P11", "Cooperativa Agrícola Lules Ltda.", "3067334455", "Av. San Martín 215, Lules, Tucumán",
-     "cooperativa@agricolalules.com.ar", "3814445566", "A", 0),
-    ("P12", "Equipamiento Avícola Salta S.R.L.", "3067445566", "Av. Bolivia 1820, Salta Capital, Salta",
-     "consultas@equipamientoavicolasalta.com.ar", "3874556677", "A", 0),
-    ("P13", "Insumos Rurales Santiago S.A.", "3067556677", "Av. Belgrano Sur 960, Santiago del Estero",
-     "pedidos@insumosruralessantiago.com.ar", "3854667788", "I", 0),
-    ("P14", "Distribuidora Alimentos del Sur S.R.L.", "3067667788", "Av. Roca 1500, San Miguel de Tucumán",
-     "ventas@distribuidoraalimentosdelsur.com.ar", "3814778899", "A", 0),
-    ("P15", "Agroquímica Tucumana S.A.", "3067778899", "Ruta 305 km 8, Yerba Buena, Tucumán",
-     "comercial@agroquimicatucumana.com.ar", "3814889900", "A", 0),
-    ("P16", "Molinos del Valle de Catamarca S.R.L.", "3067889900", "Ruta 38 km 25, Valle Viejo, Catamarca",
-     "info@molinosdelvallecatamarca.com.ar", "3834990011", "A", 0),
-    ("P17", "Granja El Horizonte", "3067990011", "Camino a Trancas km 5, Tucumán",
-     "contacto@granjaelhorizonte.com.ar", "3814001122", "A", 0),
-    ("P18", "Repuestos y Maquinaria Agrícola S.A.", "3068001122", "Av. Alem 2300, San Miguel de Tucumán",
-     "ventas@repuestosymaquinariaagricola.com.ar", "3814112299", "I", 0),
-    ("P19", "Packaging Huevos del Norte S.R.L.", "3068112233", "Parque Industrial Lules, Tucumán",
-     "ventas@packaginghuevosdelnorte.com.ar", "3814223399", "A", 0),
-    ("P20", "Laboratorio Veterinario Tucumán S.A.", "3068223344", "Av. Mitre 450, San Miguel de Tucumán",
-     "laboratorio@labveterinariotucuman.com.ar", "3814334400", "A", 0),
 ]
 
 # clave, galpon, ingreso (dias atras), vaciado (dias atras o None), aves, proveedor, precio por ave,
@@ -696,13 +669,15 @@ def escribir(plan):
             estado = Lote.ESTADO_PRODUCCION
         else:
             estado = Lote.ESTADO_TRANSICION
+        plan_fin = l["ingreso"] + dt.timedelta(days=DIAS_TRANSICION)
         lote = Lote.objects.create(
             id_galpon=galpones[l["galpon"]], fecha_ingreso=l["ingreso"],
+            # La producción arranca cuando termina la transición.
+            fecha_inicio_produccion=None if estado == Lote.ESTADO_TRANSICION else plan_fin,
             fecha_vaciado=l["vaciado"], cantidad_inicial=l["aves"],
             cantidad_actual=l["aves"] - muertas, estado=estado, observaciones=l["obs"],
         )
         escala = 0.9 + r.random() * 0.2
-        plan_fin = l["ingreso"] + dt.timedelta(days=DIAS_TRANSICION)
         PlanTransicion.objects.create(
             id_lote=lote,
             estado=PlanTransicion.ESTADO_FINALIZADO if plan_fin <= HOY else PlanTransicion.ESTADO_EN_CURSO,
