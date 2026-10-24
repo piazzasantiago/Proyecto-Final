@@ -242,6 +242,8 @@ sistema no registra el consumo diario de las gallinas. El cálculo vive en
 `entradas/stock.py` (ver `docs-entradas.md`) y sus tests, en `entradas/tests.py`.
 
 **Filtros de CU09:** `?search=` (nombre o descripción), `?estado=A|I`,
+`?libre=true` (solo galpones sin lote en Transición ni Producción; lo usa el
+formulario de asignación de lotes, junto con `estado=A`),
 `?ordering=galpon|capacidad|superficie`
 
 **Respuesta de ejemplo (CU09):**
@@ -289,24 +291,6 @@ activos a asignar. En un PATCH, si se omite el campo, las asignaciones no cambia
 (validación de idempotencia, respuesta 409) y no simples ediciones de un campo.
 
 ---
-
-### Paginación del listado
-
-`GET /api/galpones/` devuelve los resultados paginados de a **16 registros**
-(`?page=N`), con la forma `count`, `next`, `previous` y `results`. Se puede pedir
-otro tamaño con `?page_size=` (máximo 100) y los filtros y la búsqueda se aplican
-**antes** de paginar. Usa `PaginacionListado` (`backend/config/pagination.py`), la
-misma clase que Recolecciones.
-
-Las tarjetas se paginan y la barra de paginación queda debajo de la grilla (`src/pages/GalponesPage.jsx`): "Mostrando X–Y de N", Anterior / Siguiente, números de
-página clickeables y selector de elementos por página (la barra se muestra siempre, también con una sola página), que se recuerda en el
-navegador (`useTamanoPagina("galpones")`). Al cambiar un filtro o la búsqueda se vuelve
-a la página 1, y si al eliminar un registro la página queda vacía se retrocede a
-la anterior. El formulario de galpones carga los operarios disponibles con `traerTodas`, para que no se corte en la primera página.
-
-Tests: `PaginacionGalponesTests` en `backend/config/tests_pagination.py` (7 tests: 16 por página,
-última página con el resto, `page_size`, páginas sin repetidos, página inexistente
-→ 404 y filtro aplicado antes de paginar).
 
 ## 6. Tests automatizados
 
