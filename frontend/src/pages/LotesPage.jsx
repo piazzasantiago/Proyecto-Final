@@ -4,6 +4,7 @@ import { listGalpones } from "../api/galpones";
 import { listLotesPendientes } from "../api/compras";
 import LoteFormModal from "../components/LoteFormModal";
 import { useAuth } from "../context/AuthContext";
+import { traerTodas } from "../api/paginado";
 
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
@@ -82,8 +83,8 @@ export default function LotesPage() {
 
   useEffect(() => {
     fetchLotes();
-    listGalpones({ estado: "A" })
-      .then((d) => setGalpones(d.results ?? d))
+    traerTodas(listGalpones, { estado: "A" })
+      .then(setGalpones)
       .catch(() => setGalpones([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, galponFilter]);

@@ -818,6 +818,8 @@
   .paginacion{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 14px; border-top:1px solid var(--gray-200);}
   .paginacion-tamano{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--gray-500);}
   .paginacion-tamano select{padding:6px 8px; border:1px solid var(--gray-200); border-radius:8px; background:#fff; font:inherit; color:var(--gray-700);}
+  .card-column{min-width:0;}
+  .card-column .paginacion{margin-top:14px; border-top:none; padding-left:0; padding-right:0;}
   .paginacion-info{font-size:14px; color:var(--gray-500);}
   .paginacion-controles{display:flex; align-items:center; gap:10px;}
   .paginacion-pagina{font-size:14px; color:var(--gray-700); font-weight:500;}
@@ -827,3 +829,28 @@
   .paginacion-numero.activo{background:var(--green-600); border-color:var(--green-600); color:#fff; font-weight:600; cursor:default;}
   .paginacion-puntos{min-width:24px; text-align:center; color:var(--gray-500);}
   .paginacion .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  /* ===== Menú lateral que se ajusta al alto de la ventana ===== */
+  /* Espaciados y tipografía escalan con el alto disponible (vh) para que todo el
+     menú entre sin barra de desplazamiento, sea cual sea el tamaño de pantalla o
+     el zoom del navegador. Si aun así la ventana es muy baja, el menú sigue
+     pudiendo desplazarse, pero con la barra oculta. */
+  .sidebar{padding:clamp(10px,1.6vh,20px) 14px;}
+  .sb-brand{padding-bottom:clamp(8px,1.8vh,22px); margin-bottom:clamp(4px,1.2vh,16px);}
+  .sb-section-label{padding:clamp(5px,1vh,14px) 10px clamp(2px,.4vh,6px);}
+  .sb-item{
+    padding:clamp(4px,.75vh,10px) 12px;
+    font-size:clamp(13px,1.75vh,15.5px);
+    margin-bottom:clamp(0px,.2vh,2px);
+  }
+  .sb-footer{padding-top:clamp(6px,1.2vh,14px);}
+  .sb-user{padding:clamp(4px,.8vh,8px) 8px;}
+  .sb-logout{margin-top:clamp(2px,.8vh,10px); padding:clamp(4px,.8vh,8px) 8px;}
+  .sb-nav{scrollbar-width:none; -ms-overflow-style:none;}
+  .sb-nav::-webkit-scrollbar{display:none;}
+
+  /* ===== Textos largos dentro de tarjetas y paneles ===== */
+  .galpon-card, .gc-stats{min-width:0;}
+  .gc-stat-texto{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .detail-row span:last-child{min-width:0; overflow-wrap:anywhere; text-align:right;}
+  .detail-row{gap:16px;}

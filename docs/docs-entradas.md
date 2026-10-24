@@ -250,6 +250,24 @@ detalle que Descartes:
 
 ---
 
+### Paginación del listado
+
+`GET /api/entradas/` devuelve los resultados paginados de a **16 registros**
+(`?page=N`), con la forma `count`, `next`, `previous` y `results`. Se puede pedir
+otro tamaño con `?page_size=` (máximo 100) y los filtros y la búsqueda se aplican
+**antes** de paginar. Usa `PaginacionListado` (`backend/config/pagination.py`), la
+misma clase que Recolecciones.
+
+La tabla muestra la barra de paginación debajo del listado (`src/pages/EntradasPage.jsx`): "Mostrando X–Y de N", Anterior / Siguiente, números de
+página clickeables y selector de elementos por página (la barra se muestra siempre, también con una sola página), que se recuerda en el
+navegador (`useTamanoPagina("entradas")`). Al cambiar un filtro o la búsqueda se vuelve
+a la página 1, y si al eliminar un registro la página queda vacía se retrocede a
+la anterior. Los desplegables de galpones y materias primas se cargan con `traerTodas`.
+
+Tests: `PaginacionEntradasTests` en `backend/config/tests_pagination.py` (7 tests: 16 por página,
+última página con el resto, `page_size`, páginas sin repetidos, página inexistente
+→ 404 y filtro aplicado antes de paginar).
+
 ## Tests
 
 Se implementaron **78 tests** en `backend/entradas/tests.py`, organizados en 9

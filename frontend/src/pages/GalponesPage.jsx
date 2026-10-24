@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon, getExistenciasGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
@@ -28,6 +29,9 @@ export default function GalponesPage() {
 
   const [galpones, setGalpones] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("galpones", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -44,15 +48,23 @@ export default function GalponesPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (search) params.search = search;
       if (estadoFilter) params.estado = estadoFilter;
       const data = await listGalpones(params);
-      setGalpones(data.results ?? data);
-      if (!selectedId && (data.results ?? data).length > 0) {
-        setSelectedId((data.results ?? data)[0].id_galpon);
+      const lista = data.results ?? data;
+      setGalpones(lista);
+      setCount(data.count ?? lista.length);
+      // Si el elemento seleccionado no está en esta página, se muestra el primero.
+      setSelectedId((actual) =>
+        lista.some((x) => x.id_galpon === actual) ? actual : (lista[0]?.id_galpon ?? null)
+      );
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
       }
-    } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -62,7 +74,7 @@ export default function GalponesPage() {
   useEffect(() => {
     fetchGalpones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, estadoFilter]);
+  }, [search, estadoFilter, page, pageSize]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -87,6 +99,14 @@ export default function GalponesPage() {
     };
   }, [selectedId]);
 
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
+
   const selected = useMemo(
     () => galpones.find((g) => g.id_galpon === selectedId) || null,
     [galpones, selectedId]
@@ -95,6 +115,12 @@ export default function GalponesPage() {
   async function handleCreate(data) {
     const created = await createGalpon(data);
     setModalMode(null);
+    if (page !== 1) {
+      // El alta puede quedar en la primera página: se vuelve a ella (el efecto recarga).
+      setSelectedId(created.id_galpon);
+      setPage(1);
+      return;
+    }
     await fetchGalpones();
     setSelectedId(created.id_galpon);
   }
@@ -166,10 +192,10 @@ export default function GalponesPage() {
             type="text"
             placeholder="Buscar por nombre o descripción..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
-        <select className="select-filter" value={estadoFilter} onChange={(e) => setEstadoFilter(e.target.value)}>
+        <select className="select-filter" value={estadoFilter} onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}>
           <option value="">Estado: Todos</option>
           <option value="A">Activo</option>
           <option value="I">Inactivo</option>
@@ -181,44 +207,56 @@ export default function GalponesPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="card-grid">
-            {galpones.length === 0 && (
-              <div className="empty-state">
-                {esAdministrador
-                  ? 'No hay galpones registrados todavía. Creá el primero con "Nuevo galpón".'
-                  : "No tenés galpones asignados."}
-              </div>
-            )}
-            {galpones.map((g) => (
-              <div
-                key={g.id_galpon}
-                className={`galpon-card ${g.id_galpon === selectedId ? "card-selected" : ""}`}
-                onClick={() => { setSelectedId(g.id_galpon); setActionError(null); }}
-              >
-                <div className="gc-top">
-                  <div>
-                    <div className="gc-code">{formatCodigo(g.id_galpon)}</div>
-                    <div className="gc-name">{g.galpon}</div>
+          <div className="card-column">
+            <div className="card-grid">
+              {galpones.length === 0 && (
+                <div className="empty-state">
+                  {esAdministrador
+                    ? 'No hay galpones registrados todavía. Creá el primero con "Nuevo galpón".'
+                    : "No tenés galpones asignados."}
+                </div>
+              )}
+              {galpones.map((g) => (
+                <div
+                  key={g.id_galpon}
+                  className={`galpon-card ${g.id_galpon === selectedId ? "card-selected" : ""}`}
+                  onClick={() => { setSelectedId(g.id_galpon); setActionError(null); }}
+                >
+                  <div className="gc-top">
+                    <div>
+                      <div className="gc-code">{formatCodigo(g.id_galpon)}</div>
+                      <div className="gc-name">{g.galpon}</div>
+                    </div>
+                    <span className={`badge ${g.estado === "A" ? "badge-green" : "badge-red"}`}>
+                      {g.estado_display}
+                    </span>
                   </div>
-                  <span className={`badge ${g.estado === "A" ? "badge-green" : "badge-red"}`}>
-                    {g.estado_display}
-                  </span>
+                  <div className="gc-stats">
+                    <div className="gc-stat"><i className="fa-solid fa-kiwi-bird"></i> {g.capacidad.toLocaleString("es-AR")} aves</div>
+                    <div className="gc-stat"><i className="fa-solid fa-ruler-combined"></i> {Number(g.superficie).toLocaleString("es-AR")} m²</div>
+                    <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {Number(g.latitud).toFixed(4)}, {Number(g.longitud).toFixed(4)}</div>
+                    {g.lote_actual ? (
+                      <>
+                        <div className="gc-stat"><i className="fa-solid fa-layer-group"></i> {g.lote_actual.codigo}</div>
+                        <div className="gc-stat"><i className="fa-solid fa-chart-simple"></i> {g.lote_actual.estado_display}</div>
+                      </>
+                    ) : (
+                      <div className="gc-stat gc-stat-muted"><i className="fa-solid fa-layer-group"></i> Sin lote asignado</div>
+                    )}
+                  </div>
                 </div>
-                <div className="gc-stats">
-                  <div className="gc-stat"><i className="fa-solid fa-kiwi-bird"></i> {g.capacidad.toLocaleString("es-AR")} aves</div>
-                  <div className="gc-stat"><i className="fa-solid fa-ruler-combined"></i> {Number(g.superficie).toLocaleString("es-AR")} m²</div>
-                  <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {Number(g.latitud).toFixed(4)}, {Number(g.longitud).toFixed(4)}</div>
-                  {g.lote_actual ? (
-                    <>
-                      <div className="gc-stat"><i className="fa-solid fa-layer-group"></i> {g.lote_actual.codigo}</div>
-                      <div className="gc-stat"><i className="fa-solid fa-chart-simple"></i> {g.lote_actual.estado_display}</div>
-                    </>
-                  ) : (
-                    <div className="gc-stat gc-stat-muted"><i className="fa-solid fa-layer-group"></i> Sin lote asignado</div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {selected && (

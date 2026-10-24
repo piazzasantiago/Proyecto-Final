@@ -10,6 +10,7 @@ from descartes.stock import verificar_stock
 from materias_primas.models import MateriaPrima
 from usuarios.permissions import EsAdministradorOOperario
 
+from config.pagination import PaginacionListado
 from .models import Entrada
 from .serializers import EntradaSerializer
 
@@ -59,6 +60,7 @@ class EntradaViewSet(viewsets.ModelViewSet):
         .all()
     )
     serializer_class = EntradaSerializer
+    pagination_class = PaginacionListado
     filter_backends = [django_filters.DjangoFilterBackend]
     filterset_class = EntradaFilter
 

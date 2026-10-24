@@ -340,6 +340,24 @@ Authorization: Bearer <access>
 
 ---
 
+### Paginación del listado
+
+`GET /api/usuarios/` devuelve los resultados paginados de a **16 registros**
+(`?page=N`), con la forma `count`, `next`, `previous` y `results`. Se puede pedir
+otro tamaño con `?page_size=` (máximo 100) y los filtros y la búsqueda se aplican
+**antes** de paginar. Usa `PaginacionListado` (`backend/config/pagination.py`), la
+misma clase que Recolecciones.
+
+Las tarjetas se paginan y la barra de paginación queda debajo de la grilla (`src/pages/UsuariosPage.jsx`): "Mostrando X–Y de N", Anterior / Siguiente, números de
+página clickeables y selector de elementos por página (la barra se muestra siempre, también con una sola página), que se recuerda en el
+navegador (`useTamanoPagina("usuarios")`). Al cambiar un filtro o la búsqueda se vuelve
+a la página 1, y si al eliminar un registro la página queda vacía se retrocede a
+la anterior. `listOperarios` acepta parámetros y el formulario de galpones lo consume con `traerTodas`, de modo que la lista de operarios no se corta en 16.
+
+Tests: `PaginacionUsuariosTests` en `backend/config/tests_pagination.py` (7 tests: 16 por página,
+última página con el resto, `page_size`, páginas sin repetidos, página inexistente
+→ 404 y filtro aplicado antes de paginar).
+
 ## 6. Tests automatizados
 
 Los tests viven en `backend/usuarios/tests.py` y cubren los casos de uso de

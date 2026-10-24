@@ -32,13 +32,15 @@ El listado está **paginado de a 16 registros** (`?page=N`). Se puede pedir otro
 tamaño con `?page_size=N` (máximo 100). La respuesta trae `count`, `next`,
 `previous` y `results`; los filtros se aplican antes de paginar.
 
-En la pantalla, la barra de paginación permite elegir las **filas por página**
+En la pantalla, la barra de paginación permite elegir los **elementos por página**
 (10, 16, 25 o 50; 16 por defecto). La elección se recuerda en el navegador.
 Entre "Anterior" y "Siguiente" se muestran los **números de página**, que se
 pueden tocar para ir directo a esa página. La cantidad de páginas se calcula con
-las filas elegidas, y cuando son muchas se muestran la primera, la última y las
+los elementos elegidos, y cuando son muchas se muestran la primera, la última y las
 cercanas a la actual, con "…" en los tramos omitidos (por ejemplo
-`1 … 7 8 9 10 11 … 20`). Al cambiar las filas por página se vuelve a la página 1.
+`1 … 7 8 9 10 11 … 20`). Al cambiar los elementos por página se vuelve a la página 1. La barra se muestra
+siempre que haya registros, incluso con una sola página (el número 1 activo y
+Anterior / Siguiente deshabilitados).
 
 #### CU25 – Nueva Recolección
 
@@ -440,7 +442,7 @@ python manage.py test recolecciones --verbosity=2
 | Archivo | Cambio |
 |---|---|
 | `src/api/recolecciones.js` | Nuevo: `listRecolecciones`, `createRecoleccion`, `updateRecoleccion`, `deleteRecoleccion`, `finalizarRecoleccion` |
-| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación con selector de filas por página; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
-| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N", números de página clickeables, selector de filas por página y hook `useTamanoPagina` que recuerda la elección) |
+| `src/pages/RecoleccionesPage.jsx` | Nuevo: pantalla principal con tabla, panel de detalle, filtros (fecha desde/hasta, galpón, lote, estado, limpiar filtros) y paginación con selector de elementos por página; sin botón "Eliminar" en las finalizadas; incluye columna y fila de detalle "Cargado por" |
+| `src/components/Paginacion.jsx` | Nuevo: barra de paginación reutilizable (Anterior / Siguiente, "Mostrando X–Y de N", números de página clickeables, selector de elementos por página y hook `useTamanoPagina` que recuerda la elección) |
 | `src/index.css` | Estilos de la barra de paginación |
 | `src/components/RecoleccionFormModal.jsx` | Nuevo: modal de alta y edición con gestión dinámica de líneas |

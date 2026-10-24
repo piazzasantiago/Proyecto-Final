@@ -296,13 +296,13 @@ python manage.py test informes
 | POST | `/api/auth/login/` | Iniciar sesión | — |
 | GET | `/api/auth/me/` | Usuario autenticado | autenticado |
 | POST | `/api/auth/logout/` | Cerrar sesión | autenticado |
-| GET | `/api/galpones/` | Listar galpones (`?search=`, `?estado=`) | autenticado |
+| GET | `/api/galpones/` | Listar galpones (`?search=`, `?estado=`, `?page=`, `?page_size=`), paginado de a 16 | autenticado |
 | POST | `/api/galpones/` | Crear galpón | Administrador |
 | PATCH | `/api/galpones/{id}/` | Modificar galpón | Administrador |
 | DELETE | `/api/galpones/{id}/` | Eliminar galpón | Administrador |
 | POST | `/api/galpones/{id}/alta/` | Activar galpón | Administrador |
 | POST | `/api/galpones/{id}/baja/` | Dar de baja galpón | Administrador |
-| GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`) | Administrador |
+| GET | `/api/usuarios/` | Listar usuarios (`?search=`, `?rol=`, `?estado=`, `?page=`, `?page_size=`), paginado de a 16 | Administrador |
 | POST | `/api/usuarios/` | Crear usuario | Administrador |
 | PATCH | `/api/usuarios/{id}/` | Modificar usuario | Administrador |
 | DELETE | `/api/usuarios/{id}/` | Eliminar usuario | Administrador |
@@ -322,32 +322,32 @@ python manage.py test informes
 | PATCH | `/api/recolecciones/{id}/` | Modificar recolección PENDIENTE | Adm. / Operario |
 | DELETE | `/api/recolecciones/{id}/` | Eliminar recolección PENDIENTE (409 si está finalizada) | Administrador |
 | POST | `/api/recolecciones/{id}/finalizar/` | Marcar recolección como Finalizada | Adm. / Operario |
-| GET | `/api/materias-primas/` | Listar materias primas (`?search=`, `?estado=`) | autenticado |
+| GET | `/api/materias-primas/` | Listar materias primas (`?search=`, `?estado=`, `?page=`, `?page_size=`), paginado de a 16 | autenticado |
 | POST | `/api/materias-primas/` | Crear materia prima | Administrador |
 | PATCH | `/api/materias-primas/{id}/` | Modificar materia prima | Administrador |
 | DELETE | `/api/materias-primas/{id}/` | Eliminar materia prima | Administrador |
 | POST | `/api/materias-primas/{id}/activar/` | Activar materia prima | Administrador |
 | POST | `/api/materias-primas/{id}/desactivar/` | Desactivar materia prima | Administrador |
 | GET | `/api/materias-primas/similares/` | Nombres iguales o parecidos (ayuda del formulario) | autenticado |
-| GET | `/api/descartes/` | Listar descartes (`?fecha_desde=`, `?fecha_hasta=`, `?categoria=G\|S`, `?estado=`, `?id_galpon=`) | autenticado |
+| GET | `/api/descartes/` | Listar descartes (`?fecha_desde=`, `?fecha_hasta=`, `?categoria=G\|S`, `?estado=`, `?id_galpon=`, `?page=`, `?page_size=`), paginado de a 16 | autenticado |
 | POST | `/api/descartes/` | Crear descarte de galpón o de stock con líneas | Adm. / Operario |
 | GET | `/api/descartes/{id}/` | Detalle de descarte | autenticado |
 | PATCH | `/api/descartes/{id}/` | Modificar descarte PENDIENTE | Adm. / Operario |
 | DELETE | `/api/descartes/{id}/` | Eliminar descarte PENDIENTE | Adm. / Operario |
 | POST | `/api/descartes/{id}/finalizar/` | Finalizar y aplicar el efecto (lote o stock) | Adm. / Operario |
-| GET | `/api/entradas/` | Listar entradas (`?fecha_desde=`, `?fecha_hasta=`, `?estado=`, `?id_galpon=`, `?id_materia_prima=`) | autenticado |
+| GET | `/api/entradas/` | Listar entradas (`?fecha_desde=`, `?fecha_hasta=`, `?estado=`, `?id_galpon=`, `?id_materia_prima=`, `?page=`, `?page_size=`), paginado de a 16 | autenticado |
 | POST | `/api/entradas/` | Crear entrada a un galpón con líneas | Adm. / Operario |
 | GET | `/api/entradas/{id}/` | Detalle de entrada | autenticado |
 | PATCH | `/api/entradas/{id}/` | Modificar entrada PENDIENTE | Adm. / Operario |
 | DELETE | `/api/entradas/{id}/` | Eliminar entrada PENDIENTE | Adm. / Operario |
 | POST | `/api/entradas/{id}/finalizar/` | Finalizar y descontar el stock de materias primas | Adm. / Operario |
-| GET | `/api/salidas/` | Listar salidas (`?fecha_desde=`, `?fecha_hasta=`, `?estado=`, `?id_producto=`) | autenticado |
+| GET | `/api/salidas/` | Listar salidas (`?fecha_desde=`, `?fecha_hasta=`, `?estado=`, `?id_producto=`, `?page=`, `?page_size=`), paginado de a 16 | autenticado |
 | POST | `/api/salidas/` | Crear salida de productos con líneas | Adm. / Operario |
 | GET | `/api/salidas/{id}/` | Detalle de salida | autenticado |
 | PATCH | `/api/salidas/{id}/` | Modificar salida PENDIENTE | Adm. / Operario |
 | DELETE | `/api/salidas/{id}/` | Eliminar salida PENDIENTE | Adm. / Operario |
 | POST | `/api/salidas/{id}/finalizar/` | Finalizar y descontar el stock de productos | Adm. / Operario |
-| GET | `/api/proveedores/` | Listar proveedores (`?search=`, `?estado=`) | Adm. / Consulta |
+| GET | `/api/proveedores/` | Listar proveedores (`?search=`, `?estado=`, `?page=`, `?page_size=`), paginado de a 16 | Adm. / Consulta |
 | POST | `/api/proveedores/` | Crear proveedor | Adm. |
 | GET | `/api/proveedores/{id}/` | Detalle de proveedor | Adm. / Consulta |
 | PATCH | `/api/proveedores/{id}/` | Modificar proveedor | Adm. |
@@ -355,7 +355,7 @@ python manage.py test informes
 | POST | `/api/proveedores/{id}/alta/` | Dar de alta | Adm. |
 | POST | `/api/proveedores/{id}/baja/` | Dar de baja | Adm. |
 | GET | `/api/proveedores/similares/` | Nombres iguales o parecidos | Adm. / Consulta |
-| GET | `/api/compras/` | Listar compras (`?search=` por Nº de factura, `?categoria=M\|L`, `?estado=`, `?id_proveedor=`, `?fecha_desde=`, `?fecha_hasta=`) | Adm. / Consulta |
+| GET | `/api/compras/` | Listar compras (`?search=` por Nº de factura, `?categoria=M\|L`, `?estado=`, `?id_proveedor=`, `?fecha_desde=`, `?fecha_hasta=`, `?page=`, `?page_size=`), paginado de a 16 | Adm. / Consulta |
 | POST | `/api/compras/` | Crear compra de materias primas o de lotes con líneas | Adm. |
 | GET | `/api/compras/{id}/` | Detalle de compra | Adm. / Consulta |
 | PATCH | `/api/compras/{id}/` | Modificar compra PENDIENTE | Adm. |

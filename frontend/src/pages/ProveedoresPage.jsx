@@ -9,12 +9,16 @@ import {
 } from "../api/proveedores";
 import ProveedorFormModal from "../components/ProveedorFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function ProveedoresPage() {
   const { esAdministrador } = useAuth();
 
   const [proveedores, setProveedores] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("proveedores", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -26,14 +30,23 @@ export default function ProveedoresPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
+      const params = { page, page_size: pageSize };
       if (search) params.search = search;
       if (estadoFilter) params.estado = estadoFilter;
       const data = await listProveedores(params);
       const lista = data.results ?? data;
       setProveedores(lista);
-      if (!selectedId && lista.length > 0) setSelectedId(lista[0].id_proveedor);
-    } catch {
+      setCount(data.count ?? lista.length);
+      // Si el elemento seleccionado no está en esta página, se muestra el primero.
+      setSelectedId((actual) =>
+        lista.some((x) => x.id_proveedor === actual) ? actual : (lista[0]?.id_proveedor ?? null)
+      );
+    } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
+      }
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
@@ -43,7 +56,15 @@ export default function ProveedoresPage() {
   useEffect(() => {
     fetchProveedores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, estadoFilter]);
+  }, [search, estadoFilter, page, pageSize]);
+
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
 
   const selected = useMemo(
     () => proveedores.find((p) => p.id_proveedor === selectedId) || null,
@@ -53,6 +74,12 @@ export default function ProveedoresPage() {
   async function handleCreate(data) {
     const created = await createProveedor(data);
     setModalMode(null);
+    if (page !== 1) {
+      // El alta puede quedar en la primera página: se vuelve a ella (el efecto recarga).
+      setSelectedId(created.id_proveedor);
+      setPage(1);
+      return;
+    }
     await fetchProveedores();
     setSelectedId(created.id_proveedor);
   }
@@ -113,10 +140,10 @@ export default function ProveedoresPage() {
             type="text"
             placeholder="Buscar por nombre, CUIT, email, teléfono o dirección..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
-        <select className="select-filter" value={estadoFilter} onChange={(e) => setEstadoFilter(e.target.value)}>
+        <select className="select-filter" value={estadoFilter} onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}>
           <option value="">Estado: Todos</option>
           <option value="A">Activo</option>
           <option value="I">Inactivo</option>
@@ -128,37 +155,49 @@ export default function ProveedoresPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="card-grid">
-            {proveedores.length === 0 && (
-              <div className="empty-state">
-                {esAdministrador
-                  ? 'No hay proveedores registrados todavía. Creá el primero con "Nuevo proveedor".'
-                  : "No hay proveedores registrados."}
-              </div>
-            )}
-            {proveedores.map((p) => (
-              <div
-                key={p.id_proveedor}
-                className={`galpon-card ${p.id_proveedor === selectedId ? "card-selected" : ""}`}
-                onClick={() => { setSelectedId(p.id_proveedor); setActionError(null); }}
-              >
-                <div className="gc-top">
-                  <div className="gc-name" style={{ fontSize: "1rem", fontWeight: 600, color: "var(--gray-900)" }}>
-                    {p.nombre}
+          <div className="card-column">
+            <div className="card-grid">
+              {proveedores.length === 0 && (
+                <div className="empty-state">
+                  {esAdministrador
+                    ? 'No hay proveedores registrados todavía. Creá el primero con "Nuevo proveedor".'
+                    : "No hay proveedores registrados."}
+                </div>
+              )}
+              {proveedores.map((p) => (
+                <div
+                  key={p.id_proveedor}
+                  className={`galpon-card ${p.id_proveedor === selectedId ? "card-selected" : ""}`}
+                  onClick={() => { setSelectedId(p.id_proveedor); setActionError(null); }}
+                >
+                  <div className="gc-top">
+                    <div className="gc-name" style={{ fontSize: "1rem", fontWeight: 600, color: "var(--gray-900)" }}>
+                      {p.nombre}
+                    </div>
+                    <span className={`badge ${p.estado === "A" ? "badge-green" : "badge-red"}`}>
+                      {p.estado_display}
+                    </span>
                   </div>
-                  <span className={`badge ${p.estado === "A" ? "badge-green" : "badge-red"}`}>
-                    {p.estado_display}
-                  </span>
+                  <div className="gc-stats">
+                    <div className="gc-stat"><i className="fa-solid fa-envelope"></i><span className="gc-stat-texto" title={p.email}>{p.email}</span></div>
+                    <div className="gc-stat"><i className="fa-solid fa-phone"></i> {p.telefono}</div>
+                    {p.direccion && (
+                      <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {p.direccion}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="gc-stats">
-                  <div className="gc-stat"><i className="fa-solid fa-envelope"></i> {p.email}</div>
-                  <div className="gc-stat"><i className="fa-solid fa-phone"></i> {p.telefono}</div>
-                  {p.direccion && (
-                    <div className="gc-stat"><i className="fa-solid fa-location-dot"></i> {p.direccion}</div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {selected && (

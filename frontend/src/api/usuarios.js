@@ -35,8 +35,8 @@ export function bajaUsuario(id) {
 }
 
 /** Lista solo los operarios activos (para asignarlos a galpones) */
-export function listOperarios() {
-  return listUsuarios({ rol: "O", estado: "A" });
+export function listOperarios(params = {}) {
+  return listUsuarios({ rol: "O", estado: "A", ...params });
 }
 
 /** Restablecer la contraseña de un usuario (solo Administrador) */

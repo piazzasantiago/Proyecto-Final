@@ -12,6 +12,7 @@ import {
 import CampoPassword from "../components/CampoPassword";
 import UsuarioFormModal from "../components/UsuarioFormModal";
 import { useAuth } from "../context/AuthContext";
+import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
 const BADGE_ROL = { A: "badge-gold", O: "badge-green", C: "badge-gray" };
@@ -28,6 +29,9 @@ export default function UsuariosPage() {
 
   const [usuarios, setUsuarios] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useTamanoPagina("usuarios", 16);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -46,13 +50,25 @@ export default function UsuariosPage() {
     setError(null);
     try {
       const data = await listUsuarios({
+        page,
+        page_size: pageSize,
         search: search || undefined,
         rol: rolFilter || undefined,
         estado: estadoFilter || undefined,
       });
       // DRF pagina: los registros vienen en `results`.
-      setUsuarios(data.results ?? data);
+      const lista = data.results ?? data;
+      setUsuarios(lista);
+      setCount(data.count ?? lista.length);
+      setSelectedId((actual) =>
+        lista.some((u) => u.id_usuario === actual) ? actual : (lista[0]?.id_usuario ?? null)
+      );
     } catch (err) {
+      if (err.status === 404 && page > 1) {
+        // La página quedó vacía (se eliminó el último registro de la última página).
+        setPage(page - 1);
+        return;
+      }
       setError(err.message);
       setUsuarios([]);
     } finally {
@@ -66,7 +82,15 @@ export default function UsuariosPage() {
     const t = setTimeout(fetchUsuarios, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, rolFilter, estadoFilter]);
+  }, [search, rolFilter, estadoFilter, page, pageSize]);
+
+  /** Cambia un filtro: vuelve a la primera página. */
+  function cambiarFiltro(setter) {
+    return (valor) => {
+      setter(valor);
+      setPage(1);
+    };
+  }
 
   const selected = useMemo(
     () => usuarios.find((u) => u.id_usuario === selectedId) ?? null,
@@ -98,6 +122,13 @@ export default function UsuariosPage() {
   async function handleCreate(data) {
     const creado = await createUsuario(data);
     setModalMode(null);
+    if (page !== 1) {
+      // El alta puede quedar en la primera página: se vuelve a ella (el efecto recarga).
+      setSelectedId(creado.id_usuario);
+      mostrarAviso(`Usuario ${creado.nombre_completo} creado correctamente.`);
+      setPage(1);
+      return;
+    }
     await fetchUsuarios();
     setSelectedId(creado.id_usuario);
     mostrarAviso(`Usuario ${creado.nombre_completo} creado correctamente.`);
@@ -138,16 +169,16 @@ export default function UsuariosPage() {
             type="text"
             placeholder="Buscar por nombre, usuario o email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
         </div>
-        <select className="select-filter" value={rolFilter} onChange={(e) => setRolFilter(e.target.value)}>
+        <select className="select-filter" value={rolFilter} onChange={(e) => cambiarFiltro(setRolFilter)(e.target.value)}>
           <option value="">Rol: Todos</option>
           <option value="A">Administrador</option>
           <option value="O">Operario</option>
           <option value="C">Consulta</option>
         </select>
-        <select className="select-filter" value={estadoFilter} onChange={(e) => setEstadoFilter(e.target.value)}>
+        <select className="select-filter" value={estadoFilter} onChange={(e) => cambiarFiltro(setEstadoFilter)(e.target.value)}>
           <option value="">Estado: Todos</option>
           <option value="A">Activo</option>
           <option value="I">Inactivo</option>
@@ -160,29 +191,41 @@ export default function UsuariosPage() {
 
       {!loading && !error && (
         <div className="page-body-split">
-          <div className="card-grid">
-            {usuarios.length === 0 && (
-              <div className="empty-state">
-                No hay usuarios que coincidan con la búsqueda.
-              </div>
-            )}
-            {usuarios.map((u) => (
-              <div
-                key={u.id_usuario}
-                className={`usuario-card ${u.id_usuario === selectedId ? "card-selected" : ""}`}
-                onClick={() => setSelectedId(u.id_usuario)}
-              >
-                <div className="uc-avatar">{iniciales(u)}</div>
-                <div className="uc-nombre">{u.nombre_completo}</div>
-                <div className="uc-usuario">{u.usuario}</div>
-                <div className="uc-badges">
-                  <span className={`badge ${BADGE_ROL[u.rol] ?? ""}`}>{u.rol_display}</span>
-                  <span className={`badge ${u.estado === "A" ? "badge-green" : "badge-red"}`}>
-                    {u.estado_display}
-                  </span>
+          <div className="card-column">
+            <div className="card-grid">
+              {usuarios.length === 0 && (
+                <div className="empty-state">
+                  No hay usuarios que coincidan con la búsqueda.
                 </div>
-              </div>
-            ))}
+              )}
+              {usuarios.map((u) => (
+                <div
+                  key={u.id_usuario}
+                  className={`usuario-card ${u.id_usuario === selectedId ? "card-selected" : ""}`}
+                  onClick={() => setSelectedId(u.id_usuario)}
+                >
+                  <div className="uc-avatar">{iniciales(u)}</div>
+                  <div className="uc-nombre">{u.nombre_completo}</div>
+                  <div className="uc-usuario">{u.usuario}</div>
+                  <div className="uc-badges">
+                    <span className={`badge ${BADGE_ROL[u.rol] ?? ""}`}>{u.rol_display}</span>
+                    <span className={`badge ${u.estado === "A" ? "badge-green" : "badge-red"}`}>
+                      {u.estado_display}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Paginacion
+              page={page}
+              count={count}
+              pageSize={pageSize}
+              onChange={setPage}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
+            />
           </div>
 
           {selected && (

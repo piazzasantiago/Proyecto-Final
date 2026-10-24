@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from lotes.models import Lote
 from usuarios.permissions import EsAdministradorOOperario
 
+from config.pagination import PaginacionListado
 from .models import Descarte
 from .serializers import DescarteSerializer
 from .stock import verificar_stock
@@ -65,6 +66,7 @@ class DescarteViewSet(viewsets.ModelViewSet):
         .all()
     )
     serializer_class = DescarteSerializer
+    pagination_class = PaginacionListado
     filter_backends = [django_filters.DjangoFilterBackend]
     filterset_class = DescarteFilter
 
