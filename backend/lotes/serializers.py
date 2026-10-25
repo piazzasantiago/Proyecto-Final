@@ -208,7 +208,7 @@ class LoteSerializer(serializers.ModelSerializer):
         compra = linea.id_compra
         return {
             "id_compra": compra.pk,
-            "nro_factura": compra.nro_factura,
+            "nro_comprobante": compra.nro_comprobante,
             "proveedor": compra.id_proveedor.nombre,
         }
 
