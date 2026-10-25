@@ -48,6 +48,8 @@ function initForm(initialData) {
 
 const hoyISO = new Date().toISOString().slice(0, 10);
 
+const miles = (n) => Number(n).toLocaleString("es-AR");
+
 function formatFechaCorta(iso) {
   if (!iso) return "";
   const [y, m, d] = iso.slice(0, 10).split("-");
@@ -83,6 +85,13 @@ export default function LoteFormModal({
   );
   const cantidadInicial = isEdit ? form.cantidad_inicial : loteElegido?.cantidad ?? "";
 
+  // Galpón elegido y si le alcanza la capacidad para las aves del lote (F-07 / F-08).
+  const galponElegido = galpones.find((g) => String(g.id_galpon) === String(form.id_galpon_id));
+  const capacidad = galponElegido?.capacidad;
+  const excedeCapacidad =
+    !isEdit && capacidad != null && cantidadInicial !== "" && Number(cantidadInicial) > capacidad;
+  const sinGalponesLibres = !isEdit && galpones.length === 0;
+
   function handleGalponInvalid(e) {
     e.target.setCustomValidity("Debe seleccionar un galpón");
   }
@@ -105,6 +114,14 @@ export default function LoteFormModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (excedeCapacidad) {
+      setErrors({
+        id_galpon_id:
+          `El galpón tiene capacidad para ${miles(capacidad)} aves y el lote tiene ` +
+          `${miles(cantidadInicial)}. Elegí un galpón con mayor capacidad.`,
+      });
+      return;
+    }
     setSaving(true);
     setErrors({});
     try {
@@ -206,15 +223,47 @@ export default function LoteFormModal({
                   onChange={handleChange}
                   onInvalid={handleGalponInvalid}
                   required
-                  disabled={isEdit}
+                  disabled={isEdit || sinGalponesLibres}
                 >
-                  <option value="">Seleccioná un galpón activo...</option>
-                  {galpones.map((g) => (
-                    <option key={g.id_galpon} value={g.id_galpon}>
-                      G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon}
+                  <option value="">
+                    {isEdit ? "Galpón del lote" : "Seleccioná un galpón libre..."}
+                  </option>
+                  {/* En edición el galpón del lote puede no estar en la lista (está ocupado por él mismo). */}
+                  {isEdit && !galponElegido && initialData?.galpon && (
+                    <option value={initialData.galpon.id_galpon}>
+                      G-{String(initialData.galpon.id_galpon).padStart(2, "0")} · {initialData.galpon.galpon}
                     </option>
-                  ))}
+                  )}
+                  {galpones.map((g) => {
+                    const noAlcanza =
+                      !isEdit && cantidadInicial !== "" && Number(cantidadInicial) > g.capacidad;
+                    return (
+                      <option key={g.id_galpon} value={g.id_galpon} disabled={noAlcanza}>
+                        G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon} · capacidad {miles(g.capacidad)} aves
+                        {noAlcanza ? " (no alcanza para este lote)" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
+                {sinGalponesLibres && (
+                  <span className="form-hint">
+                    No hay galpones activos libres. Un galpón queda libre cuando se hace el vaciado
+                    sanitario de su lote.
+                  </span>
+                )}
+                {capacidad != null && !excedeCapacidad && (
+                  <span className="form-hint">Capacidad del galpón: {miles(capacidad)} aves.</span>
+                )}
+                {excedeCapacidad && (
+                  <span className="form-error">
+                    El galpón tiene capacidad para {miles(capacidad)} aves y el lote tiene {miles(cantidadInicial)}.
+                  </span>
+                )}
+                {!isEdit && !sinGalponesLibres && (
+                  <span className="form-hint">
+                    Solo se listan los galpones activos que no tienen un lote en curso.
+                  </span>
+                )}
                 {errors.id_galpon_id && <span className="form-error">{Array.isArray(errors.id_galpon_id) ? errors.id_galpon_id.join(" ") : errors.id_galpon_id}</span>}
                 {isEdit && <span className="form-hint">El galpón no se puede cambiar después de crear el lote.</span>}
               </div>
@@ -339,7 +388,7 @@ export default function LoteFormModal({
               </table>
             </div>
             <span className="form-hint">
-              La fecha de inicio del plan coincide con la fecha de ingreso del lote. La fecha de fin se calcula automáticamente (28 días después).
+              La fecha de inicio del plan coincide con la fecha de ingreso del lote. La transición dura como máximo 4 semanas: si pasado ese plazo no se inició la producción, el lote pasa solo a Producción.
             </span>
           </div>
 

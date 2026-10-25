@@ -13,7 +13,9 @@ class Lote(models.Model):
     El estado representa la etapa productiva del lote:
         T (Transición) → P (Producción) → F (Finalizado).
     El estado Finalizado se alcanza ejecutando el vaciado sanitario (CU48),
-    que además registra automáticamente la fecha_vaciado.
+    que además registra automáticamente la fecha_vaciado. Al iniciar la
+    producción (CU46) se registra fecha_inicio_produccion: la etapa de
+    Producción va desde esa fecha hasta la fecha_vaciado.
 
     cantidad_actual arranca igual a cantidad_inicial al crear el lote.
     Cuando se implemente feature/descartes, una señal post_save en Descarte
@@ -39,6 +41,9 @@ class Lote(models.Model):
     )
     fecha_ingreso = models.DateField()
     fecha_vaciado = models.DateField(null=True, blank=True)
+    # Día en que el lote pasó de Transición a Producción (CU46). Es null mientras
+    # el lote está en Transición y en los lotes que se vaciaron sin llegar a producir.
+    fecha_inicio_produccion = models.DateField(null=True, blank=True)
     cantidad_inicial = models.IntegerField()
     cantidad_actual = models.IntegerField()
     estado = models.CharField(

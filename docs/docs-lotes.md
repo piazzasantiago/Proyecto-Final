@@ -32,6 +32,7 @@ Representa un conjunto de gallinas ponedoras alojadas en un galpón.
 | `cantidad_inicial` | `int` | Cantidad de aves al ingresar |
 | `cantidad_actual` | `int` | Cantidad de aves en este momento |
 | `estado` | `char(1)` | Estado del ciclo de vida (ver abajo) |
+| `fecha_inicio_produccion` | `date` | Día en que el lote pasó a Producción; nulo mientras está en Transición y en los lotes que se vaciaron sin producir |
 | `fecha_vaciado` | `date` | Fecha del vaciado sanitario; nula hasta que se registra |
 | `observaciones` | `text` | Observaciones libres (opcional) |
 
@@ -47,6 +48,12 @@ El estado inicial siempre es `T` (Transición). Las transiciones permitidas son
 `T → P` (iniciar producción) y `T → F` o `P → F` (vaciado sanitario).
 No existe retroceso de estado.
 
+La etapa de **Producción** va desde `fecha_inicio_produccion` (la registra la
+acción `iniciar-produccion` con la fecha del día) hasta `fecha_vaciado`. La
+migración `0002` completó el campo en los lotes que ya estaban en Producción
+(fin de su plan de transición: ingreso + 28 días); los lotes ya Finalizados
+quedan sin fecha de inicio porque no se puede saber si llegaron a producir.
+
 ### `PlanTransicion`
 
 Registro del plan de alimentación, agua y luz artificial para las cuatro semanas
@@ -58,7 +65,7 @@ de adaptación de las aves recién ingresadas.
 | `id_lote` | FK → `Lote` (CASCADE) | Lote al que pertenece el plan |
 | `estado` | `char(1)` | `E` En curso / `F` Finalizado |
 | `fecha_inicio` | `date` | Igual a `fecha_ingreso` del lote |
-| `fecha_fin` | `date` | 28 días después de `fecha_inicio` |
+| `fecha_fin` | `date` | Tope de la transición: 28 días después de `fecha_inicio`. No es la fecha real de fin (ver abajo) |
 | `agua_semana1..4` | `decimal(6,2)` | Litros de agua por ave por día, semana 1 a 4 |
 | `alimento_semana1..4` | `decimal(6,2)` | Gramos de alimento por ave por día |
 | `horas_luz_semana1..4` | `decimal(4,2)` | Horas de luz artificial por día |
@@ -80,10 +87,37 @@ Esta regla se valida en `LoteSerializer.validate()` antes de crear el lote. Si
 el galpón ya tiene un lote activo, el endpoint devuelve `400 Bad Request` con el
 detalle del lote que lo ocupa.
 
+### La transición dura como máximo 4 semanas
+
+Las 4 semanas del plan son un **tope**, no una duración fija. La transición
+termina cuando empieza la producción: a mano con `iniciar-produccion` (puede ser
+antes de las 4 semanas) o sola, cuando el lote llega a `plan.fecha_fin`. En ese
+caso `lotes/transiciones.py::pasar_a_produccion_vencidos()` pasa el lote a `P`,
+deja el plan Finalizado y registra `fecha_inicio_produccion = plan.fecha_fin`
+(el día en que venció, no el día en que se consultó). No hay tarea programada:
+se ejecuta antes de resolver cada consulta de `/api/lotes/`, así que el estado
+siempre está al día. Por eso la fecha real de fin de la transición es
+`fecha_inicio_produccion`, y la línea de tiempo no muestra `plan.fecha_fin`.
+
 ### Galpón activo obligatorio
 
 Solo se puede crear un lote en un galpón con estado `A` (Activo). Un galpón dado
 de baja no puede recibir nuevas aves.
+
+### El galpón debe tener capacidad para el lote
+
+Al crear un lote, `cantidad_inicial` (la comprada) no puede superar la
+`capacidad` del galpón elegido. Si la supera, el endpoint devuelve `400` con el
+error en `id_galpon_id`, indicando la capacidad del galpón y la cantidad del
+lote. Un lote rechazado no se crea y su compra sigue pendiente de asignar.
+
+### Solo galpones libres
+
+El formulario de asignación ofrece únicamente los galpones **activos y sin lote
+en curso** (`GET /api/galpones/?estado=A&libre=true`). `libre=true` excluye los
+galpones con algún lote en Transición o Producción; los que solo tuvieron lotes
+Finalizados cuentan como libres. El backend sigue validando que el galpón no
+esté ocupado (ver "Un galpón, un lote activo").
 
 ### Cantidad inicial positiva
 
@@ -135,6 +169,17 @@ Devuelve una lista paginada de lotes. Los resultados se filtran por rol:
 |---|---|---|
 | `estado` | Filtra por estado del ciclo de vida | `?estado=T` |
 | `id_galpon` | Filtra por galpón | `?id_galpon=3` |
+| `fecha_desde` | Inicio del rango de fechas (`AAAA-MM-DD`, inclusive) | `?fecha_desde=2025-10-24` |
+| `fecha_hasta` | Fin del rango de fechas (`AAAA-MM-DD`, inclusive) | `?fecha_hasta=2026-10-24` |
+
+**Rango de fechas.** Se listan los lotes cuya `fecha_ingreso` (el día en que se
+asignaron a un galpón) cae dentro del rango. Los dos extremos son inclusivos y
+opcionales; sin ninguno se listan todos. Aplica a cualquier estado: un lote en
+producción que ingresó hace más de un año no aparece en el rango por defecto, y
+hay que ampliar la fecha "desde" para verlo. Una fecha inválida o un
+`fecha_desde` posterior a `fecha_hasta` devuelve `400`. El rango se aplica solo
+al listado: el detalle de un lote siempre se puede consultar. La pantalla de
+Lotes envía por defecto el último año.
 
 **Respuesta `200`:**
 ```json
@@ -153,6 +198,7 @@ Devuelve una lista paginada de lotes. Los resultados se filtran por rol:
       "cantidad_actual": 2500,
       "estado": "T",
       "estado_display": "Transición",
+      "fecha_inicio_produccion": null,
       "fecha_vaciado": null,
       "observaciones": "",
       "plan_transicion": { ... }
@@ -200,7 +246,7 @@ ver los lotes de sus galpones asignados; cualquier otro devuelve `404`.
 
 | Código | Causa |
 |---|---|
-| `400` | Galpón inactivo, cantidad inicial ≤ 0, o galpón ya tiene un lote activo |
+| `400` | Galpón inactivo, cantidad inicial ≤ 0, galpón con un lote activo, o galpón con capacidad menor a la cantidad del lote |
 | `403` | El usuario no es Administrador |
 
 ### Modificar lote — `PATCH /api/lotes/{id}/`
@@ -221,8 +267,9 @@ Elimina el lote y su plan de transición (CASCADE). Devuelve `204 No Content`.
 
 **Rol requerido:** Administrador.
 
-Avanza el lote de `T` (Transición) a `P` (Producción) y marca el plan de
-transición como Finalizado.
+Avanza el lote de `T` (Transición) a `P` (Producción), registra
+`fecha_inicio_produccion` con la fecha del día y marca el plan de transición
+como Finalizado.
 
 **Errores:**
 
@@ -261,7 +308,10 @@ tanto desde `T` como desde `P`.
 Sigue el mismo patrón de `GalponesPage`: lista de tarjetas a la izquierda y
 panel de detalle a la derecha. Incluye:
 
-- Búsqueda por texto y filtro por estado (Transición / Producción / Finalizado).
+- Búsqueda por texto y filtro por galpón.
+- Filtro **Ingreso desde / hasta**: muestra los lotes cuya fecha de ingreso cae
+  en ese rango (por defecto, el último año; botón "Último año" para volver al
+  rango inicial).
 - Tarjeta por lote con código (`L-001`), galpón, estado y cantidad de aves.
 - Panel de detalle con datos del lote, plan de transición en tabla y **stepper
   del ciclo de vida**.
@@ -278,6 +328,11 @@ El panel de detalle muestra un gráfico de cuatro pasos:
 Ingreso → Transición → Producción → Vaciado sanitario
 ```
 
+Cada paso muestra su fecha o rango: Transición (inicio – "En curso" mientras
+dura; al terminar, inicio – día en que empezó la producción), Producción
+(inicio de producción – "En curso" o fecha de vaciado) y Vaciado sanitario. El detalle del lote también lista la **Fecha de inicio de
+producción**.
+
 Los pasos completados se muestran en verde; el paso actual, en azul; los
 siguientes, en gris. Se implementa con CSS Grid de cuatro columnas iguales para
 mantener los círculos alineados horizontalmente en cualquier tamaño de pantalla.
@@ -287,8 +342,10 @@ mantener los círculos alineados horizontalmente en cualquier tamaño de pantall
 Modal de dos secciones:
 
 1. **Datos del lote:** **Lotes a asignar** (select con los lotes comprados sin
-   asignar, antes del galpón; solo al crear), galpón (select con galpones
-   activos), fecha de ingreso, cantidad inicial (de solo lectura, sale de la
+   asignar, antes del galpón; solo al crear), galpón (al crear, solo galpones
+   activos y libres, cada uno con su capacidad; se deshabilitan los que no
+   alcanzan para el lote elegido y se muestra la capacidad del galpón
+   seleccionado), fecha de ingreso, cantidad inicial (de solo lectura, sale de la
    compra) y observaciones.
 2. **Plan de transición:** tabla de 4 semanas × 3 parámetros (agua, alimento,
    horas de luz).
@@ -307,7 +364,7 @@ muestra el navegador por defecto.
 
 Ubicación: `backend/lotes/tests.py`
 
-**Total: 53 tests — 53/53 ✅**
+**Total: 80 tests — 80/80 ✅**
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
@@ -319,6 +376,13 @@ Ubicación: `backend/lotes/tests.py`
 | `VaciarTests` | 5 | CU48: vaciado desde T y P, fecha registrada, 409 si ya finalizado |
 | `PermisosLotesTests` | 12 | Matriz rol × operación (Administrador / Operario / Consulta / sin token) |
 | `FiltradoPorRolTests` | 5 | Operario ve solo sus galpones; Administrador y Consulta ven todo |
+| `RangoFechasLotesTests` | 8 | F-06: filtro por fecha de ingreso (no cuentan el inicio de producción ni el vaciado), aplica a lotes en curso, extremos inclusivos y opcionales, 400 por fecha inválida o rango invertido |
+| `CapacidadGalponTests` | 6 | F-07: rechazo si la capacidad no alcanza, mensaje, nada se crea, capacidad justa y mayor, PATCH no revalida |
+| `InicioProduccionTests` | 6 | F-09: fecha nula al crear, se registra al iniciar producción, se conserva al vaciar, solo lectura |
+| `PasoAutomaticoAProduccionTests` | 7 | Pasa solo a Producción a los 28 días (no antes), la producción arranca cuando venció la transición, plan finalizado, no pisa fechas existentes, 409 al iniciar a mano un lote ya vencido |
+
+Los tests de `?libre=true` (F-10) están en `backend/galpones/tests.py`
+(`GalponesLibresTests`, 6).
 
 Correr solo este módulo:
 

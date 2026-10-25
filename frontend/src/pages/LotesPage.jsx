@@ -22,6 +22,21 @@ function formatFecha(iso) {
   return `${d}/${m}/${y}`;
 }
 
+/** Fecha local en formato AAAA-MM-DD (sin pasar por UTC, que corre el día a la noche). */
+function fechaISO(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** Rango por defecto de la fecha de ingreso de los lotes: el último año. */
+function rangoPorDefecto() {
+  const hoy = new Date();
+  const desde = new Date(hoy);
+  desde.setFullYear(hoy.getFullYear() - 1);
+  return { desde: fechaISO(desde), hasta: fechaISO(hoy) };
+}
+
 function formatGalpon(lote) {
   const id = lote.galpon?.id_galpon;
   const nombre = lote.galpon?.galpon || "";
@@ -50,6 +65,11 @@ export default function LotesPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [galponFilter, setGalponFilter] = useState("");
+  // Los lotes se acotan por su fecha de ingreso (por defecto, el último año).
+  const [fechaDesde, setFechaDesde] = useState(() => rangoPorDefecto().desde);
+  const [fechaHasta, setFechaHasta] = useState(() => rangoPorDefecto().hasta);
+  // Galpones activos y sin lote en curso: los únicos que pueden recibir un lote nuevo.
+  const [galponesLibres, setGalponesLibres] = useState([]);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   async function fetchLotes() {
@@ -59,16 +79,27 @@ export default function LotesPage() {
       const params = {};
       if (search) params.search = search;
       if (galponFilter) params.id_galpon = galponFilter;
+      if (fechaDesde) params.fecha_desde = fechaDesde;
+      if (fechaHasta) params.fecha_hasta = fechaHasta;
       const data = await listLotes(params);
       const lista = data.results ?? data;
       setLotes(lista);
-      if (!selectedId && lista.length > 0) {
-        setSelectedId(lista[0].id_lote);
-      }
+      // Si el lote seleccionado ya no está en la lista (p. ej. por el rango), se elige el primero.
+      setSelectedId((actual) =>
+        lista.some((l) => l.id_lote === actual) ? actual : lista[0]?.id_lote ?? null
+      );
     } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 8000?");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchGalponesLibres() {
+    try {
+      setGalponesLibres(await traerTodas(listGalpones, { estado: "A", libre: "true" }));
+    } catch {
+      setGalponesLibres([]);
     }
   }
 
@@ -87,10 +118,11 @@ export default function LotesPage() {
       .then(setGalpones)
       .catch(() => setGalpones([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, galponFilter]);
+  }, [search, galponFilter, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     fetchLotesPendientes();
+    fetchGalponesLibres();
   }, []);
 
   const selected = useMemo(
@@ -108,6 +140,7 @@ export default function LotesPage() {
     setModalMode(null);
     await fetchLotes();
     await fetchLotesPendientes();
+    await fetchGalponesLibres();
   }
 
   async function handleUpdate(data) {
@@ -123,6 +156,7 @@ export default function LotesPage() {
     await fetchLotes();
     // Si el lote venía de una compra, vuelve a quedar pendiente de asignar.
     await fetchLotesPendientes();
+    await fetchGalponesLibres();
   }
 
   async function handleIniciarProduccion() {
@@ -142,6 +176,8 @@ export default function LotesPage() {
     try {
       await vaciarLote(selected.id_lote);
       await fetchLotes();
+      // El galpón vaciado queda libre para recibir otro lote.
+      await fetchGalponesLibres();
     } catch (err) {
       alert(err.message || "No se pudo realizar el vaciado.");
     }
@@ -174,21 +210,44 @@ export default function LotesPage() {
     );
   }
 
+  /**
+   * Rango de la etapa de Transición. Las 4 semanas son solo un tope: la etapa
+   * termina cuando empieza la producción (a mano o sola al cumplirse el tope),
+   * así que mientras dura se muestra "En curso" y no una fecha de fin estimada.
+   */
+  function subTransicion(lote) {
+    const inicio = lote.plan_transicion?.fecha_inicio ?? lote.fecha_ingreso;
+    if (lote.estado === ESTADO_TRANSICION) return `${formatFecha(inicio)} – En curso`;
+    const fin = lote.fecha_inicio_produccion || lote.fecha_vaciado;
+    return fin ? `${formatFecha(inicio)} – ${formatFecha(fin)}` : formatFecha(inicio);
+  }
+
+  /** Rango de la etapa de Producción: desde que se inició hasta el vaciado sanitario. */
+  function subProduccion(lote) {
+    const inicio = lote.fecha_inicio_produccion;
+    if (lote.estado === ESTADO_PRODUCCION) {
+      return inicio ? `${formatFecha(inicio)} – En curso` : "En curso";
+    }
+    if (lote.estado === ESTADO_FINALIZADO) {
+      return inicio ? `${formatFecha(inicio)} – ${formatFecha(lote.fecha_vaciado)}` : "—";
+    }
+    return "Pendiente";
+  }
+
   function renderStepper(lote) {
     const estado = lote.estado;
-    const plan = lote.plan_transicion;
 
     const steps = [
       { label: "Ingreso", sub: formatFecha(lote.fecha_ingreso), done: true, current: false },
       {
         label: "Transición",
-        sub: plan ? `${formatFecha(plan.fecha_inicio)} – ${formatFecha(plan.fecha_fin)}` : "4 sem.",
+        sub: subTransicion(lote),
         done: estado === ESTADO_PRODUCCION || estado === ESTADO_FINALIZADO,
         current: estado === ESTADO_TRANSICION,
       },
       {
         label: "Producción",
-        sub: estado === ESTADO_PRODUCCION ? "En curso" : estado === ESTADO_FINALIZADO ? "completada" : "Pendiente",
+        sub: subProduccion(lote),
         done: estado === ESTADO_FINALIZADO,
         current: estado === ESTADO_PRODUCCION,
       },
@@ -303,6 +362,40 @@ export default function LotesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}
+          title="Se muestran los lotes cuya fecha de ingreso (cuando se asignaron a un galpón) cae dentro del rango.">
+          <span style={{ color: "var(--gray-500)" }}>Ingreso desde</span>
+          <input
+            type="date"
+            className="filter-date"
+            value={fechaDesde}
+            max={fechaHasta || undefined}
+            onChange={(e) => setFechaDesde(e.target.value)}
+          />
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
+          <span style={{ color: "var(--gray-500)" }}>hasta</span>
+          <input
+            type="date"
+            className="filter-date"
+            value={fechaHasta}
+            min={fechaDesde || undefined}
+            onChange={(e) => setFechaHasta(e.target.value)}
+          />
+        </label>
+        {(fechaDesde !== rangoPorDefecto().desde || fechaHasta !== rangoPorDefecto().hasta) && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              const r = rangoPorDefecto();
+              setFechaDesde(r.desde);
+              setFechaHasta(r.hasta);
+            }}
+          >
+            Último año
+          </button>
+        )}
         <select
           className="select-filter"
           value={galponFilter}
@@ -364,6 +457,7 @@ export default function LotesPage() {
                 <div className="detail-row"><span>Cantidad inicial</span><span>{selected.cantidad_inicial?.toLocaleString("es-AR")}</span></div>
                 <div className="detail-row"><span>Cantidad actual</span><span>{selected.cantidad_actual?.toLocaleString("es-AR")}</span></div>
                 <div className="detail-row"><span>Fecha de ingreso</span><span>{formatFecha(selected.fecha_ingreso)}</span></div>
+                <div className="detail-row"><span>Fecha de inicio de producción</span><span>{formatFecha(selected.fecha_inicio_produccion)}</span></div>
                 <div className="detail-row"><span>Fecha de vaciado</span><span>{formatFecha(selected.fecha_vaciado)}</span></div>
                 {selected.observaciones && (
                   <div className="detail-row" style={{ borderBottom: "none", alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
@@ -380,7 +474,7 @@ export default function LotesPage() {
                   Plan de transición
                   {selected.plan_transicion && (
                     <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12, marginLeft: 6 }}>
-                      ({formatFecha(selected.plan_transicion.fecha_inicio)} – {formatFecha(selected.plan_transicion.fecha_fin)})
+                      ({subTransicion(selected)})
                     </span>
                   )}
                 </div>
@@ -424,7 +518,7 @@ export default function LotesPage() {
 
       {modalMode === "create" && (
         <LoteFormModal
-          galpones={galpones}
+          galpones={galponesLibres}
           lotesPendientes={lotesPendientes}
           onClose={() => setModalMode(null)}
           onSubmit={handleCreate}

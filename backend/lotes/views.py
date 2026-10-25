@@ -1,6 +1,7 @@
 import datetime
 
 from rest_framework import filters, status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,6 +10,7 @@ from usuarios.models import Usuario
 from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 
 from .models import Lote
+from .transiciones import pasar_a_produccion_vencidos
 from .serializers import LoteSerializer
 
 
@@ -16,18 +18,25 @@ class LoteViewSet(viewsets.ModelViewSet):
     """
     CRUD completo de Lotes más acciones de cambio de estado.
 
-    CU42  GET    /api/lotes/                        listar (con ?search=, ?estado=, ?id_galpon=)
+    CU42  GET    /api/lotes/                        listar (con ?search=, ?estado=, ?id_galpon=,
+                                                    ?fecha_desde= y ?fecha_hasta= en formato AAAA-MM-DD)
     CU42  GET    /api/lotes/{id}/                   detalle
     CU43  POST   /api/lotes/                        crear (incluye plan de transición);
                                                     exige un lote comprado a asignar
                                                     (id_linea_compra, ver Compras)
     CU44  PATCH  /api/lotes/{id}/                   modificar
     CU45  DELETE /api/lotes/{id}/                   eliminar
-    CU46  POST   /api/lotes/{id}/iniciar-produccion/ Transición → Producción
+    CU46  POST   /api/lotes/{id}/iniciar-produccion/ Transición → Producción (también ocurre solo
+                                                    al cumplirse las 4 semanas de transición)
     CU48  POST   /api/lotes/{id}/vaciar/             cualquier estado → Finalizado + fecha_vaciado
 
     Permisos: leer requiere autenticación con cualquier rol; crear, modificar
     y eliminar requiere rol Administrador.
+
+    Rango de fechas (solo en el listado): ?fecha_desde= y ?fecha_hasta= (ambos
+    inclusivos y opcionales) dejan los lotes cuya fecha de ingreso, o sea el día
+    en que se asignaron a un galpón, cae dentro del rango. Sin ninguno, se
+    listan todos. Una fecha inválida o un desde posterior al hasta devuelve 400.
 
     Filtrado por rol:
     - Administrador y Consulta: ven todos los lotes.
@@ -43,16 +52,43 @@ class LoteViewSet(viewsets.ModelViewSet):
     ordering_fields = ["fecha_ingreso", "cantidad_inicial", "cantidad_actual"]
 
     def get_queryset(self):
+        # Los lotes que cumplieron las 4 semanas de transición pasan solos a Producción.
+        pasar_a_produccion_vencidos()
         usuario = self.request.user
         qs = Lote.objects.select_related(
             "id_galpon", "plan_transicion", "linea_compra__id_compra__id_proveedor"
         )
         if usuario.rol == Usuario.ROL_OPERARIO:
             # El operario solo ve los lotes de los galpones que tiene asignados
-            return qs.filter(
+            qs = qs.filter(
                 id_galpon__operarios_asignados__id_usuario=usuario
             ).order_by("-fecha_ingreso")
-        return qs.all()
+        else:
+            qs = qs.all()
+        if self.action == "list":
+            qs = self._filtrar_por_fecha_de_ingreso(qs)
+        return qs
+
+    def _fecha_param(self, nombre):
+        valor = self.request.query_params.get(nombre)
+        if not valor:
+            return None
+        try:
+            return datetime.date.fromisoformat(valor)
+        except ValueError:
+            raise ValidationError({nombre: "Fecha inválida. Usá el formato AAAA-MM-DD."})
+
+    def _filtrar_por_fecha_de_ingreso(self, qs):
+        """Deja los lotes cuya fecha de ingreso cae en ?fecha_desde= / ?fecha_hasta=."""
+        desde = self._fecha_param("fecha_desde")
+        hasta = self._fecha_param("fecha_hasta")
+        if desde and hasta and desde > hasta:
+            raise ValidationError({"fecha_desde": "La fecha desde no puede ser posterior a la fecha hasta."})
+        if desde:
+            qs = qs.filter(fecha_ingreso__gte=desde)
+        if hasta:
+            qs = qs.filter(fecha_ingreso__lte=hasta)
+        return qs
 
     def update(self, request, *args, **kwargs):
         lote = self.get_object()
@@ -71,7 +107,8 @@ class LoteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_409_CONFLICT,
             )
         lote.estado = Lote.ESTADO_PRODUCCION
-        lote.save(update_fields=["estado"])
+        lote.fecha_inicio_produccion = datetime.date.today()
+        lote.save(update_fields=["estado", "fecha_inicio_produccion"])
 
         # Marcar el plan de transición como finalizado
         plan = lote.plan_transicion

@@ -10,8 +10,12 @@ Clases de tests:
     VaciarTests                 (5)  CU48 – vaciado sanitario → Finalizado
     PermisosLotesTests         (12)  matriz rol × operación
     FiltradoPorRolTests         (5)  operario ve solo lotes de sus galpones asignados
+    RangoFechasLotesTests       (8)  F-06 – lotes acotados por fecha de ingreso
+    CapacidadGalponTests        (6)  F-07 – el galpón debe tener capacidad para el lote
+    InicioProduccionTests       (6)  F-09 – fecha de inicio de producción
+    PasoAutomaticoAProduccionTests (7)  la transición dura como máximo 4 semanas
 
-Total: 53 tests
+Total: 80 tests
 """
 
 import datetime
@@ -48,13 +52,13 @@ def crear_usuario(usuario="testuser", rol=Usuario.ROL_ADMINISTRADOR, estado=Usua
     return u
 
 
-def crear_galpon(nombre="Galpón A", estado=Galpon.ESTADO_ACTIVO):
+def crear_galpon(nombre="Galpón A", estado=Galpon.ESTADO_ACTIVO, capacidad=5000):
     return Galpon.objects.create(
         galpon=nombre,
         latitud="-26.808000",
         longitud="-65.217000",
         superficie="200.000000",
-        capacidad=500,
+        capacidad=capacidad,
         estado=estado,
     )
 
@@ -122,16 +126,20 @@ def payload_lote(galpon, linea=None, **kwargs):
     return base
 
 
-def crear_lote(galpon, estado=Lote.ESTADO_TRANSICION, fecha_ingreso=None):
+def crear_lote(galpon, estado=Lote.ESTADO_TRANSICION, fecha_ingreso=None,
+               fecha_inicio_produccion=None, fecha_vaciado=None):
     """Crea un lote con su plan de transición directamente en la base."""
     if fecha_ingreso is None:
-        fecha_ingreso = datetime.date(2026, 1, 18)
+        # Reciente: un lote en Transición con más de 4 semanas pasa solo a Producción.
+        fecha_ingreso = datetime.date.today() - datetime.timedelta(days=3)
     lote = Lote.objects.create(
         id_galpon=galpon,
         fecha_ingreso=fecha_ingreso,
         cantidad_inicial=2500,
         cantidad_actual=2500,
         estado=estado,
+        fecha_inicio_produccion=fecha_inicio_produccion,
+        fecha_vaciado=fecha_vaciado,
     )
     PlanTransicion.objects.create(
         id_lote=lote,
@@ -593,3 +601,230 @@ class FiltradoPorRolTests(TestCase):
         token_de(self.client, self.consulta)
         resp = self.client.get("/api/lotes/")
         self.assertEqual(resp.data["count"], 2)
+
+
+# ---------------------------------------------------------------------------
+# F-06 – Los lotes Finalizados se acotan por un rango de fechas
+# ---------------------------------------------------------------------------
+
+class RangoFechasLotesTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin06", rol=Usuario.ROL_ADMINISTRADOR))
+        galpon = crear_galpon()
+        d = datetime.date
+        # Finalizado que ingresó en 2025 y se vació recién en 2026.
+        self.cruzado = crear_lote(
+            galpon, Lote.ESTADO_FINALIZADO, fecha_ingreso=d(2025, 10, 17),
+            fecha_inicio_produccion=d(2025, 11, 14), fecha_vaciado=d(2026, 8, 15),
+        )
+        self.viejo = crear_lote(
+            galpon, Lote.ESTADO_FINALIZADO, fecha_ingreso=d(2024, 1, 10), fecha_vaciado=d(2024, 12, 20),
+        )
+        self.en_produccion = crear_lote(
+            galpon, Lote.ESTADO_PRODUCCION, fecha_ingreso=d(2023, 1, 1),
+            fecha_inicio_produccion=d(2023, 1, 29),
+        )
+        self.nuevo = crear_lote(galpon, Lote.ESTADO_TRANSICION, fecha_ingreso=d(2026, 6, 1))
+
+    def ids(self, **params):
+        resp = self.client.get("/api/lotes/", params)
+        self.assertEqual(resp.status_code, 200, resp.data)
+        return {l["id_lote"] for l in resp.data["results"]}
+
+    def test_sin_rango_lista_todos(self):
+        self.assertEqual(len(self.ids()), 4)
+
+    def test_solo_cuenta_la_fecha_de_ingreso(self):
+        # El vaciado (2026) y el inicio de producción no hacen que el lote entre en otro rango.
+        self.assertEqual(self.ids(fecha_desde="2025-10-17", fecha_hasta="2025-10-24"), {self.cruzado.id_lote})
+        self.assertEqual(self.ids(fecha_desde="2026-08-01", fecha_hasta="2026-08-31"), set())
+        self.assertEqual(self.ids(fecha_desde="2025-11-01", fecha_hasta="2025-11-30"), set())
+
+    def test_aplica_a_lotes_en_curso(self):
+        ids = self.ids(fecha_desde="2025-11-06", fecha_hasta="2025-11-24")
+        self.assertEqual(ids, set())
+        self.assertEqual(self.ids(fecha_desde="2026-01-01"), {self.nuevo.id_lote})
+
+    def test_lote_antiguo_en_curso_queda_fuera_de_un_rango_reciente(self):
+        self.assertNotIn(self.en_produccion.id_lote, self.ids(fecha_desde="2025-10-24", fecha_hasta="2026-10-24"))
+
+    def test_extremos_son_inclusivos(self):
+        self.assertIn(self.cruzado.id_lote, self.ids(fecha_desde="2025-10-17", fecha_hasta="2025-10-17"))
+        self.assertNotIn(self.cruzado.id_lote, self.ids(fecha_desde="2025-10-18"))
+        self.assertNotIn(self.cruzado.id_lote, self.ids(fecha_hasta="2025-10-16"))
+
+    def test_extremos_opcionales(self):
+        self.assertEqual(self.ids(fecha_hasta="2024-12-31"), {self.viejo.id_lote, self.en_produccion.id_lote})
+
+    def test_fecha_invalida_devuelve_400(self):
+        resp = self.client.get("/api/lotes/", {"fecha_desde": "ayer"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("fecha_desde", resp.data)
+
+    def test_desde_posterior_a_hasta_devuelve_400(self):
+        resp = self.client.get("/api/lotes/", {"fecha_desde": "2026-06-01", "fecha_hasta": "2026-01-01"})
+        self.assertEqual(resp.status_code, 400)
+
+
+# ---------------------------------------------------------------------------
+# F-07 – El galpón tiene que tener capacidad para el lote
+# ---------------------------------------------------------------------------
+
+class CapacidadGalponTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin07", rol=Usuario.ROL_ADMINISTRADOR))
+
+    def test_galpon_chico_rechaza_el_lote(self):
+        galpon = crear_galpon("Chico", capacidad=2000)
+        linea = crear_lote_comprado(cantidad=2500)
+        resp = self.client.post("/api/lotes/", payload_lote(galpon, linea), format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("id_galpon_id", resp.data)
+
+    def test_mensaje_indica_capacidad_y_cantidad(self):
+        galpon = crear_galpon("Chico", capacidad=2000)
+        linea = crear_lote_comprado(cantidad=2500)
+        resp = self.client.post("/api/lotes/", payload_lote(galpon, linea), format="json")
+        mensaje = str(resp.data["id_galpon_id"][0])
+        self.assertIn("2.000", mensaje)
+        self.assertIn("2.500", mensaje)
+
+    def test_rechazo_no_crea_lote_ni_asigna_la_linea(self):
+        galpon = crear_galpon("Chico", capacidad=2000)
+        linea = crear_lote_comprado(cantidad=2500)
+        self.client.post("/api/lotes/", payload_lote(galpon, linea), format="json")
+        self.assertEqual(Lote.objects.count(), 0)
+        linea.refresh_from_db()
+        self.assertIsNone(linea.id_lote_id)
+
+    def test_capacidad_justa_acepta_el_lote(self):
+        galpon = crear_galpon("Justo", capacidad=2500)
+        linea = crear_lote_comprado(cantidad=2500)
+        resp = self.client.post("/api/lotes/", payload_lote(galpon, linea), format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+
+    def test_galpon_grande_acepta_el_lote(self):
+        galpon = crear_galpon("Grande", capacidad=10000)
+        linea = crear_lote_comprado(cantidad=2500)
+        resp = self.client.post("/api/lotes/", payload_lote(galpon, linea), format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+
+    def test_editar_observaciones_no_revalida_la_capacidad(self):
+        galpon = crear_galpon("Grande", capacidad=10000)
+        lote = crear_lote(galpon)
+        resp = self.client.patch(f"/api/lotes/{lote.id_lote}/", {"observaciones": "ok"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+
+
+# ---------------------------------------------------------------------------
+# F-09 – Fecha de inicio de producción
+# ---------------------------------------------------------------------------
+
+class InicioProduccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin09", rol=Usuario.ROL_ADMINISTRADOR))
+        self.galpon = crear_galpon()
+
+    def test_lote_nuevo_no_tiene_fecha_de_inicio(self):
+        resp = self.client.post("/api/lotes/", payload_lote(self.galpon), format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertIsNone(resp.data["fecha_inicio_produccion"])
+
+    def test_iniciar_produccion_registra_la_fecha_de_hoy(self):
+        lote = crear_lote(self.galpon)
+        resp = self.client.post(f"/api/lotes/{lote.id_lote}/iniciar-produccion/")
+        self.assertEqual(resp.data["fecha_inicio_produccion"], datetime.date.today().isoformat())
+        lote.refresh_from_db()
+        self.assertEqual(lote.fecha_inicio_produccion, datetime.date.today())
+
+    def test_vaciar_conserva_la_fecha_de_inicio(self):
+        lote = crear_lote(self.galpon)
+        self.client.post(f"/api/lotes/{lote.id_lote}/iniciar-produccion/")
+        resp = self.client.post(f"/api/lotes/{lote.id_lote}/vaciar/")
+        self.assertEqual(resp.data["fecha_inicio_produccion"], datetime.date.today().isoformat())
+        self.assertEqual(resp.data["fecha_vaciado"], datetime.date.today().isoformat())
+
+    def test_vaciar_desde_transicion_no_registra_inicio(self):
+        lote = crear_lote(self.galpon)
+        resp = self.client.post(f"/api/lotes/{lote.id_lote}/vaciar/")
+        self.assertIsNone(resp.data["fecha_inicio_produccion"])
+
+    def test_el_detalle_expone_la_fecha(self):
+        lote = crear_lote(
+            self.galpon, Lote.ESTADO_PRODUCCION, fecha_inicio_produccion=datetime.date(2026, 2, 15)
+        )
+        resp = self.client.get(f"/api/lotes/{lote.id_lote}/")
+        self.assertEqual(resp.data["fecha_inicio_produccion"], "2026-02-15")
+
+    def test_no_se_puede_modificar_por_patch(self):
+        lote = crear_lote(self.galpon)
+        self.client.patch(
+            f"/api/lotes/{lote.id_lote}/", {"fecha_inicio_produccion": "2026-02-15"}, format="json"
+        )
+        lote.refresh_from_db()
+        self.assertIsNone(lote.fecha_inicio_produccion)
+
+
+# ---------------------------------------------------------------------------
+# La transición dura como máximo 4 semanas: después pasa sola a Producción
+# ---------------------------------------------------------------------------
+
+class PasoAutomaticoAProduccionTests(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin4s", rol=Usuario.ROL_ADMINISTRADOR))
+        self.galpon = crear_galpon()
+        self.hoy = datetime.date.today()
+
+    def lote_con_ingreso_hace(self, dias):
+        return crear_lote(self.galpon, Lote.ESTADO_TRANSICION, fecha_ingreso=self.hoy - datetime.timedelta(days=dias))
+
+    def test_pasa_a_produccion_al_cumplir_28_dias(self):
+        lote = self.lote_con_ingreso_hace(28)
+        resp = self.client.get(f"/api/lotes/{lote.id_lote}/")
+        self.assertEqual(resp.data["estado"], Lote.ESTADO_PRODUCCION)
+
+    def test_antes_de_28_dias_sigue_en_transicion(self):
+        lote = self.lote_con_ingreso_hace(27)
+        resp = self.client.get(f"/api/lotes/{lote.id_lote}/")
+        self.assertEqual(resp.data["estado"], Lote.ESTADO_TRANSICION)
+        self.assertIsNone(resp.data["fecha_inicio_produccion"])
+
+    def test_la_produccion_arranca_cuando_vencio_la_transicion(self):
+        lote = self.lote_con_ingreso_hace(40)
+        resp = self.client.get(f"/api/lotes/{lote.id_lote}/")
+        esperado = (self.hoy - datetime.timedelta(days=40) + datetime.timedelta(days=28)).isoformat()
+        self.assertEqual(resp.data["fecha_inicio_produccion"], esperado)
+
+    def test_el_plan_queda_finalizado(self):
+        lote = self.lote_con_ingreso_hace(30)
+        self.client.get("/api/lotes/")
+        plan = PlanTransicion.objects.get(id_lote=lote)
+        self.assertEqual(plan.estado, PlanTransicion.ESTADO_FINALIZADO)
+
+    def test_el_listado_tambien_lo_actualiza(self):
+        lote = self.lote_con_ingreso_hace(35)
+        resp = self.client.get("/api/lotes/", {"estado": "P"})
+        self.assertIn(lote.id_lote, {l["id_lote"] for l in resp.data["results"]})
+
+    def test_no_pisa_la_fecha_de_un_lote_que_ya_inicio_produccion(self):
+        lote = self.lote_con_ingreso_hace(10)
+        self.client.post(f"/api/lotes/{lote.id_lote}/iniciar-produccion/")
+        lote.refresh_from_db()
+        inicio = lote.fecha_inicio_produccion
+        self.client.get("/api/lotes/")
+        lote.refresh_from_db()
+        self.assertEqual(lote.fecha_inicio_produccion, inicio)
+        self.assertEqual(inicio, self.hoy)
+
+    def test_iniciar_produccion_manual_en_lote_vencido_devuelve_409(self):
+        lote = self.lote_con_ingreso_hace(30)
+        resp = self.client.post(f"/api/lotes/{lote.id_lote}/iniciar-produccion/")
+        self.assertEqual(resp.status_code, 409)

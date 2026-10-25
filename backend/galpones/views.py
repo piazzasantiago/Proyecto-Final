@@ -15,7 +15,8 @@ class GalponViewSet(viewsets.ModelViewSet):
     """
     CRUD completo de Galpones más acciones de cambio de estado.
 
-    CU09  GET    /api/galpones/              listar (con ?search=, ?estado=, ?ordering=)
+    CU09  GET    /api/galpones/              listar (con ?search=, ?estado=, ?ordering=,
+                                             ?libre=true para solo los que no tienen lote en curso)
     CU09  GET    /api/galpones/{id}/         detalle
     CU10  POST   /api/galpones/              crear
     CU11  PATCH  /api/galpones/{id}/         modificar
@@ -45,10 +46,24 @@ class GalponViewSet(viewsets.ModelViewSet):
         usuario = self.request.user
         if usuario.rol == Usuario.ROL_OPERARIO:
             # El operario solo ve los galpones que tiene asignados
-            return Galpon.objects.filter(
+            qs = Galpon.objects.filter(
                 operarios_asignados__id_usuario=usuario
             ).order_by("galpon")
-        return Galpon.objects.all()
+        else:
+            qs = Galpon.objects.all()
+        if self.action == "list" and self.request.query_params.get("libre", "").lower() in ("1", "true"):
+            qs = self._solo_libres(qs)
+        return qs
+
+    @staticmethod
+    def _solo_libres(qs):
+        """Galpones sin ningún lote en Transición o Producción (listos para recibir uno)."""
+        from lotes.models import Lote
+
+        ocupados = Lote.objects.filter(
+            estado__in=[Lote.ESTADO_TRANSICION, Lote.ESTADO_PRODUCCION]
+        ).values("id_galpon")
+        return qs.exclude(pk__in=ocupados)
 
     def update(self, request, *args, **kwargs):
         galpon = self.get_object()

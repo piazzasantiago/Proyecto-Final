@@ -8,6 +8,11 @@ from galpones.models import Galpon
 from .models import Lote, PlanTransicion
 
 
+def _miles(n):
+    """Número entero con punto como separador de miles (2500 → 2.500)."""
+    return f"{int(n):,}".replace(",", ".")
+
+
 class PlanTransicionSerializer(serializers.ModelSerializer):
     """
     Serializer del plan de transición.
@@ -131,7 +136,9 @@ class LoteSerializer(serializers.ModelSerializer):
       lotes finalizada que todavía no se haya asignado. La cantidad inicial
       sale de esa compra (lo que se envíe en cantidad_inicial se ignora).
     - cantidad_actual se inicializa igual a cantidad_inicial al crear.
-    - fecha_vaciado no se acepta en escritura: la completa la acción /vaciar/.
+    - fecha_vaciado y fecha_inicio_produccion no se aceptan en escritura: las
+      completan las acciones /vaciar/ e /iniciar-produccion/.
+    - El galpón tiene que tener capacidad para todas las aves del lote.
     - estado no se acepta en escritura: lo cambian las acciones
       /iniciar-produccion/ y /vaciar/.
     """
@@ -170,6 +177,7 @@ class LoteSerializer(serializers.ModelSerializer):
             "compra",
             "galpon",
             "fecha_ingreso",
+            "fecha_inicio_produccion",
             "fecha_vaciado",
             "cantidad_inicial",
             "cantidad_actual",
@@ -182,6 +190,7 @@ class LoteSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id_lote",
             "cantidad_actual",
+            "fecha_inicio_produccion",
             "fecha_vaciado",
             "estado",
         ]
@@ -281,6 +290,19 @@ class LoteSerializer(serializers.ModelSerializer):
         # En PATCH el campo puede no venir; si no viene, no hay nada que validar.
         if galpon is None:
             return data
+
+        # El galpón tiene que tener lugar para todas las aves del lote.
+        cantidad = data.get("cantidad_inicial")
+        if cantidad is None and self.instance is not None:
+            cantidad = self.instance.cantidad_inicial
+        if cantidad is not None and cantidad > galpon.capacidad:
+            raise serializers.ValidationError({
+                "id_galpon_id": (
+                    f"El galpón {galpon.galpon} tiene capacidad para "
+                    f"{_miles(galpon.capacidad)} aves y el lote tiene {_miles(cantidad)}. "
+                    "Elegí un galpón con mayor capacidad."
+                )
+            })
 
         # En edición, self.instance ya existe; excluimos el lote actual de la consulta
         # para no bloquearnos a nosotros mismos (aunque id_galpon es inmutable en el
