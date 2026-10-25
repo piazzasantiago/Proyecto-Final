@@ -1,6 +1,6 @@
-import re
 from decimal import Decimal
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -13,17 +13,6 @@ from .models import Compra, LineaCompra
 # Topes sensatos por línea (evitan cargas absurdas por error de tipeo).
 CANTIDAD_MAX = Decimal("1000000")
 PRECIO_MAX = Decimal("10000000")
-
-
-def normalizar_factura(texto):
-    """
-    '0001-00004521' (o '000100004521', con o sin espacios) → '0001-00004521'.
-    Punto de venta de 4 o 5 dígitos y número de 8 dígitos. Devuelve None si no
-    tiene ese formato.
-    """
-    limpio = re.sub(r"\s", "", texto or "")
-    m = re.fullmatch(r"(\d{4,5})-?(\d{8})", limpio)
-    return f"{m.group(1)}-{m.group(2)}" if m else None
 
 
 class ProveedorResumenSerializer(serializers.ModelSerializer):
@@ -93,6 +82,8 @@ class CompraSerializer(serializers.ModelSerializer):
     categoria_display = serializers.CharField(source="get_categoria_display", read_only=True)
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    # Lo genera el sistema (autoincremental): no se envía ni se edita.
+    nro_comprobante = serializers.CharField(read_only=True)
     items_count = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
     lineas = LineaCompraSerializer(many=True)
@@ -112,7 +103,7 @@ class CompraSerializer(serializers.ModelSerializer):
             "categoria_display",
             "tipo",
             "tipo_display",
-            "nro_factura",
+            "nro_comprobante",
             "fecha",
             "estado",
             "estado_display",
@@ -124,7 +115,6 @@ class CompraSerializer(serializers.ModelSerializer):
         read_only_fields = ["id_compra", "estado"]
         extra_kwargs = {
             "observaciones": {"max_length": 500},
-            "nro_factura": {"max_length": 20},
         }
 
     def get_items_count(self, obj):
@@ -134,15 +124,6 @@ class CompraSerializer(serializers.ModelSerializer):
         return sum((l.subtotal for l in obj.lineas.all()), Decimal("0.00"))
 
     # ── Validaciones de campos ────────────────────────────────────────────────
-
-    def validate_nro_factura(self, value):
-        normalizada = normalizar_factura(value)
-        if normalizada is None:
-            raise serializers.ValidationError(
-                "El número de factura debe tener el formato 0001-00004521 "
-                "(punto de venta y número)."
-            )
-        return normalizada
 
     def validate_fecha(self, value):
         """Una compra registra algo que ya ocurrió: no admite fechas futuras."""
@@ -179,17 +160,6 @@ class CompraSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"id_proveedor": f"El proveedor '{proveedor.nombre}' está dado de baja."}
             )
-
-        # La factura no se repite para un mismo proveedor.
-        nro = data.get("nro_factura", instancia.nro_factura if instancia else None)
-        if proveedor is not None and nro:
-            otras = Compra.objects.filter(id_proveedor=proveedor, nro_factura=nro)
-            if instancia is not None:
-                otras = otras.exclude(pk=instancia.pk)
-            if otras.exists():
-                raise serializers.ValidationError(
-                    {"nro_factura": "Ya existe una compra de este proveedor con ese número de factura."}
-                )
 
         lineas = data.get("lineas")
         if lineas is None:
@@ -241,23 +211,28 @@ class CompraSerializer(serializers.ModelSerializer):
 
     # ── Escritura ─────────────────────────────────────────────────────────────
 
+    # La cabecera y sus líneas se guardan en una sola transacción: si algo falla
+    # a mitad de camino no queda una compra sin líneas ni líneas viejas borradas.
+
     def create(self, validated_data):
         lineas_data = validated_data.pop("lineas")
-        compra = Compra.objects.create(**validated_data)
-        for linea_data in lineas_data:
-            LineaCompra.objects.create(id_compra=compra, **linea_data)
+        with transaction.atomic():
+            compra = Compra.objects.create(**validated_data)
+            for linea_data in lineas_data:
+                LineaCompra.objects.create(id_compra=compra, **linea_data)
         return compra
 
     def update(self, instance, validated_data):
         lineas_data = validated_data.pop("lineas", None)
         validated_data.pop("categoria", None)  # inmutable (validado arriba)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if lineas_data is not None:
-            instance.lineas.all().delete()
-            for linea_data in lineas_data:
-                LineaCompra.objects.create(id_compra=instance, **linea_data)
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+            if lineas_data is not None:
+                instance.lineas.all().delete()
+                for linea_data in lineas_data:
+                    LineaCompra.objects.create(id_compra=instance, **linea_data)
         return instance
 
 
@@ -265,7 +240,7 @@ class LotePendienteSerializer(serializers.ModelSerializer):
     """Un lote comprado que espera ser asignado a un galpón (combo de Lotes)."""
 
     id_compra = serializers.IntegerField(source="id_compra_id", read_only=True)
-    nro_factura = serializers.CharField(source="id_compra.nro_factura", read_only=True)
+    nro_comprobante = serializers.CharField(source="id_compra.nro_comprobante", read_only=True)
     fecha_compra = serializers.DateField(source="id_compra.fecha", read_only=True)
     proveedor_nombre = serializers.CharField(
         source="id_compra.id_proveedor.nombre", read_only=True
@@ -277,7 +252,7 @@ class LotePendienteSerializer(serializers.ModelSerializer):
         fields = [
             "id_linea_compra",
             "id_compra",
-            "nro_factura",
+            "nro_comprobante",
             "fecha_compra",
             "proveedor_nombre",
             "cantidad",

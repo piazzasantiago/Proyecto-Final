@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
+from django.db import connection, models, transaction
 
 from lotes.models import Lote
 from materias_primas.models import MateriaPrima
@@ -39,11 +39,18 @@ class Compra(models.Model):
         (CATEGORIA_LOTES, "Lotes"),
     ]
 
+    # Forma de pago.
     TIPO_CONTADO = "C"
     TIPO_CUENTA_CORRIENTE = "X"
+    TIPO_DEBITO = "D"
+    TIPO_CREDITO = "R"
+    TIPO_OTRO = "O"
     TIPO_CHOICES = [
         (TIPO_CONTADO, "Contado"),
         (TIPO_CUENTA_CORRIENTE, "Cuenta corriente"),
+        (TIPO_DEBITO, "Débito"),
+        (TIPO_CREDITO, "Crédito"),
+        (TIPO_OTRO, "Otro"),
     ]
 
     ESTADO_PENDIENTE = "P"
@@ -72,7 +79,6 @@ class Compra(models.Model):
     )
     categoria = models.CharField(max_length=1, choices=CATEGORIA_CHOICES)
     tipo = models.CharField(max_length=1, choices=TIPO_CHOICES, default=TIPO_CONTADO)
-    nro_factura = models.CharField(db_column="nroFactura", max_length=20)
     fecha = models.DateField()
     estado = models.CharField(
         max_length=1, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE
@@ -84,16 +90,51 @@ class Compra(models.Model):
         ordering = ["-fecha", "-id_compra"]
         verbose_name = "compra"
         verbose_name_plural = "compras"
-        constraints = [
-            # Un proveedor no repite el número de una factura.
-            models.UniqueConstraint(
-                fields=["id_proveedor", "nro_factura"],
-                name="compra_factura_unica_por_proveedor",
-            ),
-        ]
+
+    @property
+    def nro_comprobante(self):
+        """
+        Número de comprobante de la compra: autoincremental y no editable. Es el
+        id de la compra con ceros a la izquierda (00000012); lo asigna la base
+        al crearla, así que nadie lo carga a mano ni se repite.
+        """
+        return f"{self.id_compra:08d}"
+
+    @classmethod
+    def proximo_nro_comprobante(cls):
+        """
+        Número de comprobante que recibiría la próxima compra que se guarde (8
+        dígitos). Es el siguiente valor del contador autoincremental de la base,
+        no "el mayor + 1": si se borró la última compra, su número no se reutiliza.
+        Es una estimación: si otra persona guarda una compra antes, el número
+        cambia. Solo la lectura del contador depende del motor de base de datos.
+        """
+        tabla = cls._meta.db_table
+        columna = cls._meta.pk.column
+        siguiente = None
+        try:
+            with transaction.atomic(), connection.cursor() as cursor:
+                if connection.vendor == "postgresql":
+                    cursor.execute("SELECT pg_get_serial_sequence(%s, %s)", [f'"{tabla}"', columna])
+                    secuencia = cursor.fetchone()[0]
+                    if secuencia:
+                        cursor.execute(f"SELECT last_value, is_called FROM {secuencia}")
+                        ultimo, usado = cursor.fetchone()
+                        siguiente = ultimo + 1 if usado else ultimo
+                elif connection.vendor == "sqlite":
+                    cursor.execute("SELECT seq FROM sqlite_sequence WHERE name = %s", [tabla])
+                    fila = cursor.fetchone()
+                    siguiente = (fila[0] + 1) if fila else 1
+        except Exception:
+            siguiente = None
+        if siguiente is None:
+            # Otros motores o error al leer el contador: el mayor existente + 1.
+            ultimo = cls.objects.aggregate(m=models.Max("id_compra"))["m"] or 0
+            siguiente = ultimo + 1
+        return f"{siguiente:08d}"
 
     def __str__(self):
-        return f"Compra {self.nro_factura} — {self.id_proveedor} [{self.get_estado_display()}]"
+        return f"Compra {self.nro_comprobante} — {self.id_proveedor} [{self.get_estado_display()}]"
 
 
 class LineaCompra(models.Model):

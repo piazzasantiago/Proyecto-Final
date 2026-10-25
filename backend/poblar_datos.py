@@ -656,10 +656,13 @@ def escribir(plan):
     r = plan.rnd
     for l in plan.lotes:
         fecha_compra = l["ingreso"] - dt.timedelta(days=7)
+        # Antes acá se sorteaba el nº de factura; el sorteo se conserva para no alterar
+        # el resto de los datos aleatorios (el comprobante ahora lo genera el sistema).
+        r.randint(100, 900)
         compra = Compra.objects.create(
             id_proveedor=proveedores[l["proveedor"]], id_usuario=admin,
             categoria=Compra.CATEGORIA_LOTES, tipo=Compra.TIPO_CUENTA_CORRIENTE,
-            nro_factura=f"0003-{r.randint(100, 900):08d}", fecha=fecha_compra,
+            fecha=fecha_compra,
             estado=Compra.ESTADO_FINALIZADA, observaciones="Pollitas de recría.",
         )
         muertas = sum(c for _f, c in l["muertes"])
@@ -694,13 +697,13 @@ def escribir(plan):
         lotes[l["clave"]] = lote
 
     # Lotes comprados que todavia no se asignaron a un galpon.
-    for (aves, prov, precio, hace), estado, nro in (
+    for (aves, prov, precio, hace), estado, _nro in (
         (LOTE_PENDIENTE, Compra.ESTADO_FINALIZADA, f"0003-{r.randint(1000, 1900):08d}"),
         (LOTE_PENDIENTE_SIN_FINALIZAR, Compra.ESTADO_PENDIENTE, f"0004-{r.randint(1000, 1900):08d}"),
     ):
         compra = Compra.objects.create(
             id_proveedor=proveedores[prov], id_usuario=admin, categoria=Compra.CATEGORIA_LOTES,
-            tipo=Compra.TIPO_CONTADO, nro_factura=nro, fecha=dia(hace), estado=estado,
+            tipo=Compra.TIPO_CONTADO, fecha=dia(hace), estado=estado,
             observaciones="Pollitas listas para el próximo ciclo." if estado == Compra.ESTADO_FINALIZADA else "A confirmar fecha de entrega.",
         )
         LineaCompra.objects.create(id_compra=compra, cantidad=dec(aves), precio_unitario=dec(precio))
@@ -710,7 +713,7 @@ def escribir(plan):
         compra = Compra.objects.create(
             id_proveedor=proveedores[c["proveedor"]], id_usuario=admin,
             categoria=Compra.CATEGORIA_MATERIAS_PRIMAS, tipo=c["tipo"],
-            nro_factura=c["nro"], fecha=c["fecha"], estado=c["estado"], observaciones=c["obs"],
+            fecha=c["fecha"], estado=c["estado"], observaciones=c["obs"],
         )
         for mp, (cantidad, precio) in c["lineas"].items():
             LineaCompra.objects.create(

@@ -1,4 +1,8 @@
+import re
+
 from django.db import transaction
+from django.db.models import CharField
+from django.db.models.functions import Cast
 from django_filters import rest_framework as django_filters
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -21,8 +25,10 @@ class CompraFilter(django_filters.FilterSet):
         ?estado=P|F               Pendiente o Finalizada
         ?categoria=M|L            Materias primas o Lotes
         ?id_proveedor=N           de ese proveedor
-        ?search=...               por número de factura
+        ?search=...               por número de comprobante (12 o 00000012)
     """
+
+    search = django_filters.CharFilter(method="filtrar_por_comprobante")
 
     fecha_desde = django_filters.DateFilter(field_name="fecha", lookup_expr="gte")
     fecha_hasta = django_filters.DateFilter(field_name="fecha", lookup_expr="lte")
@@ -30,6 +36,16 @@ class CompraFilter(django_filters.FilterSet):
     class Meta:
         model = Compra
         fields = ["estado", "categoria", "id_proveedor"]
+
+    def filtrar_por_comprobante(self, queryset, name, value):
+        """El comprobante es el id con ceros a la izquierda: se busca por sus dígitos."""
+        digitos = re.sub(r"\D", "", value or "")
+        if not digitos:
+            return queryset.none()
+        numero = str(int(digitos))
+        return queryset.annotate(_id_texto=Cast("id_compra", CharField())).filter(
+            _id_texto__contains=numero
+        )
 
 
 class CompraViewSet(viewsets.ModelViewSet):
@@ -42,7 +58,11 @@ class CompraViewSet(viewsets.ModelViewSet):
     Borrar compra      → DELETE /api/compras/{id}/
     Finalizar compra   → POST   /api/compras/{id}/finalizar/
     Lotes a asignar    → GET    /api/compras/lotes-pendientes/
+    Próx. comprobante  → GET    /api/compras/proximo-comprobante/
     Líneas             → van anidadas en `lineas` de la compra.
+
+    El alta y la edición guardan la cabecera y sus líneas en una sola
+    transacción (ver CompraSerializer.create / update).
 
     Permisos:
         - Administrador: CRUD + finalizar.
@@ -63,12 +83,10 @@ class CompraViewSet(viewsets.ModelViewSet):
     pagination_class = PaginacionListado
     filter_backends = [
         django_filters.DjangoFilterBackend,
-        filters.SearchFilter,
         filters.OrderingFilter,
     ]
     filterset_class = CompraFilter
-    search_fields = ["nro_factura"]
-    ordering_fields = ["fecha", "nro_factura"]
+    ordering_fields = ["fecha", "id_compra"]
 
     def get_permissions(self):
         if self.action == "lotes_pendientes":
@@ -118,6 +136,15 @@ class CompraViewSet(viewsets.ModelViewSet):
             compra.save(update_fields=["estado"])
 
         return Response(self.get_serializer(compra).data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="proximo-comprobante")
+    def proximo_comprobante(self, request):
+        """
+        Número de comprobante con el que se guardaría la próxima compra. El
+        formulario de alta lo muestra de antemano; es una estimación (si otra
+        persona guarda una compra antes, el número cambia).
+        """
+        return Response({"nro_comprobante": Compra.proximo_nro_comprobante()})
 
     @action(detail=False, methods=["get"], url_path="lotes-pendientes")
     def lotes_pendientes(self, request):
