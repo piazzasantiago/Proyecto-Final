@@ -138,8 +138,10 @@ los endpoints son de solo lectura (un `POST` devuelve 405).
   ("El período no puede superar los 366 días (un año). Acortá el rango de fechas."),
   sin el nombre interno del campo; los botones de exportar quedan deshabilitados
   hasta corregir el rango. El backend mantiene la misma validación (400).
-- **Logo del sistema en las exportaciones.** El PDF lo muestra en el margen superior
-  derecho de cada página y el Excel en la esquina superior derecha de la hoja. El
+- **Logo del sistema en las exportaciones.** El PDF lleva un encabezado verde con el
+  nombre del sistema, la fecha de generación y el logo a la derecha, un pie con el
+  título del informe y "Página X de Y", y el logo muy tenue como marca de agua de
+  fondo. El Excel muestra el logo en la esquina superior derecha de la hoja. El
   archivo está en `backend/informes/recursos/logo.png`. Además, el Excel se imprime
   en horizontal y ajustado al ancho de la hoja.
 

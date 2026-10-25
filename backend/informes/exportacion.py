@@ -21,6 +21,8 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.shapes import Drawing, Line, String
 from reportlab.lib.units import cm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -230,15 +232,96 @@ def _grafico_pdf(informe):
     return dibujo
 
 
-def _logo_pdf(lienzo, doc, lado=1.4 * cm):
-    """Logo en el margen superior derecho de cada página."""
-    if not LOGO.exists():
-        return
-    ancho, alto = doc.pagesize
-    lienzo.drawImage(
-        str(LOGO), ancho - doc.rightMargin - lado, alto - 0.9 * cm - lado,
-        width=lado, height=lado, mask="auto",
-    )
+VERDE_OSCURO = colors.HexColor("#1B4A34")
+DORADO = colors.HexColor("#D9A441")
+GRIS = colors.HexColor("#6B7280")
+
+ALTO_ENCABEZADO = 2.1 * cm
+
+
+def _marca_de_agua():
+    """El logo muy tenue (5,5 % de opacidad) para usarlo de fondo."""
+    from PIL import Image
+
+    imagen = Image.open(LOGO).convert("RGBA")
+    alfa = imagen.getchannel("A").point(lambda v: int(v * 0.055))
+    imagen.putalpha(alfa)
+    memoria = BytesIO()
+    imagen.save(memoria, format="PNG")
+    memoria.seek(0)
+    return ImageReader(memoria)
+
+
+def _decorar_pdf(informe):
+    """Encabezado, marca de agua y pie de cada página (se dibuja debajo del contenido)."""
+    generado = f"Generado el {timezone.localtime():%d/%m/%Y %H:%M}"
+
+    def dibujar(lienzo, doc):
+        ancho, alto = doc.pagesize
+        lienzo.saveState()
+
+        # Marca de agua: el logo grande y casi transparente, centrado.
+        if LOGO.exists():
+            lado = 11 * cm
+            lienzo.drawImage(
+                _marca_de_agua(), (ancho - lado) / 2, (alto - lado) / 2 - 0.5 * cm,
+                width=lado, height=lado, mask="auto",
+            )
+
+        # Encabezado: banda verde con la marca a la izquierda y el logo a la derecha.
+        lienzo.setFillColor(VERDE_OSCURO)
+        lienzo.rect(0, alto - ALTO_ENCABEZADO, ancho, ALTO_ENCABEZADO, stroke=0, fill=1)
+        lienzo.setFillColor(DORADO)
+        lienzo.rect(0, alto - ALTO_ENCABEZADO - 0.12 * cm, ancho, 0.12 * cm, stroke=0, fill=1)
+        lienzo.setFillColor(colors.white)
+        lienzo.setFont("Helvetica-Bold", 20)
+        lienzo.drawString(doc.leftMargin, alto - 1.15 * cm, "AviGest")
+        lienzo.setFont("Helvetica", 9.5)
+        lienzo.setFillColor(colors.HexColor("#EEC568"))
+        lienzo.drawString(doc.leftMargin, alto - 1.7 * cm, "Gestión de granja avícola")
+        lienzo.setFillColor(colors.white)
+        lienzo.setFont("Helvetica", 9)
+        margen_logo = 1.5 * cm
+        lienzo.drawRightString(ancho - doc.rightMargin - margen_logo - 0.4 * cm, alto - 1.2 * cm, generado)
+        if LOGO.exists():
+            lienzo.drawImage(
+                str(LOGO), ancho - doc.rightMargin - margen_logo, alto - ALTO_ENCABEZADO + 0.3 * cm,
+                width=margen_logo, height=margen_logo, mask="auto",
+            )
+
+        # Pie: línea fina y título del informe (el número de página lo agrega el lienzo).
+        lienzo.setStrokeColor(colors.HexColor("#D1D5DB"))
+        lienzo.setLineWidth(0.5)
+        lienzo.line(doc.leftMargin, 1.35 * cm, ancho - doc.rightMargin, 1.35 * cm)
+        lienzo.setFillColor(GRIS)
+        lienzo.setFont("Helvetica", 8)
+        lienzo.drawString(doc.leftMargin, 0.85 * cm, f"AviGest · {informe['titulo']}")
+        lienzo.restoreState()
+
+    return dibujar
+
+
+class _LienzoNumerado(Canvas):
+    """Lienzo que escribe "Página X de Y" en el pie una vez que se sabe el total."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._paginas = []
+
+    def showPage(self):
+        self._paginas.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        total = len(self._paginas)
+        for estado in self._paginas:
+            self.__dict__.update(estado)
+            self.setFont("Helvetica", 8)
+            self.setFillColor(GRIS)
+            ancho = self._pagesize[0]
+            self.drawRightString(ancho - 1.5 * cm, 0.85 * cm, f"Página {self._pageNumber} de {total}")
+            super().showPage()
+        super().save()
 
 
 def _logo_excel(ws, columnas, lado=56):
@@ -269,12 +352,11 @@ def a_pdf(informe):
     salida = BytesIO()
     doc = SimpleDocTemplate(
         salida, pagesize=landscape(A4), title=informe["titulo"],
-        leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=2.6 * cm, bottomMargin=1.5 * cm,
+        leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=3.2 * cm, bottomMargin=1.9 * cm,
     )
     historia = [
         Paragraph(informe["titulo"], estilos["Title"]),
         Paragraph(_subtitulo(informe), estilos["Normal"]),
-        Paragraph(f"Generado el {timezone.localtime():%d/%m/%Y %H:%M}", estilos["Italic"]),
         Spacer(1, 0.5 * cm),
     ]
 
@@ -304,9 +386,10 @@ def a_pdf(informe):
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#BBBBBB")),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F7F4")]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [None, colors.Color(0.953, 0.969, 0.957, alpha=0.8)]),
         ]
         tabla.setStyle(TableStyle(estilo))
         historia.append(tabla)
-    doc.build(historia, onFirstPage=_logo_pdf, onLaterPages=_logo_pdf)
+    decorar = _decorar_pdf(informe)
+    doc.build(historia, onFirstPage=decorar, onLaterPages=decorar, canvasmaker=_LienzoNumerado)
     return salida.getvalue()
