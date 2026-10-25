@@ -134,7 +134,7 @@ permite modificarla (400). Se rechaza con 400 si no hay lote elegido, si la comp
 no está finalizada o no es de lotes, o si el lote ya fue asignado. Al crear el
 lote la línea de la compra queda vinculada a él; si el lote se elimina, vuelve a
 quedar pendiente de asignar. Los lotes cargados antes de Compras no tienen compra
-asociada. La lectura incluye `compra` (`id_compra`, `nro_factura`, `proveedor`)
+asociada. La lectura incluye `compra` (`id_compra`, `nro_comprobante`, `proveedor`)
 o `null`.
 
 ### Fecha de ingreso no puede ser futura
