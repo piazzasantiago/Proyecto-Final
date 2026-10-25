@@ -146,7 +146,7 @@ export default function ComprasPage() {
     if (!selected) return;
     if (
       !confirm(
-        `¿Eliminar la compra ${selected.nro_factura}? Esta acción no se puede deshacer.`
+        `¿Eliminar la compra ${selected.nro_comprobante}? Esta acción no se puede deshacer.`
       )
     )
       return;
@@ -167,7 +167,7 @@ export default function ComprasPage() {
         : "Se sumará al stock de cada materia prima.";
     if (
       !confirm(
-        `¿Finalizar la compra ${selected.nro_factura}? No podrá editarse ni eliminarse después. ${efecto}`
+        `¿Finalizar la compra ${selected.nro_comprobante}? No podrá editarse ni eliminarse después. ${efecto}`
       )
     )
       return;
@@ -202,7 +202,7 @@ export default function ComprasPage() {
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
             type="text"
-            placeholder="Buscar por Nº de factura..."
+            placeholder="Buscar por Nº de comprobante..."
             value={search}
             onChange={(e) => cambiarFiltro(setSearch)(e.target.value)}
           />
@@ -283,11 +283,11 @@ export default function ComprasPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Nº factura</th>
+                    <th>Nº comprobante</th>
                     <th>Proveedor</th>
                     <th>Fecha</th>
                     <th>Categoría</th>
-                    <th>Tipo</th>
+                    <th>Forma de pago</th>
                     <th>Estado</th>
                     <th>Cargada por</th>
                   </tr>
@@ -304,7 +304,7 @@ export default function ComprasPage() {
                           background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
                         }}
                       >
-                        <td>{c.nro_factura}</td>
+                        <td>{c.nro_comprobante}</td>
                         <td>{c.proveedor?.nombre ?? "—"}</td>
                         <td>{formatFecha(c.fecha)}</td>
                         <td>{c.categoria_display}</td>
@@ -342,7 +342,7 @@ export default function ComprasPage() {
             <div className="detail-panel">
               <div className="detail-head">
                 <div>
-                  <h3>Compra {selected.nro_factura}</h3>
+                  <h3>Compra {selected.nro_comprobante}</h3>
                   <div className="sub">
                     {selected.proveedor?.nombre} · {formatFecha(selected.fecha)}
                   </div>
@@ -365,8 +365,8 @@ export default function ComprasPage() {
                   <span>{selected.proveedor?.nombre ?? "—"}</span>
                 </div>
                 <div className="detail-row">
-                  <span>Nº factura</span>
-                  <span>{selected.nro_factura}</span>
+                  <span>Nº comprobante</span>
+                  <span>{selected.nro_comprobante}</span>
                 </div>
                 <div className="detail-row">
                   <span>Fecha</span>
@@ -377,7 +377,7 @@ export default function ComprasPage() {
                   <span>{selected.categoria_display}</span>
                 </div>
                 <div className="detail-row">
-                  <span>Tipo</span>
+                  <span>Forma de pago</span>
                   <span>{selected.tipo_display}</span>
                 </div>
                 <div className="detail-row">
@@ -503,6 +503,8 @@ export default function ComprasPage() {
         <CompraFormModal
           proveedores={proveedores}
           materiasPrimas={materiasPrimas}
+          onMateriaPrimaCreada={(m) => setMateriasPrimas((lista) => [...lista, m])}
+          onProveedorCreado={(p) => setProveedores((lista) => [...lista, p])}
           onClose={() => setModalMode(null)}
           onSubmit={handleSaved}
         />
@@ -511,6 +513,8 @@ export default function ComprasPage() {
         <CompraFormModal
           proveedores={proveedores}
           materiasPrimas={materiasPrimas}
+          onMateriaPrimaCreada={(m) => setMateriasPrimas((lista) => [...lista, m])}
+          onProveedorCreado={(p) => setProveedores((lista) => [...lista, p])}
           initialData={selected}
           onClose={() => setModalMode(null)}
           onSubmit={handleSaved}

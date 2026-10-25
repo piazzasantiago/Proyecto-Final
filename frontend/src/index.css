@@ -320,7 +320,10 @@
   }
   .galpon-card:hover{border-color:var(--green-600);}
   .galpon-card.card-selected{background:var(--green-100); border-color:var(--green-600);}
-  .gc-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  .gc-top{display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:6px 8px;}
+  /* Nombre largo sin espacios: se corta en varias líneas dentro de la tarjeta. */
+  .gc-top .badge{margin-left:auto; flex-shrink:0;}
+  .gc-top > div:first-child{flex:1 1 0; min-width:0; overflow-wrap:anywhere;}
   .gc-code{font-size:17px; font-weight:700; color:var(--gray-900);}
   .gc-name{font-size:13px; color:var(--gray-500); margin-top:3px;}
   .gc-stats{display:flex; flex-direction:column; gap:6px;}
@@ -363,7 +366,9 @@
   .lote-card{background:#fff; border-radius:14px; border:1px solid rgba(18,52,36,0.08); padding:14px; cursor:pointer; transition:.15s; display:flex; flex-direction:column; gap:9px;}
   .lote-card:hover{border-color:var(--green-600);}
   .lote-card.card-selected{background:var(--green-100); border-color:var(--green-600);}
-  .lc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .lc-top{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:6px 8px;}
+  .lc-top .badge{margin-left:auto; flex-shrink:0;}
+  .lc-top > div:first-child{flex:1 1 0; min-width:0; overflow-wrap:anywhere;}
   .lc-code{font-weight:700; font-size:15px; color:var(--gray-900);}
   .lc-galpon{font-size:12.5px; color:var(--gray-500); margin-top:2px;}
 

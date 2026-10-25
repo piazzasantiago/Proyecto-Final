@@ -1,5 +1,9 @@
-import { useState } from "react";
-import { createCompra, updateCompra } from "../api/compras";
+import { useEffect, useState } from "react";
+import { createCompra, getProximoComprobante, updateCompra } from "../api/compras";
+import { createMateriaPrima } from "../api/materias-primas";
+import { createProveedor } from "../api/proveedores";
+import MateriaPrimaFormModal from "./MateriaPrimaFormModal";
+import ProveedorFormModal from "./ProveedorFormModal";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -23,7 +27,6 @@ function initForm(initialData) {
       categoria: CATEGORIA_MATERIAS,
       id_proveedor: "",
       tipo: "C",
-      nro_factura: "",
       fecha: "",
       observaciones: "",
       lineas: [emptyLinea()],
@@ -33,7 +36,6 @@ function initForm(initialData) {
     categoria: initialData.categoria,
     id_proveedor: initialData.proveedor?.id_proveedor ?? initialData.id_proveedor ?? "",
     tipo: initialData.tipo ?? "C",
-    nro_factura: initialData.nro_factura ?? "",
     fecha: initialData.fecha ?? "",
     observaciones: initialData.observaciones ?? "",
     lineas: initialData.lineas?.length
@@ -74,11 +76,39 @@ export default function CompraFormModal({
   initialData,
   onClose,
   onSubmit,
+  onMateriaPrimaCreada,
+  onProveedorCreado,
 }) {
   const isEdit = Boolean(initialData);
   const [form, setForm] = useState(() => initForm(initialData));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  // Materias primas creadas desde este formulario (se suman a las que llegan por props).
+  const [creadas, setCreadas] = useState([]);
+  const [creandoMateria, setCreandoMateria] = useState(false);
+  // Proveedores creados desde este formulario y número de comprobante que recibiría la compra.
+  const [proveedoresCreados, setProveedoresCreados] = useState([]);
+  const [creandoProveedor, setCreandoProveedor] = useState(false);
+  const [proximoComprobante, setProximoComprobante] = useState("");
+
+  // En el alta se muestra el número con el que se guardaría la compra.
+  useEffect(() => {
+    if (isEdit) return undefined;
+    let cancelado = false;
+    getProximoComprobante()
+      .then((r) => {
+        if (!cancelado) setProximoComprobante(r.nro_comprobante ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [isEdit]);
+
+  const catalogo = [
+    ...materiasPrimas,
+    ...creadas.filter((c) => !materiasPrimas.some((m) => m.id_materia_prima === c.id_materia_prima)),
+  ];
 
   const esDeLotes = form.categoria === CATEGORIA_LOTES;
 
@@ -152,7 +182,11 @@ export default function CompraFormModal({
   // Opciones de proveedor y materia prima: solo activos, pero en edición se
   // conservan los que ya tenía la compra aunque se hayan dado de baja después.
   function opcionesProveedor() {
-    const lista = proveedores
+    const todos = [
+      ...proveedores,
+      ...proveedoresCreados.filter((c) => !proveedores.some((p) => p.id_proveedor === c.id_proveedor)),
+    ];
+    const lista = todos
       .filter((p) => p.estado === "A" || p.id_proveedor === Number(form.id_proveedor))
       .map((p) => ({ id: p.id_proveedor, label: p.nombre }));
     if (isEdit && !lista.some((o) => o.id === Number(form.id_proveedor))) {
@@ -165,7 +199,7 @@ export default function CompraFormModal({
   }
 
   function opcionesMateria() {
-    const lista = materiasPrimas.map((m) => ({
+    const lista = catalogo.map((m) => ({
       id: m.id_materia_prima,
       label: `${m.materia_prima} (${m.unidad})`,
     }));
@@ -179,12 +213,46 @@ export default function CompraFormModal({
 
   function unidadDe(linea) {
     const id = Number(linea.id_materia_prima);
-    return id ? materiasPrimas.find((m) => m.id_materia_prima === id)?.unidad ?? "" : "";
+    return id ? catalogo.find((m) => m.id_materia_prima === id)?.unidad ?? "" : "";
   }
 
   function subtotalDe(linea) {
     const total = Number(linea.cantidad) * Number(linea.precio_unitario);
     return Number.isNaN(total) ? 0 : total;
+  }
+
+  // Alta de un proveedor sin salir de la compra: queda elegido en el desplegable.
+  async function handleCrearProveedor(data) {
+    const creado = await createProveedor(data);
+    setProveedoresCreados((lista) => [...lista, creado]);
+    if (onProveedorCreado) onProveedorCreado(creado);
+    setForm((f) => ({ ...f, id_proveedor: creado.id_proveedor }));
+    setCreandoProveedor(false);
+  }
+
+  // Alta de una materia prima sin salir de la compra: los datos ya cargados no se pierden.
+  // Si falla, el error vuelve al formulario de la materia prima (que lo muestra).
+  async function handleCrearMateria(data) {
+    const creada = await createMateriaPrima(data);
+    setCreadas((lista) => [...lista, creada]);
+    if (onMateriaPrimaCreada) onMateriaPrimaCreada(creada);
+    // Queda elegida en la primera línea sin materia prima (o en una línea nueva).
+    setForm((f) => {
+      const libre = f.lineas.findIndex((l) => !l.id_materia_prima);
+      if (libre === -1) {
+        return {
+          ...f,
+          lineas: [...f.lineas, { ...emptyLinea(), id_materia_prima: creada.id_materia_prima }],
+        };
+      }
+      return {
+        ...f,
+        lineas: f.lineas.map((l, i) =>
+          i === libre ? { ...l, id_materia_prima: creada.id_materia_prima } : l
+        ),
+      };
+    });
+    setCreandoMateria(false);
   }
 
   const total = form.lineas.reduce((acc, l) => acc + subtotalDe(l), 0);
@@ -197,7 +265,6 @@ export default function CompraFormModal({
       const payload = {
         id_proveedor: Number(form.id_proveedor),
         tipo: form.tipo,
-        nro_factura: form.nro_factura.trim(),
         fecha: form.fecha,
         observaciones: form.observaciones,
         lineas: form.lineas.map((l) => ({
@@ -231,6 +298,7 @@ export default function CompraFormModal({
   }
 
   return (
+    <>
     <div
       className="modal-overlay active"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -290,23 +358,29 @@ export default function CompraFormModal({
                 {errors.id_proveedor && (
                   <span className="form-error">{texto(errors.id_proveedor)}</span>
                 )}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ fontSize: 13, marginTop: 6, alignSelf: "flex-start" }}
+                  onClick={() => setCreandoProveedor(true)}
+                >
+                  <i className="fa-solid fa-plus"></i> Agregar proveedor
+                </button>
               </div>
 
               <div className="form-group">
-                <label>Nº de factura</label>
+                <label>Nº de comprobante</label>
                 <input
-                  name="nro_factura"
                   type="text"
-                  value={form.nro_factura}
-                  onChange={handleChange}
-                  onInvalid={handleRequerido("Debe ingresar el número de factura")}
-                  maxLength={20}
-                  placeholder="0001-00004521"
-                  required
+                  value={isEdit ? initialData.nro_comprobante ?? "" : proximoComprobante || "Se asigna al guardar"}
+                  readOnly
+                  disabled
                 />
-                {errors.nro_factura && (
-                  <span className="form-error">{texto(errors.nro_factura)}</span>
-                )}
+                <span className="form-hint">
+                  {isEdit
+                    ? "Lo genera el sistema; no se puede modificar."
+                    : "Es el número con el que se guardaría. Lo genera el sistema y se confirma al guardar."}
+                </span>
               </div>
 
               <div className="form-group">
@@ -324,10 +398,13 @@ export default function CompraFormModal({
               </div>
 
               <div className="form-group">
-                <label>Tipo</label>
+                <label>Forma de pago</label>
                 <select name="tipo" value={form.tipo} onChange={handleChange}>
                   <option value="C">Contado</option>
                   <option value="X">Cuenta corriente</option>
+                  <option value="D">Débito</option>
+                  <option value="R">Crédito</option>
+                  <option value="O">Otro</option>
                 </select>
                 {errors.tipo && <span className="form-error">{texto(errors.tipo)}</span>}
               </div>
@@ -355,9 +432,19 @@ export default function CompraFormModal({
               <span>{esDeLotes ? "Lotes comprados" : "Materias primas compradas"}</span>
             </div>
             {!esDeLotes && (
-              <span className="form-hint">
-                Si la materia prima todavía no existe, creala primero desde “Materias primas”.
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span className="form-hint">
+                  ¿La materia prima todavía no existe? Podés crearla sin salir de la compra.
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ fontSize: 13 }}
+                  onClick={() => setCreandoMateria(true)}
+                >
+                  <i className="fa-solid fa-plus"></i> Agregar materia prima
+                </button>
+              </div>
             )}
             {esDeLotes && (
               <span className="form-hint">
@@ -494,7 +581,7 @@ export default function CompraFormModal({
               style={{ marginTop: 8, fontSize: 13 }}
               onClick={addLinea}
             >
-              <i className="fa-solid fa-plus"></i> {esDeLotes ? "Agregar lote" : "Agregar materia prima"}
+              <i className="fa-solid fa-plus"></i> {esDeLotes ? "Agregar lote" : "Agregar línea"}
             </button>
           </div>
 
@@ -510,5 +597,18 @@ export default function CompraFormModal({
         </form>
       </div>
     </div>
+    {creandoProveedor && (
+      <ProveedorFormModal
+        onClose={() => setCreandoProveedor(false)}
+        onSubmit={handleCrearProveedor}
+      />
+    )}
+    {creandoMateria && (
+      <MateriaPrimaFormModal
+        onClose={() => setCreandoMateria(false)}
+        onSubmit={handleCrearMateria}
+      />
+    )}
+    </>
   );
 }
