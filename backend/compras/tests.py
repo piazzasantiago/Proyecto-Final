@@ -2,19 +2,23 @@
 Tests automatizados del módulo Compras.
 
 Clases de tests:
-    ListarCompraTests         (8)  listar, buscar por Nº de factura y filtrar
-    NuevaCompraTests         (17)  crear compras de materias primas y de lotes
-    ModificarBorrarTests      (7)  editar y eliminar solo mientras está pendiente
+    ListarCompraTests         (9)  listar, buscar por Nº de comprobante y filtrar
+    NuevaCompraTests        (20)  crear compras de materias primas y de lotes,
+                                   comprobante autoincremental, formas de pago
+    ModificarBorrarTests      (8)  editar y eliminar solo mientras está pendiente
+    AtomicidadTests           (3)  alta y edición en una sola transacción
+    ProximoComprobanteTests   (6)  número con el que se guardaría la próxima compra
     FinalizarCompraTests      (6)  finalizar e impacto en el stock de materias primas
     LotesPendientesTests      (6)  lotes comprados esperando galpón
     RelacionesTests           (3)  protección de proveedores y materias primas con compras
     PermisosComprasTests      (7)  matriz rol × operación
 
-Total: 54 tests
+Total: 68 tests
 """
 
 import datetime
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -75,7 +79,6 @@ def payload_mp(proveedor, mp, **kwargs):
         id_proveedor=proveedor.pk,
         categoria="M",
         tipo="C",
-        nro_factura="0001-00004521",
         fecha=str(HOY),
         observaciones="",
         lineas=[dict(id_materia_prima=mp.pk, cantidad="100.00", precio_unitario="250.50")],
@@ -89,7 +92,6 @@ def payload_lotes(proveedor, **kwargs):
         id_proveedor=proveedor.pk,
         categoria="L",
         tipo="X",
-        nro_factura="0002-00000010",
         fecha=str(HOY),
         lineas=[dict(cantidad="2500", precio_unitario="1500.00")],
     )
@@ -97,13 +99,12 @@ def payload_lotes(proveedor, **kwargs):
     return base
 
 
-def crear_compra(proveedor, categoria="M", estado="P", factura="0001-00000001",
+def crear_compra(proveedor, categoria="M", estado="P",
                  mp=None, cantidad="100", fecha=None, usuario=None):
     compra = Compra.objects.create(
         id_proveedor=proveedor,
         id_usuario=usuario,
         categoria=categoria,
-        nro_factura=factura,
         fecha=fecha or HOY,
         estado=estado,
     )
@@ -133,10 +134,8 @@ class ListarCompraTests(BaseApiTests):
     def setUp(self):
         super().setUp()
         self.otro = crear_proveedor("Granja Sur")
-        self.c1 = crear_compra(self.proveedor, factura="0001-00000001",
-                               mp=self.mp, fecha=datetime.date(2026, 1, 5))
-        self.c2 = crear_compra(self.otro, categoria="L", estado="F",
-                               factura="0003-00000099", fecha=datetime.date(2026, 2, 10))
+        self.c1 = crear_compra(self.proveedor, mp=self.mp, fecha=datetime.date(2026, 1, 5))
+        self.c2 = crear_compra(self.otro, categoria="L", estado="F", fecha=datetime.date(2026, 2, 10))
 
     def ids(self, query=""):
         resp = self.client.get(f"/api/compras/{query}")
@@ -147,8 +146,12 @@ class ListarCompraTests(BaseApiTests):
     def test_lista_todas(self):
         self.assertEqual(self.ids(), {self.c1.pk, self.c2.pk})
 
-    def test_busca_por_numero_de_factura(self):
-        self.assertEqual(self.ids("?search=00000099"), {self.c2.pk})
+    def test_busca_por_numero_de_comprobante(self):
+        self.assertEqual(self.ids(f"?search={self.c2.nro_comprobante}"), {self.c2.pk})
+        self.assertEqual(self.ids(f"?search={self.c1.pk}"), {self.c1.pk})
+
+    def test_busqueda_sin_digitos_no_devuelve_nada(self):
+        self.assertEqual(self.ids("?search=abc"), set())
 
     def test_filtra_por_categoria(self):
         self.assertEqual(self.ids("?categoria=L"), {self.c2.pk})
@@ -207,26 +210,49 @@ class NuevaCompraTests(BaseApiTests):
         self.assertEqual(resp.data["categoria"], "L")
         self.assertIsNone(resp.data["lineas"][0]["id_materia_prima"])
 
-    def test_factura_se_normaliza(self):
-        resp = self.post(payload_mp(self.proveedor, self.mp, nro_factura="000100004521"))
-        self.assertEqual(resp.status_code, 201, resp.data)
-        self.assertEqual(resp.data["nro_factura"], "0001-00004521")
-
-    def test_factura_con_formato_invalido(self):
-        resp = self.post(payload_mp(self.proveedor, self.mp, nro_factura="ABC-1"))
-        self.assertEqual(resp.status_code, 400)
-        self.assertIn("nro_factura", resp.data)
-
-    def test_factura_repetida_del_mismo_proveedor(self):
-        self.post(payload_mp(self.proveedor, self.mp))
+    def test_el_comprobante_lo_genera_el_sistema(self):
         resp = self.post(payload_mp(self.proveedor, self.mp))
-        self.assertEqual(resp.status_code, 400)
-
-    def test_misma_factura_de_otro_proveedor_es_valida(self):
-        self.post(payload_mp(self.proveedor, self.mp))
-        otro = crear_proveedor("Otro S.A.")
-        resp = self.post(payload_mp(otro, self.mp))
         self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data["nro_comprobante"], f"{resp.data['id_compra']:08d}")
+        self.assertNotIn("nro_factura", resp.data)
+
+    def test_el_comprobante_no_se_puede_enviar(self):
+        resp = self.post(payload_mp(self.proveedor, self.mp, nro_comprobante="99999999"))
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertNotEqual(resp.data["nro_comprobante"], "99999999")
+
+    def test_los_comprobantes_son_correlativos(self):
+        primera = self.post(payload_mp(self.proveedor, self.mp))
+        segunda = self.post(payload_mp(self.proveedor, self.mp))
+        self.assertEqual(
+            int(segunda.data["nro_comprobante"]), int(primera.data["nro_comprobante"]) + 1
+        )
+
+    def test_dos_compras_iguales_del_mismo_proveedor_son_validas(self):
+        # Ya no hay número de factura cargado a mano que pueda repetirse.
+        self.assertEqual(self.post(payload_mp(self.proveedor, self.mp)).status_code, 201)
+        self.assertEqual(self.post(payload_mp(self.proveedor, self.mp)).status_code, 201)
+
+    def test_formas_de_pago_disponibles(self):
+        esperadas = {"C": "Contado", "X": "Cuenta corriente", "D": "Débito", "R": "Crédito", "O": "Otro"}
+        for codigo, nombre in esperadas.items():
+            with self.subTest(tipo=codigo):
+                resp = self.post(payload_mp(self.proveedor, self.mp, tipo=codigo))
+                self.assertEqual(resp.status_code, 201, resp.data)
+                self.assertEqual(resp.data["tipo"], codigo)
+                self.assertEqual(resp.data["tipo_display"], nombre)
+
+    def test_forma_de_pago_invalida_rechazada(self):
+        resp = self.post(payload_mp(self.proveedor, self.mp, tipo="Z"))
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("tipo", resp.data)
+
+    def test_forma_de_pago_se_puede_cambiar_al_editar(self):
+        compra = crear_compra(self.proveedor, mp=self.mp)
+        resp = self.client.patch(f"/api/compras/{compra.pk}/", {"tipo": "R"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        compra.refresh_from_db()
+        self.assertEqual(compra.tipo, Compra.TIPO_CREDITO)
 
     def test_proveedor_inactivo_rechazado(self):
         inactivo = crear_proveedor("Inactivo", estado=Proveedor.ESTADO_INACTIVO)
@@ -292,13 +318,11 @@ class ModificarBorrarTests(BaseApiTests):
     def setUp(self):
         super().setUp()
         self.compra = crear_compra(self.proveedor, mp=self.mp)
-        self.finalizada = crear_compra(
-            self.proveedor, estado="F", factura="0001-00000002", mp=self.mp
-        )
+        self.finalizada = crear_compra(self.proveedor, estado="F", mp=self.mp)
 
     def test_edita_compra_pendiente(self):
         payload = payload_mp(
-            self.proveedor, self.mp, nro_factura="0001-00000001",
+            self.proveedor, self.mp,
             lineas=[dict(id_materia_prima=self.mp.pk, cantidad="7", precio_unitario="3")],
         )
         resp = self.client.put(f"/api/compras/{self.compra.pk}/", payload, format="json")
@@ -319,6 +343,14 @@ class ModificarBorrarTests(BaseApiTests):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_el_comprobante_no_se_edita(self):
+        original = self.compra.nro_comprobante
+        resp = self.client.patch(
+            f"/api/compras/{self.compra.pk}/", {"nro_comprobante": "12345678"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data["nro_comprobante"], original)
+
     def test_no_cambia_la_categoria(self):
         resp = self.client.patch(
             f"/api/compras/{self.compra.pk}/", {"categoria": "L"}, format="json"
@@ -338,6 +370,112 @@ class ModificarBorrarTests(BaseApiTests):
 
     def test_compra_inexistente(self):
         self.assertEqual(self.client.delete("/api/compras/9999/").status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# Atomicidad: cabecera y líneas se guardan juntas o no se guardan
+# ---------------------------------------------------------------------------
+
+class AtomicidadTests(BaseApiTests):
+    def _falla_en_la_segunda_linea(self):
+        """Parche de LineaCompra.objects.create: la primera línea se crea y la segunda falla."""
+        original = LineaCompra.objects.create
+        llamadas = []
+
+        def create(**kwargs):
+            llamadas.append(kwargs)
+            if len(llamadas) == 2:
+                raise RuntimeError("falla simulada a mitad de camino")
+            return original(**kwargs)
+
+        return patch.object(LineaCompra.objects, "create", side_effect=create)
+
+    def _dos_lineas(self):
+        otra = crear_materia_prima("Soja")
+        return [
+            dict(id_materia_prima=self.mp.pk, cantidad="10", precio_unitario="5"),
+            dict(id_materia_prima=otra.pk, cantidad="20", precio_unitario="8"),
+        ]
+
+    def test_si_falla_el_alta_no_queda_compra_ni_lineas(self):
+        with self._falla_en_la_segunda_linea():
+            with self.assertRaises(RuntimeError):
+                self.client.post(
+                    "/api/compras/",
+                    payload_mp(self.proveedor, self.mp, lineas=self._dos_lineas()),
+                    format="json",
+                )
+        self.assertEqual(Compra.objects.count(), 0)
+        self.assertEqual(LineaCompra.objects.count(), 0)
+
+    def test_si_falla_la_edicion_se_conservan_las_lineas_originales(self):
+        compra = crear_compra(self.proveedor, mp=self.mp, cantidad="100")
+        with self._falla_en_la_segunda_linea():
+            with self.assertRaises(RuntimeError):
+                self.client.patch(
+                    f"/api/compras/{compra.pk}/",
+                    {"observaciones": "cambio", "lineas": self._dos_lineas()},
+                    format="json",
+                )
+        compra.refresh_from_db()
+        self.assertEqual(compra.observaciones, "")
+        self.assertEqual(compra.lineas.count(), 1)
+        self.assertEqual(compra.lineas.get().cantidad, Decimal("100"))
+
+    def test_alta_exitosa_guarda_cabecera_y_lineas(self):
+        resp = self.client.post(
+            "/api/compras/",
+            payload_mp(self.proveedor, self.mp, lineas=self._dos_lineas()),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(Compra.objects.get(pk=resp.data["id_compra"]).lineas.count(), 2)
+
+
+# ---------------------------------------------------------------------------
+# Próximo número de comprobante (lo muestra el formulario de alta)
+# ---------------------------------------------------------------------------
+
+class ProximoComprobanteTests(BaseApiTests):
+    URL = "/api/compras/proximo-comprobante/"
+
+    def proximo(self):
+        resp = self.client.get(self.URL)
+        self.assertEqual(resp.status_code, 200, resp.data)
+        return resp.data["nro_comprobante"]
+
+    def test_es_un_numero_de_ocho_digitos(self):
+        self.assertRegex(self.proximo(), r"^\d{8}$")
+
+    def test_coincide_con_el_de_la_compra_que_se_guarda(self):
+        esperado = self.proximo()
+        resp = self.client.post("/api/compras/", payload_mp(self.proveedor, self.mp), format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data["nro_comprobante"], esperado)
+
+    def test_avanza_con_cada_compra(self):
+        primero = int(self.proximo())
+        crear_compra(self.proveedor, mp=self.mp)
+        self.assertEqual(int(self.proximo()), primero + 1)
+
+    def test_el_numero_de_una_compra_borrada_no_se_reutiliza(self):
+        compra = crear_compra(self.proveedor, mp=self.mp)
+        borrada = compra.nro_comprobante
+        compra.delete()
+        self.assertGreater(int(self.proximo()), int(borrada))
+        resp = self.client.post("/api/compras/", payload_mp(self.proveedor, self.mp), format="json")
+        self.assertNotEqual(resp.data["nro_comprobante"], borrada)
+
+    def test_consulta_puede_verlo_y_operario_no(self):
+        consulta = APIClient()
+        autenticar(consulta, crear_usuario("cons1", Usuario.ROL_CONSULTA))
+        self.assertEqual(consulta.get(self.URL).status_code, 200)
+        operario = APIClient()
+        autenticar(operario, crear_usuario("oper1", Usuario.ROL_OPERARIO))
+        self.assertEqual(operario.get(self.URL).status_code, 403)
+
+    def test_sin_token_401(self):
+        self.assertEqual(APIClient().get(self.URL).status_code, 401)
 
 
 # ---------------------------------------------------------------------------
@@ -482,7 +620,7 @@ class PermisosComprasTests(TestCase):
 
     def test_administrador_crea(self):
         resp = self.cliente(Usuario.ROL_ADMINISTRADOR).post(
-            "/api/compras/", payload_mp(self.proveedor, self.mp, nro_factura="0009-00000001"),
+            "/api/compras/", payload_mp(self.proveedor, self.mp),
             format="json",
         )
         self.assertEqual(resp.status_code, 201, resp.data)

@@ -228,6 +228,6 @@ class PaginacionComprasTests(PaginacionBase, TestCase):
                 nombre="Prov", email="p@test.com", telefono="381"
             )
         Compra.objects.create(
-            id_proveedor=self.prov, categoria="M", nro_factura=f"0001-{i:08d}",
+            id_proveedor=self.prov, categoria="M",
             fecha=datetime.date.today(), estado="F" if i < 3 else "P",
         )
