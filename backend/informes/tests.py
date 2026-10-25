@@ -497,6 +497,21 @@ class ExportacionInformesTests(DatosBase):
             self.assertTrue(resp.content.startswith(b"%PDF"), ruta)
             self.assertIn(".pdf", resp["Content-Disposition"])
 
+    def test_el_excel_de_cada_informe_lleva_el_logo(self):
+        for ruta in self.RUTAS:
+            resp = self.get(ruta, formato="xlsx", **PERIODO)
+            ws = load_workbook(BytesIO(resp.content)).active
+            self.assertEqual(len(ws._images), 1, ruta)
+
+    def test_el_pdf_de_cada_informe_lleva_el_logo(self):
+        for ruta in self.RUTAS:
+            resp = self.get(ruta, formato="pdf", **PERIODO)
+            self.assertIn(b"/Subtype /Image", resp.content, ruta)
+
+    def test_el_pdf_sin_datos_tambien_lleva_el_logo(self):
+        resp = self.get("descartes", formato="pdf", fecha_desde="2026-07-01", fecha_hasta="2026-07-10")
+        self.assertIn(b"/Subtype /Image", resp.content)
+
     def test_pdf_sin_datos(self):
         resp = self.get("descartes", formato="pdf", fecha_desde="2026-07-01", fecha_hasta="2026-07-10")
         self.assertEqual(resp.status_code, 200)

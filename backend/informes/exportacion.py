@@ -3,12 +3,18 @@
 import datetime
 import unicodedata
 from io import BytesIO
+from pathlib import Path
 
 from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.chart import LineChart, Reference
+from openpyxl.drawing.image import Image as ImagenExcel
+from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
+from openpyxl.drawing.xdr import XDRPositiveSize2D
+from openpyxl.utils.units import pixels_to_EMU
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.properties import PageSetupProperties
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
@@ -19,6 +25,9 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 PDF = "application/pdf"
+
+# Logo del sistema que se muestra en el margen superior derecho de cada informe.
+LOGO = Path(__file__).resolve().parent / "recursos" / "logo.png"
 
 
 def _fecha_es(texto):
@@ -114,6 +123,14 @@ def a_xlsx(informe):
         largo = max([len(col["titulo"])] + [len(str(f.get(col["clave"]) or "")) for f in informe["filas"]])
         ws.column_dimensions[get_column_letter(i)].width = min(max(largo + 2, 12), 45)
     ws.freeze_panes = ws.cell(row=fila_encabezado + 1, column=1)
+
+    # Al imprimir, todas las columnas (y el logo) entran en el ancho de la hoja.
+    ws.page_setup.orientation = "landscape"
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+
+    _logo_excel(ws, columnas)
 
     salida = BytesIO()
     wb.save(salida)
@@ -213,13 +230,46 @@ def _grafico_pdf(informe):
     return dibujo
 
 
+def _logo_pdf(lienzo, doc, lado=1.4 * cm):
+    """Logo en el margen superior derecho de cada página."""
+    if not LOGO.exists():
+        return
+    ancho, alto = doc.pagesize
+    lienzo.drawImage(
+        str(LOGO), ancho - doc.rightMargin - lado, alto - 0.9 * cm - lado,
+        width=lado, height=lado, mask="auto",
+    )
+
+
+def _logo_excel(ws, columnas, lado=56):
+    """Logo en el borde superior derecho de la hoja (última columna de la tabla, o la G)."""
+    if not LOGO.exists():
+        return
+    imagen = ImagenExcel(str(LOGO))
+    imagen.width = imagen.height = lado
+    # Al menos hasta la columna G, para no tapar el subtítulo en los informes con pocas columnas.
+    ultima = max(len(columnas), 7)
+    ancho_col = ws.column_dimensions[get_column_letter(ultima)].width or 13
+    ancho_px = int(ancho_col * 7 + 5)
+    # Pegado al borde derecho de la última columna, sin pisar el encabezado (fila 5).
+    desplazamiento = max(ancho_px - lado - 4, 0)
+    ws.row_dimensions[1].height = 22
+    ws.row_dimensions[2].height = 22
+    ws.row_dimensions[3].height = 22
+    imagen.anchor = OneCellAnchor(
+        _from=AnchorMarker(col=ultima - 1, colOff=pixels_to_EMU(desplazamiento), row=0, rowOff=pixels_to_EMU(2)),
+        ext=XDRPositiveSize2D(pixels_to_EMU(lado), pixels_to_EMU(lado)),
+    )
+    ws.add_image(imagen)
+
+
 def a_pdf(informe):
     columnas = informe["columnas"]
     estilos = getSampleStyleSheet()
     salida = BytesIO()
     doc = SimpleDocTemplate(
         salida, pagesize=landscape(A4), title=informe["titulo"],
-        leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+        leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=2.6 * cm, bottomMargin=1.5 * cm,
     )
     historia = [
         Paragraph(informe["titulo"], estilos["Title"]),
@@ -258,5 +308,5 @@ def a_pdf(informe):
         ]
         tabla.setStyle(TableStyle(estilo))
         historia.append(tabla)
-    doc.build(historia)
+    doc.build(historia, onFirstPage=_logo_pdf, onLaterPages=_logo_pdf)
     return salida.getvalue()
