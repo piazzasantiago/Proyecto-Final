@@ -216,6 +216,26 @@ function Kpi({ icono, fondo, color, valor, etiqueta }) {
   );
 }
 
+// Debe coincidir con MAX_DIAS del backend (informes/calculos.py).
+const MAX_DIAS_PERIODO = 366;
+const MENSAJE_PERIODO_LARGO = `El período no puede superar los ${MAX_DIAS_PERIODO} días (un año). Acortá el rango de fechas.`;
+
+/** Cantidad de días del período, contando los dos extremos. */
+function diasDelPeriodo(desde, hasta) {
+  const ms = new Date(`${hasta}T00:00:00`) - new Date(`${desde}T00:00:00`);
+  return Math.round(ms / 86400000) + 1;
+}
+
+/** Texto de un error del informe, sin el nombre interno del campo (fecha_desde: ...). */
+function mensajeDeInforme(err) {
+  const detalle = err?.detail;
+  if (detalle && typeof detalle === "object" && typeof detalle.detail !== "string") {
+    const texto = Object.values(detalle).flat().join(" ");
+    if (texto) return texto;
+  }
+  return err?.message || "No se pudo generar el informe.";
+}
+
 export default function InformesPage() {
   const [tab, setTab] = useState("produccion");
   const [periodo, setPeriodo] = useState(periodoInicial);
@@ -262,7 +282,11 @@ export default function InformesPage() {
   }, [tab, periodo, idGalpon, estadoLote, idMateria, tipoDescarte, indicador, usaPeriodo, usaGalpon, usaMateria]);
 
   const faltaFiltro = tab === "indicadores" && indicador === "consumo" && !idMateria;
-  const periodoInvalido = usaPeriodo && (!periodo.desde || !periodo.hasta || periodo.desde > periodo.hasta);
+  const periodoCompleto = Boolean(periodo.desde && periodo.hasta);
+  const periodoInvertido = usaPeriodo && periodoCompleto && periodo.desde > periodo.hasta;
+  const periodoExcedido =
+    usaPeriodo && periodoCompleto && !periodoInvertido && diasDelPeriodo(periodo.desde, periodo.hasta) > MAX_DIAS_PERIODO;
+  const periodoInvalido = usaPeriodo && (!periodoCompleto || periodoInvertido || periodoExcedido);
 
   useEffect(() => {
     if (faltaFiltro || periodoInvalido) {
@@ -279,7 +303,7 @@ export default function InformesPage() {
       .catch((err) => {
         if (cancelado) return;
         setResultado(null);
-        setError(err.status === 0 ? err.message : err.message || "No se pudo generar el informe.");
+        setError(err.status === 0 ? err.message : mensajeDeInforme(err));
       })
       .finally(() => !cancelado && setLoading(false));
     return () => {
@@ -295,7 +319,7 @@ export default function InformesPage() {
       const extra = tab === "indicadores" && objetivo !== "" ? { objetivo } : {};
       await descargarInforme(actual.ruta, { ...params, ...extra }, formato);
     } catch (err) {
-      setError(err.message);
+      setError(mensajeDeInforme(err));
     } finally {
       setDescargando(null);
     }
@@ -400,7 +424,11 @@ export default function InformesPage() {
       </div>
 
       {periodoInvalido && (
-        <div className="banner banner-error">Elegí un período válido: la fecha desde no puede ser posterior a la fecha hasta.</div>
+        <div className="banner banner-error">
+          {periodoExcedido
+            ? MENSAJE_PERIODO_LARGO
+            : "Elegí un período válido: la fecha desde no puede ser posterior a la fecha hasta."}
+        </div>
       )}
       {error && <div className="banner banner-error">{error}</div>}
       {loading && <div className="banner banner-loading">Generando informe...</div>}

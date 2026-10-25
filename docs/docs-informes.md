@@ -20,7 +20,7 @@ migraciones propias. Cada informe se ve en pantalla y se puede exportar a **Exce
 - Exportación de cada informe a Excel y a PDF con los filtros elegidos.
 - Gráfica de indicadores contra un valor objetivo que escribe el usuario.
 - Acceso para Administrador y Consulta; el Operario no ve la sección.
-- 58 tests automatizados.
+- 61 tests automatizados.
 
 ### Qué no incluye
 
@@ -134,7 +134,16 @@ los endpoints son de solo lectura (un `POST` devuelve 405).
   líneas de `openpyxl`). Sin objetivo, la gráfica trae solo la serie real.
 - **Gráfica en SVG propio**, sin librerías de gráficos.
 - **Tope de 366 días** por informe, para evitar consultas enormes por un error de
-  tipeo.
+  tipeo. La pantalla lo controla antes de pedir el informe y muestra un cartel claro
+  ("El período no puede superar los 366 días (un año). Acortá el rango de fechas."),
+  sin el nombre interno del campo; los botones de exportar quedan deshabilitados
+  hasta corregir el rango. El backend mantiene la misma validación (400).
+- **Logo del sistema en las exportaciones.** El PDF lleva un encabezado verde con el
+  nombre del sistema, la fecha de generación y el logo a la derecha, un pie con el
+  título del informe y "Página X de Y", y el logo muy tenue como marca de agua de
+  fondo. El Excel muestra el logo en la esquina superior derecha de la hoja. El
+  archivo está en `backend/informes/recursos/logo.png`. Además, el Excel se imprime
+  en horizontal y ajustado al ancho de la hoja.
 
 ---
 
@@ -175,7 +184,7 @@ por día), `promedio`, `unidad` y `resumen`.
 
 ## 7. Tests
 
-`python manage.py test informes` — 58 tests en 8 clases:
+`python manage.py test informes` — 61 tests en 8 clases:
 
 | Clase | Qué verifica |
 |-------|--------------|
@@ -185,7 +194,7 @@ por día), `promedio`, `unidad` y `resumen`.
 | `InformeMateriasPrimasTests` | Consumido, comprado, descartado de stock y stock actual |
 | `InformeDescartesTests` | Detalle de cada tipo, filtros, orden y resumen |
 | `IndicadoresTests` | Serie diaria de postura, mortandad y consumo, y resumen |
-| `ExportacionInformesTests` | Excel y PDF de cada informe, contenido, nombre del archivo y filtros |
+| `ExportacionInformesTests` | Excel y PDF de cada informe, contenido, nombre del archivo, filtros y logo |
 | `PermisosInformesTests` | Administrador y Consulta ven todo, Operario 403, sin token 401 y solo lectura |
 
 ---
@@ -194,6 +203,7 @@ por día), `promedio`, `unidad` y `resumen`.
 
 ```
 backend/informes/{calculos,exportacion,views,urls,apps,tests}.py
+backend/informes/recursos/logo.png
 backend/requirements.txt          (openpyxl y reportlab)
 backend/config/{settings,urls}.py
 frontend/src/{api/informes.js, components/GraficoIndicador.jsx, components/GraficosInforme.jsx,
