@@ -28,10 +28,14 @@ saber a quién se le compra.
   Administrador.
 - 64 tests automatizados.
 
+- Sección "Compras recientes" en el panel de detalle: las últimas 4 compras del
+  proveedor (la más nueva primero), con N° de comprobante, fecha, estado, categoría
+  y total. Si hay más, indica cuántas hay en total. Usa
+  `GET /api/compras/?id_proveedor=N&page_size=4` (ver `docs-compras.md`).
+
 ### Qué no incluye
 
-- La sección "Compras recientes" del detalle sigue siendo un marcador de
-  posición (el módulo de Compras ya existe; falta listarlas acá).
+- Un acceso directo desde el detalle al listado completo de compras del proveedor.
 
 ---
 
@@ -241,7 +245,7 @@ frontend/src/{api/proveedores.js, components/ProveedorFormModal.jsx, pages/Prove
 
 ## 10. Pendientes
 
-- Mostrar las compras recientes del proveedor en su detalle.
+- *Resuelto (F-11):* compras recientes del proveedor en su detalle.
 - *Resuelto con Compras:* la FK de Compras a Proveedores es `PROTECT` y el 409 al
   eliminar un proveedor con compras está cubierto por tests.
 - Mejora futura: verificar la dirección con autocompletado y mapa (Georef AR para validar calles y localidades de Argentina, y Leaflet con OpenStreetMap para mostrar el pin). Requeriría agregar `latitud` y `longitud` opcionales al modelo y mantener la carga manual para direcciones rurales.

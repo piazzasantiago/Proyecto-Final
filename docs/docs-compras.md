@@ -39,7 +39,8 @@ reciente a la más antigua. Se filtran con criterios combinables:
 
 - **Buscador:** `?search=` por **número de comprobante** (`12` o `00000012`; busca por los dígitos, sin importar los ceros a la izquierda).
 - **Fechas:** `?fecha_desde=AAAA-MM-DD` y `?fecha_hasta=AAAA-MM-DD`, inclusivas.
-- **Proveedor:** `?id_proveedor=`.
+- **Proveedor:** `?id_proveedor=`. Con `&page_size=4` alimenta "Compras recientes" del detalle del proveedor.
+- **Materia prima:** `?id_materia_prima=`, compras que la incluyen en alguna línea (sin repetir la compra). Alimenta "Compras recientes" del detalle de la materia prima.
 - **Categoría:** `?categoria=M|L`.
 - **Estado:** `?estado=P|F`.
 
