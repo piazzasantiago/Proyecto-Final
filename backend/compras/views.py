@@ -25,6 +25,7 @@ class CompraFilter(django_filters.FilterSet):
         ?estado=P|F               Pendiente o Finalizada
         ?categoria=M|L            Materias primas o Lotes
         ?id_proveedor=N           de ese proveedor
+        ?id_materia_prima=N       que incluyan esa materia prima en alguna línea
         ?search=...               por número de comprobante (12 o 00000012)
     """
 
@@ -32,6 +33,11 @@ class CompraFilter(django_filters.FilterSet):
 
     fecha_desde = django_filters.DateFilter(field_name="fecha", lookup_expr="gte")
     fecha_hasta = django_filters.DateFilter(field_name="fecha", lookup_expr="lte")
+    # Compras recientes en el detalle de una materia prima. distinct: una compra
+    # con dos líneas de la misma materia prima no debe aparecer repetida.
+    id_materia_prima = django_filters.NumberFilter(
+        field_name="lineas__id_materia_prima", distinct=True
+    )
 
     class Meta:
         model = Compra
