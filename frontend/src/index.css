@@ -428,7 +428,15 @@
   .postura-bar{width:60px; height:6px; border-radius:4px; background:var(--gray-200); overflow:hidden; margin-top:4px;}
   .postura-fill{height:100%; border-radius:4px;}
 
-  .page-body-split{display:grid; grid-template-columns:1fr 380px; gap:18px; align-items:start;}
+  .page-body-split{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:18px; align-items:start;}
+  /* La lista puede achicarse (la tabla reparte el ancho y envuelve el texto) para que el detalle quede siempre visible */
+  .page-body-split > .list-panel{min-width:0;}
+  .page-body-split > .list-panel table{width:100%;}
+  .page-body-split > .list-panel thead th{padding:9px 10px;}
+  .page-body-split > .list-panel tbody td{padding:7px 10px;}
+  /* Columnas secundarias (ya figuran en el detalle): se ocultan cuando la pantalla no da el ancho */
+  @media (max-width:1700px){ .page-body-split .col-opcional{display:none;} }
+  @media (max-width:1400px){ .page-body-split .col-opcional-2{display:none;} .page-body-split > .list-panel thead th, .page-body-split > .list-panel tbody td{padding-left:7px; padding-right:7px;} }
   .detail-panel{background:#fff; border-radius:var(--radius); border:1px solid rgba(18,52,36,0.08); overflow:hidden; position:sticky; top:14px;}
   .detail-head{padding:18px 20px; border-bottom:1px solid var(--gray-200); display:flex; justify-content:space-between; align-items:flex-start;}
   .detail-head h3{font-size:18.5px; font-weight:700;}

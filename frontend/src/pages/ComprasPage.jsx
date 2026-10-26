@@ -287,9 +287,9 @@ export default function ComprasPage() {
                     <th>Proveedor</th>
                     <th>Fecha</th>
                     <th>Categoría</th>
-                    <th>Forma de pago</th>
+                    <th className="col-opcional-2">Forma de pago</th>
                     <th>Estado</th>
-                    <th>Cargada por</th>
+                    <th className="col-opcional">Cargada por</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -308,7 +308,7 @@ export default function ComprasPage() {
                         <td>{c.proveedor?.nombre ?? "—"}</td>
                         <td>{formatFecha(c.fecha)}</td>
                         <td>{c.categoria_display}</td>
-                        <td>{c.tipo_display}</td>
+                        <td className="col-opcional-2">{c.tipo_display}</td>
                         <td>
                           <span
                             className={`badge ${
@@ -318,7 +318,7 @@ export default function ComprasPage() {
                             {c.estado_display}
                           </span>
                         </td>
-                        <td>{formatUsuario(c)}</td>
+                        <td className="col-opcional">{formatUsuario(c)}</td>
                       </tr>
                     );
                   })}
