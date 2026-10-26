@@ -8,11 +8,12 @@ import {
   desactivarMateriaPrima,
 } from "../api/materias-primas";
 import MateriaPrimaFormModal from "../components/MateriaPrimaFormModal";
+import ComprasRecientes from "../components/ComprasRecientes";
 import { useAuth } from "../context/AuthContext";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function MateriaPrimasPage() {
-  const { esAdministrador } = useAuth();
+  const { esAdministrador, esConsulta } = useAuth();
 
   const [materias, setMaterias] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -276,6 +277,17 @@ export default function MateriaPrimasPage() {
                   <span>Comprado (compras finalizadas)</span>
                   <span>{selected.stock_compras} {selected.unidad}</span>
                 </div>
+
+                {/* El operario no tiene acceso al módulo de Compras. */}
+                {(esAdministrador || esConsulta) && (
+                  <>
+                    <div className="detail-sec-title">Compras recientes</div>
+                    <ComprasRecientes
+                      materiaPrimaId={selected.id_materia_prima}
+                      unidad={selected.unidad}
+                    />
+                  </>
+                )}
               </div>
 
               {actionError && (
