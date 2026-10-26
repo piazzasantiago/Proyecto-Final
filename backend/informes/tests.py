@@ -298,7 +298,7 @@ class InformeMateriasPrimasTests(DatosBase):
         LineaEntrada.objects.create(id_entrada=e, id_materia_prima=self.mp, cantidad=999)
         prov = Proveedor.objects.create(nombre="Agro Sur", email="a@b.com", telefono="381-455-0102")
         c = Compra.objects.create(
-            id_proveedor=prov, categoria=Compra.CATEGORIA_MATERIAS_PRIMAS, nro_factura="0001-00000001",
+            id_proveedor=prov, categoria=Compra.CATEGORIA_MATERIAS_PRIMAS,
             fecha=datetime.date(2026, 8, 2), estado=Compra.ESTADO_FINALIZADA,
         )
         LineaCompra.objects.create(id_compra=c, id_materia_prima=self.mp, cantidad=50, precio_unitario=10)

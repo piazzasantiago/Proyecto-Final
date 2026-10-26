@@ -19,7 +19,6 @@ Total: 80 tests
 """
 
 import datetime
-import itertools
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -74,9 +73,6 @@ def token_de(client, usuario_obj):
     return token
 
 
-_nro_factura = itertools.count(1)
-
-
 def crear_lote_comprado(cantidad=2500, finalizada=True, categoria=Compra.CATEGORIA_LOTES):
     """
     Crea una compra con una línea y devuelve la línea. Por defecto es una compra
@@ -86,7 +82,6 @@ def crear_lote_comprado(cantidad=2500, finalizada=True, categoria=Compra.CATEGOR
     compra = Compra.objects.create(
         id_proveedor=proveedor,
         categoria=categoria,
-        nro_factura=f"0001-{next(_nro_factura):08d}",
         fecha=datetime.date(2026, 1, 10),
         estado=Compra.ESTADO_FINALIZADA if finalizada else Compra.ESTADO_PENDIENTE,
     )
@@ -264,7 +259,7 @@ class NuevoLoteTests(TestCase):
         self.assertEqual(resp.status_code, 201)
         linea.refresh_from_db()
         self.assertEqual(linea.id_lote_id, resp.data["id_lote"])
-        self.assertEqual(resp.data["compra"]["nro_factura"], linea.id_compra.nro_factura)
+        self.assertEqual(resp.data["compra"]["nro_comprobante"], linea.id_compra.nro_comprobante)
 
     def test_lote_comprado_no_disponible_error(self):
         """Compra pendiente, de materias primas o ya asignada: no se puede asignar."""

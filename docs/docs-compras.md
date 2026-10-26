@@ -37,7 +37,7 @@ efecto: queda de solo lectura y no se puede eliminar.
 Lista las compras con proveedor, usuario que las cargó y líneas, de la más
 reciente a la más antigua. Se filtran con criterios combinables:
 
-- **Buscador:** `?search=` por **número de factura**.
+- **Buscador:** `?search=` por **número de comprobante** (`12` o `00000012`; busca por los dígitos, sin importar los ceros a la izquierda).
 - **Fechas:** `?fecha_desde=AAAA-MM-DD` y `?fecha_hasta=AAAA-MM-DD`, inclusivas.
 - **Proveedor:** `?id_proveedor=`.
 - **Categoría:** `?categoria=M|L`.
@@ -50,16 +50,19 @@ subtotales de las líneas) e `items_count`.
 
 **Actor:** Administrador.
 
-Registra una compra con proveedor, categoría, tipo (Contado / Cuenta corriente),
-número de factura, fecha, observaciones opcionales y al menos una línea. El sistema
-completa el usuario que la carga (`id_usuario`, el del token) y la crea en estado
-**Pendiente**; ni el usuario ni el estado se toman de lo que envíe el cliente. Se
-rechaza con 400 si:
+Registra una compra con proveedor, categoría, forma de pago (`tipo`: Contado `C`,
+Cuenta corriente `X`, Débito `D`, Crédito `R` u Otro `O`), fecha, observaciones
+opcionales y al menos una línea. El sistema completa el usuario que la carga
+(`id_usuario`, el del token), la crea en estado **Pendiente** y le asigna el
+**número de comprobante** (`nro_comprobante`, autoincremental: el id de la compra con
+8 dígitos, p. ej. `00000012`); ni el usuario, ni el estado, ni el comprobante se
+toman de lo que envíe el cliente, y el comprobante tampoco se puede editar después.
+La cabecera y sus líneas se guardan en **una sola transacción**: si algo falla, no
+queda una compra sin líneas. Se rechaza con 400 si:
 
 - el proveedor falta o está inactivo;
 - la categoría no es `M` ni `L`;
-- el número de factura no tiene el formato `0001-00004521` (se acepta sin guion y se
-  normaliza) o el proveedor ya tiene otra compra con esa factura;
+- la forma de pago no es una de las cinco opciones;
 - la fecha es futura;
 - no hay líneas;
 - las observaciones superan los 500 caracteres;
@@ -69,6 +72,21 @@ rechaza con 400 si:
   un número entero;
 - la cantidad o el precio unitario son cero, negativos, tienen más de 2 decimales o
   superan el máximo (1.000.000 de cantidad, 10.000.000 de precio).
+
+#### Formulario de la compra (frontend)
+
+- **N° de comprobante:** campo de solo lectura. Al crear muestra el número con el que
+  se guardaría la compra (lo pide a `GET /api/compras/proximo-comprobante/`; si no
+  puede, dice "Se asigna al guardar"); al editar muestra el número de la compra.
+  Es una estimación: si otra persona guarda una compra antes, el número final cambia.
+- **Agregar proveedor:** botón junto al desplegable de proveedor. Abre el alta de un
+  proveedor encima de la compra, sin cerrarla, y al guardarlo queda elegido.
+- **Forma de pago:** desplegable con Contado, Cuenta corriente, Débito, Crédito y Otro.
+- **Agregar materia prima:** en las compras de materias primas, el botón abre el
+  formulario de alta de una materia prima **encima de la compra**, sin cerrarla, para
+  no perder lo ya cargado. Al guardarla, la materia prima queda disponible en los
+  desplegables y elegida en la primera línea sin materia prima (o en una línea nueva).
+  El botón que suma una fila a la tabla se llama "Agregar línea".
 
 ### Modificar compra
 
@@ -132,6 +150,12 @@ compra asociada y siguen editándose como siempre.
 `lotes-pendientes` es la excepción: lo consulta cualquier usuario autenticado
 (`IsAuthenticated`).
 
+`GET /api/compras/proximo-comprobante/` devuelve `{"nro_comprobante": "00000054"}`:
+el número que recibiría la próxima compra. Es el siguiente valor del contador
+autoincremental de la base (`Compra.proximo_nro_comprobante()`), no "el mayor + 1":
+el número de una compra borrada no se reutiliza. Lo leen Administrador y Consulta
+(el Operario no ve Compras). Se probó en SQLite y en PostgreSQL.
+
 ---
 
 ## Decisiones de diseño
@@ -139,11 +163,20 @@ compra asociada y siguen editándose como siempre.
 - **Precio unitario por línea.** El mockup mostraba el total de la línea como
   "precio". Se guarda el precio **unitario** y se calculan `subtotal` (cantidad ×
   precio) y `total` de la compra al leer, así no hay valores que se desincronicen.
-- **Factura única por proveedor.** `UniqueConstraint(id_proveedor, nro_factura)`;
-  dos proveedores distintos pueden repetir el número. Formato `PPPP-NNNNNNNN`.
-- **Fecha, no fecha y hora.** Una factura tiene fecha; no puede ser futura.
-- **Tipo de compra.** Se conserva la columna *Tipo* del mockup (Contado / Cuenta
-  corriente).
+- **Comprobante autoincremental.** Antes se cargaba a mano el número de factura del
+  proveedor (con unicidad por proveedor). Ahora el comprobante es general (no solo
+  facturas) y lo genera el sistema: es una propiedad calculada del `id_compra`
+  (`nro_comprobante`, 8 dígitos), por lo que no se puede editar ni repetir. La
+  migración `0002` elimina la columna `nroFactura` y su restricción de unicidad: los
+  números de factura que hubiera cargados se pierden.
+- **Atomicidad.** `CompraSerializer.create` y `update` envuelven la cabecera y las
+  líneas en `transaction.atomic()`. En la edición las líneas se reemplazan (se
+  borran y se vuelven a crear): sin la transacción, una falla a mitad de camino
+  dejaba la compra sin líneas.
+- **Fecha, no fecha y hora.** Una compra tiene fecha; no puede ser futura.
+- **Forma de pago.** La columna *Tipo* del mockup pasó a admitir Contado, Cuenta
+  corriente, Débito, Crédito y Otro (códigos `C`, `X`, `D`, `R`, `O`). La etiqueta en
+  pantalla es "Forma de pago".
 - **Stock calculado, no guardado.** `stock_actual` de una materia prima es
   `stock_inicial + comprado − descartado − entradas`. `comprado` suma las líneas de
   compras de materias primas **finalizadas** (`compras/stock.py`). Una anotación con
@@ -181,14 +214,16 @@ Tests: `PaginacionComprasTests` en `backend/config/tests_pagination.py` (7 tests
 
 ## Tests
 
-Se implementaron **54 tests** en `backend/compras/tests.py` y se actualizó
+Se implementaron **68 tests** en `backend/compras/tests.py` y se actualizó
 `backend/lotes/tests.py` (53 tests):
 
 | Clase | Tests | Qué verifica |
 |---|:---:|---|
-| `ListarCompraTests` | 8 | Listar, búsqueda por factura, filtros por categoría, estado, proveedor y fechas, detalle con líneas y total, orden |
-| `NuevaCompraTests` | 17 | Alta de ambas categorías, usuario y estado no tomados del cliente, normalización y formato de factura, factura repetida por proveedor, proveedor inactivo, fecha futura, sin líneas, materia prima repetida / inactiva / faltante, cantidad y precio inválidos, aves no enteras, categoría inválida |
-| `ModificarBorrarTests` | 7 | Editar pendiente, edición parcial, finalizada → 400, categoría inmutable, borrar pendiente con cascada, finalizada → 409, 404 |
+| `ListarCompraTests` | 9 | Listar, búsqueda por comprobante (y sin dígitos), filtros por categoría, estado, proveedor y fechas, detalle con líneas y total, orden |
+| `NuevaCompraTests` | 20 | Alta de ambas categorías, usuario y estado no tomados del cliente, comprobante generado por el sistema, no enviable y correlativo, formas de pago (las cinco) y una inválida, proveedor inactivo, fecha futura, sin líneas, materia prima repetida / inactiva / faltante, cantidad y precio inválidos, aves no enteras, categoría inválida |
+| `ModificarBorrarTests` | 8 | Editar pendiente, edición parcial, comprobante no editable, finalizada → 400, categoría inmutable, borrar pendiente con cascada, finalizada → 409, 404 |
+| `AtomicidadTests` | 3 | Si falla el alta no queda compra ni líneas; si falla la edición se conservan las líneas originales; alta exitosa con varias líneas |
+| `ProximoComprobanteTests` | 6 | Número de 8 dígitos, coincide con el de la compra que se guarda, avanza con cada compra, no reutiliza el de una compra borrada, permisos (Consulta sí, Operario 403, sin token 401) |
 | `FinalizarCompraTests` | 6 | Finalizar, doble finalización (409), pendiente no suma stock, finalizada suma, stock calculado, las compras de lotes no tocan el stock |
 | `LotesPendientesTests` | 6 | Lista vacía, pendiente no aparece, finalizada sí, materias primas no, asignado no, vuelve si se borra el lote |
 | `RelacionesTests` | 3 | Proveedor y materia prima con compras → 409; sin compras se eliminan |
@@ -216,7 +251,8 @@ python manage.py test compras lotes --verbosity=2
 
 ```
 backend/compras/                app nueva: models, serializers, views, urls, stock,
-                                admin, tests y migración 0001_initial
+                                admin, tests y migraciones 0001_initial y
+                                0002_comprobante_y_tipos_de_pago
 backend/config/settings.py      "compras" en INSTALLED_APPS
 backend/config/urls.py          rutas de /api/compras/
 backend/lotes/                  el alta exige id_linea_compra; cantidad inicial desde

@@ -452,7 +452,7 @@ export default function LotesPage() {
 
                 <div className="detail-sec-title" style={{ marginTop: 14 }}>Datos del lote</div>
                 {selected.compra && (
-                  <div className="detail-row"><span>Compra</span><span>{selected.compra.nro_factura} · {selected.compra.proveedor}</span></div>
+                  <div className="detail-row"><span>Compra</span><span>{selected.compra.nro_comprobante} · {selected.compra.proveedor}</span></div>
                 )}
                 <div className="detail-row"><span>Cantidad inicial</span><span>{selected.cantidad_inicial?.toLocaleString("es-AR")}</span></div>
                 <div className="detail-row"><span>Cantidad actual</span><span>{selected.cantidad_actual?.toLocaleString("es-AR")}</span></div>

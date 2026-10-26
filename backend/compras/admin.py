@@ -12,9 +12,9 @@ class LineaCompraInline(admin.TabularInline):
 
 @admin.register(Compra)
 class CompraAdmin(admin.ModelAdmin):
-    list_display = ["id_compra", "nro_factura", "id_proveedor", "categoria", "fecha", "estado"]
-    list_filter = ["estado", "categoria"]
-    search_fields = ["nro_factura"]
+    list_display = ["nro_comprobante", "id_proveedor", "categoria", "tipo", "fecha", "estado"]
+    list_filter = ["estado", "categoria", "tipo"]
+    search_fields = ["id_compra"]
     inlines = [LineaCompraInline]
 
     def get_readonly_fields(self, request, obj=None):

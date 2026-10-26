@@ -355,13 +355,14 @@ python manage.py test informes
 | POST | `/api/proveedores/{id}/alta/` | Dar de alta | Adm. |
 | POST | `/api/proveedores/{id}/baja/` | Dar de baja | Adm. |
 | GET | `/api/proveedores/similares/` | Nombres iguales o parecidos | Adm. / Consulta |
-| GET | `/api/compras/` | Listar compras (`?search=` por Nº de factura, `?categoria=M\|L`, `?estado=`, `?id_proveedor=`, `?fecha_desde=`, `?fecha_hasta=`, `?page=`, `?page_size=`), paginado de a 16 | Adm. / Consulta |
+| GET | `/api/compras/` | Listar compras (`?search=` por Nº de comprobante, `?categoria=M\|L`, `?estado=`, `?id_proveedor=`, `?fecha_desde=`, `?fecha_hasta=`, `?page=`, `?page_size=`), paginado de a 16 | Adm. / Consulta |
 | POST | `/api/compras/` | Crear compra de materias primas o de lotes con líneas | Adm. |
 | GET | `/api/compras/{id}/` | Detalle de compra | Adm. / Consulta |
 | PATCH | `/api/compras/{id}/` | Modificar compra PENDIENTE | Adm. |
 | DELETE | `/api/compras/{id}/` | Eliminar compra PENDIENTE (409 si está finalizada) | Adm. |
 | POST | `/api/compras/{id}/finalizar/` | Finalizar: suma stock de materias primas o deja el lote por asignar | Adm. |
 | GET | `/api/compras/lotes-pendientes/` | Lotes comprados esperando galpón | autenticado |
+| GET | `/api/compras/proximo-comprobante/` | Número de comprobante con el que se guardaría la próxima compra | Adm. / Consulta |
 | GET | `/api/informes/produccion/` | Informe de producción (`?fecha_desde=`, `?fecha_hasta=`, `?id_galpon=`) | Adm. / Consulta |
 | GET | `/api/informes/lotes/` | Informe de lotes (`?estado=`, `?id_galpon=`) | Adm. / Consulta |
 | GET | `/api/informes/materias-primas/` | Informe de materias primas (`?fecha_desde=`, `?fecha_hasta=`, `?id_materia_prima=`) | Adm. / Consulta |

@@ -196,7 +196,7 @@ export default function LoteFormModal({
                     <option value="">Seleccioná un lote comprado...</option>
                     {lotesPendientes.map((l) => (
                       <option key={l.id_linea_compra} value={l.id_linea_compra}>
-                        Factura {l.nro_factura} · {l.proveedor_nombre} ·{" "}
+                        Comprobante {l.nro_comprobante} · {l.proveedor_nombre} ·{" "}
                         {Number(l.cantidad).toLocaleString("es-AR")} aves · comprado el{" "}
                         {formatFechaCorta(l.fecha_compra)}
                       </option>
