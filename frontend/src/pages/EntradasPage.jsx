@@ -4,6 +4,7 @@ import { listGalpones } from "../api/galpones";
 import { listMateriasPrimas } from "../api/materias-primas";
 import EntradaFormModal from "../components/EntradaFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 
@@ -37,6 +38,7 @@ function formatCantidad(valor) {
 }
 
 export default function EntradasPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
 
@@ -149,9 +151,12 @@ export default function EntradasPage() {
   async function handleDelete() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Eliminar la entrada del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`
-      )
+      !(await confirmar({
+        titulo: "Eliminar entrada",
+        mensaje: `¿Eliminar la entrada del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`,
+        confirmarTexto: "Eliminar",
+        peligro: true,
+      }))
     )
       return;
     try {
@@ -159,17 +164,20 @@ export default function EntradasPage() {
       setSelectedId(null);
       await fetchEntradas();
     } catch (err) {
-      alert(err.message || "No se pudo eliminar la entrada.");
+      await avisar({ titulo: "No se pudo eliminar la entrada", mensaje: err.message });
     }
   }
 
   async function handleFinalizar() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Finalizar la entrada del ${formatFecha(selected.fecha)}? No podrá editarse después. ` +
-          "Se descontará del stock de cada materia prima."
-      )
+      !(await confirmar({
+        titulo: "Finalizar entrada",
+        mensaje: `¿Finalizar la entrada del ${formatFecha(selected.fecha)}? No podrá editarse después. ` +
+          "Se descontará del stock de cada materia prima.",
+        confirmarTexto: "Finalizar",
+        peligro: false,
+      }))
     )
       return;
     try {
@@ -177,7 +185,7 @@ export default function EntradasPage() {
       await fetchEntradas();
       await refrescarStock();
     } catch (err) {
-      alert(err.message || "No se pudo finalizar la entrada.");
+      await avisar({ titulo: "No se pudo finalizar la entrada", mensaje: err.message });
     }
   }
 

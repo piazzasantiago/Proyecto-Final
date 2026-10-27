@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { createCompra, getProximoComprobante, updateCompra } from "../api/compras";
-import { createMateriaPrima } from "../api/materias-primas";
-import { createProveedor } from "../api/proveedores";
+import { createMateriaPrima, listMateriasPrimas } from "../api/materias-primas";
+import { createProveedor, listProveedores } from "../api/proveedores";
+import Combobox from "./Combobox";
 import MateriaPrimaFormModal from "./MateriaPrimaFormModal";
 import ProveedorFormModal from "./ProveedorFormModal";
 
@@ -57,6 +58,43 @@ const estiloCampo = {
   fontFamily: "inherit",
 };
 
+// Cuántas opciones se piden por vez a los combobox de proveedor y materia prima.
+const OPCIONES_POR_PAGINA = 20;
+
+/** Proveedores activos, de a una página, para el combobox (buscador y scroll). */
+async function cargarProveedores({ search, page }) {
+  const r = await listProveedores({
+    estado: "A",
+    ordering: "nombre",
+    page,
+    page_size: OPCIONES_POR_PAGINA,
+    ...(search ? { search } : {}),
+  });
+  return {
+    results: (r.results ?? r).map((p) => ({ value: p.id_proveedor, label: p.nombre })),
+    hasMore: Boolean(r.next),
+  };
+}
+
+/** Materias primas activas, de a una página, para el combobox (buscador y scroll). */
+async function cargarMateriasPrimas({ search, page }) {
+  const r = await listMateriasPrimas({
+    estado: "A",
+    ordering: "materia_prima",
+    page,
+    page_size: OPCIONES_POR_PAGINA,
+    ...(search ? { search } : {}),
+  });
+  return {
+    results: (r.results ?? r).map((m) => ({
+      value: m.id_materia_prima,
+      label: `${m.materia_prima} (${m.unidad})`,
+      data: { unidad: m.unidad },
+    })),
+    hasMore: Boolean(r.next),
+  };
+}
+
 /** Une los mensajes de error de un campo (DRF los devuelve como lista). */
 function texto(err) {
   if (!err) return "";
@@ -91,6 +129,8 @@ export default function CompraFormModal({
   const [proveedoresCreados, setProveedoresCreados] = useState([]);
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [proximoComprobante, setProximoComprobante] = useState("");
+  // Unidad de las materias primas elegidas en el combobox (id → unidad).
+  const [unidades, setUnidades] = useState({});
 
   // En el alta se muestra el número con el que se guardaría la compra.
   useEffect(() => {
@@ -180,25 +220,18 @@ export default function CompraFormModal({
     );
   }
 
-  // Opciones de proveedor y materia prima: solo activos, pero en edición se
-  // conservan los que ya tenía la compra aunque se hayan dado de baja después.
-  function opcionesProveedor() {
-    const todos = [
-      ...proveedores,
-      ...proveedoresCreados.filter((c) => !proveedores.some((p) => p.id_proveedor === c.id_proveedor)),
-    ];
-    const lista = todos
-      .filter((p) => p.estado === "A" || p.id_proveedor === Number(form.id_proveedor))
-      .map((p) => ({ id: p.id_proveedor, label: p.nombre }));
-    if (isEdit && !lista.some((o) => o.id === Number(form.id_proveedor))) {
-      lista.push({
-        id: Number(form.id_proveedor),
-        label: initialData.proveedor?.nombre ?? "Proveedor",
-      });
-    }
-    return lista;
+  // El combobox de proveedor pide solo los activos, de a una página. El nombre del
+  // elegido se resuelve acá cuando no vino de la lista: en edición se conserva el
+  // proveedor de la compra aunque se haya dado de baja después, y un proveedor
+  // recién creado desde este formulario ya queda elegido.
+  function etiquetaProveedor() {
+    const id = Number(form.id_proveedor);
+    const hallado = [...proveedores, ...proveedoresCreados].find((p) => p.id_proveedor === id);
+    return hallado?.nombre ?? initialData?.proveedor?.nombre;
   }
 
+  // Rótulo de una materia prima ya conocida (recién creada o de la compra que se
+  // edita); el resto lo trae el combobox desde el servidor.
   function opcionesMateria() {
     const lista = catalogo.map((m) => ({
       id: m.id_materia_prima,
@@ -221,6 +254,7 @@ export default function CompraFormModal({
     const id = Number(linea.id_materia_prima);
     if (!id) return "";
     return (
+      unidades[id] ??
       catalogo.find((m) => m.id_materia_prima === id)?.unidad ??
       initialData?.lineas?.find((l) => l.id_materia_prima === id)?.materia_prima_unidad ??
       ""
@@ -341,15 +375,16 @@ export default function CompraFormModal({
             <div className="form-row">
               <div className="form-group">
                 <label>Categoría</label>
-                <select
+                <Combobox
                   name="categoria"
                   value={form.categoria}
                   onChange={handleCategoria}
                   disabled={isEdit}
-                >
-                  <option value={CATEGORIA_MATERIAS}>Materias primas</option>
-                  <option value={CATEGORIA_LOTES}>Lotes de gallinas</option>
-                </select>
+                  options={[
+                    { value: CATEGORIA_MATERIAS, label: "Materias primas" },
+                    { value: CATEGORIA_LOTES, label: "Lotes de gallinas" },
+                  ]}
+                />
                 {errors.categoria && <span className="form-error">{texto(errors.categoria)}</span>}
                 {isEdit && !soloLectura && (
                   <span className="form-hint">
@@ -360,20 +395,16 @@ export default function CompraFormModal({
 
               <div className="form-group">
                 <label>Proveedor</label>
-                <select
+                <Combobox
                   name="id_proveedor"
                   value={form.id_proveedor}
                   onChange={handleChange}
                   onInvalid={handleRequerido("Debe seleccionar un proveedor")}
                   required
-                >
-                  <option value="">Seleccioná un proveedor activo...</option>
-                  {opcionesProveedor().map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Seleccioná un proveedor activo..."
+                  valueLabel={etiquetaProveedor()}
+                  loader={cargarProveedores}
+                />
                 {errors.id_proveedor && (
                   <span className="form-error">{texto(errors.id_proveedor)}</span>
                 )}
@@ -422,13 +453,18 @@ export default function CompraFormModal({
 
               <div className="form-group">
                 <label>Forma de pago</label>
-                <select name="tipo" value={form.tipo} onChange={handleChange}>
-                  <option value="C">Contado</option>
-                  <option value="X">Cuenta corriente</option>
-                  <option value="D">Débito</option>
-                  <option value="R">Crédito</option>
-                  <option value="O">Otro</option>
-                </select>
+                <Combobox
+                  name="tipo"
+                  value={form.tipo}
+                  onChange={handleChange}
+                  options={[
+                    { value: "C", label: "Contado" },
+                    { value: "X", label: "Cuenta corriente" },
+                    { value: "D", label: "Débito" },
+                    { value: "R", label: "Crédito" },
+                    { value: "O", label: "Otro" },
+                  ]}
+                />
                 {errors.tipo && <span className="form-error">{texto(errors.tipo)}</span>}
               </div>
 
@@ -489,9 +525,18 @@ export default function CompraFormModal({
               <table className="plan-table" style={{ minWidth: 640 }}>
                 <thead>
                   <tr>
-                    <th>{esDeLotes ? "Concepto" : "Materia prima"}</th>
-                    <th style={{ width: 150 }}>{esDeLotes ? "Cantidad de aves" : "Cantidad"}</th>
-                    <th style={{ width: 150 }}>{esDeLotes ? "Precio por ave" : "Precio unitario"}</th>
+                    <th>
+                      {esDeLotes ? "Concepto" : "Materia prima"}
+                      {!esDeLotes && !soloLectura && <span className="req">*</span>}
+                    </th>
+                    <th style={{ width: 150 }}>
+                      {esDeLotes ? "Cantidad de aves" : "Cantidad"}
+                      {!soloLectura && <span className="req">*</span>}
+                    </th>
+                    <th style={{ width: 150 }}>
+                      {esDeLotes ? "Precio por ave" : "Precio unitario"}
+                      {!soloLectura && <span className="req">*</span>}
+                    </th>
                     <th style={{ width: 130, textAlign: "right" }}>Subtotal</th>
                     <th style={{ width: 40 }}></th>
                   </tr>
@@ -506,21 +551,22 @@ export default function CompraFormModal({
                             <span>Lote de gallinas</span>
                           ) : (
                             <>
-                              <select
+                              <Combobox
+                                compact
                                 name="id_materia_prima"
                                 value={linea.id_materia_prima}
-                                onChange={(e) => handleLineaChange(index, e)}
+                                onChange={(e) => {
+                                  handleLineaChange(index, e);
+                                  if (e.option?.data?.unidad) {
+                                    setUnidades((u) => ({ ...u, [e.target.value]: e.option.data.unidad }));
+                                  }
+                                }}
                                 onInvalid={handleRequerido("Debe seleccionar una materia prima")}
                                 required
-                                style={estiloCampo}
-                              >
-                                <option value="">Seleccioná...</option>
-                                {opcionesMateria().map((o) => (
-                                  <option key={o.id} value={o.id}>
-                                    {o.label}
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="Seleccioná..."
+                                valueLabel={opcionesMateria().find((o) => String(o.id) === String(linea.id_materia_prima))?.label}
+                                loader={cargarMateriasPrimas}
+                              />
                               {(errLinea.id_materia_prima || errLinea.non_field_errors) && (
                                 <span className="form-error">
                                   {texto(errLinea.id_materia_prima ?? errLinea.non_field_errors)}

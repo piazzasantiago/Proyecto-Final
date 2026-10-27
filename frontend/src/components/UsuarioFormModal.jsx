@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import CampoPassword from "./CampoPassword";
+import Combobox from "./Combobox";
 
 const emptyForm = {
   nombre: "",
@@ -115,11 +116,16 @@ export default function UsuarioFormModal({ initialData, onClose, onSubmit }) {
               </div>
               <div className="form-group full">
                 <label>Rol</label>
-                <select name="rol" value={form.rol} onChange={handleChange}>
-                  <option value="A">Administrador</option>
-                  <option value="O">Operario</option>
-                  <option value="C">Consulta</option>
-                </select>
+                <Combobox
+                  name="rol"
+                  value={form.rol}
+                  onChange={handleChange}
+                  options={[
+                    { value: "A", label: "Administrador" },
+                    { value: "O", label: "Operario" },
+                    { value: "C", label: "Consulta" },
+                  ]}
+                />
                 {errors.rol && <span className="form-error">{errors.rol.join(" ")}</span>}
               </div>
 

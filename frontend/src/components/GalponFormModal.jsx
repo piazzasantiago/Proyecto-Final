@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { listOperarios } from "../api/usuarios";
 import { traerTodas } from "../api/paginado";
+import Combobox from "./Combobox";
 
 const emptyForm = {
   galpon: "",
@@ -121,10 +122,15 @@ export default function GalponFormModal({ initialData, onClose, onSubmit }) {
               </div>
               <div className="form-group full">
                 <label>Estado</label>
-                <select name="estado" value={form.estado} onChange={handleChange}>
-                  <option value="A">Activo</option>
-                  <option value="I">Inactivo</option>
-                </select>
+                <Combobox
+                  name="estado"
+                  value={form.estado}
+                  onChange={handleChange}
+                  options={[
+                    { value: "A", label: "Activo" },
+                    { value: "I", label: "Inactivo" },
+                  ]}
+                />
               </div>
               <div className="form-group full">
                 <label>Descripción</label>

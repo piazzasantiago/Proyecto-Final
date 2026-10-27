@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createRecoleccion, updateRecoleccion } from "../api/recolecciones";
+import Combobox from "./Combobox";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -184,21 +185,24 @@ export default function RecoleccionFormModal({
             <div className="form-row">
               <div className="form-group full">
                 <label>Galpón</label>
-                <select
+                <Combobox
                   name="id_galpon_id"
                   value={form.id_galpon_id}
                   onChange={handleChange}
                   onInvalid={handleGalponInvalid}
                   required
                   disabled={isEdit}
-                >
-                  <option value="">Seleccioná un galpón activo...</option>
-                  {galpones.map((g) => (
-                    <option key={g.id_galpon} value={g.id_galpon}>
-                      G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Seleccioná un galpón activo..."
+                  valueLabel={
+                    isEdit
+                      ? `G-${String(form.id_galpon_id).padStart(2, "0")} · ${initialData.galpon?.galpon}`
+                      : undefined
+                  }
+                  options={galpones.map((g) => ({
+                    value: g.id_galpon,
+                    label: `G-${String(g.id_galpon).padStart(2, "0")} · ${g.galpon}`,
+                  }))}
+                />
                 {errors.id_galpon_id && (
                   <span className="form-error">
                     {Array.isArray(errors.id_galpon_id)
@@ -265,8 +269,8 @@ export default function RecoleccionFormModal({
               <table className="plan-table" style={{ minWidth: 400 }}>
                 <thead>
                   <tr>
-                    <th>Producto</th>
-                    <th style={{ width: 110 }}>Cantidad</th>
+                    <th>Producto <span className="req">*</span></th>
+                    <th style={{ width: 110 }}>Cantidad <span className="req">*</span></th>
                     <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
@@ -274,29 +278,19 @@ export default function RecoleccionFormModal({
                   {form.lineas.map((linea, index) => (
                     <tr key={index}>
                       <td>
-                        <select
+                        <Combobox
+                          compact
                           name="id_producto_id"
                           value={linea.id_producto_id}
                           onChange={(e) => handleLineaChange(index, e)}
                           onInvalid={handleProductoInvalid}
                           required
-                          style={{
-                            width: "100%",
-                            padding: "6px 8px",
-                            border: "1.5px solid var(--gray-300)",
-                            borderRadius: 7,
-                            fontSize: 14,
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          <option value="">Seleccioná...</option>
-                          {productosDisponibles(linea).map((p) => (
-                            <option key={p.id_producto} value={p.id_producto}>
-                              {p.producto}
-                              {p.estado !== "A" ? " (inactivo)" : ""}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Seleccioná..."
+                          options={productosDisponibles(linea).map((p) => ({
+                            value: p.id_producto,
+                            label: `${p.producto}${p.estado !== "A" ? " (inactivo)" : ""}`,
+                          }))}
+                        />
                         {errors.lineas?.[index]?.id_producto_id && (
                           <span className="form-error">
                             {errors.lineas[index].id_producto_id.join(" ")}

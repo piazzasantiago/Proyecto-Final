@@ -10,9 +10,11 @@ import {
 import ProveedorFormModal from "../components/ProveedorFormModal";
 import ComprasRecientes from "../components/ComprasRecientes";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function ProveedoresPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
 
   const [proveedores, setProveedores] = useState([]);
@@ -94,7 +96,7 @@ export default function ProveedoresPage() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar al proveedor "${selected.nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar proveedor", mensaje: `¿Eliminar al proveedor "${selected.nombre}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     setActionError(null);
     try {
       await deleteProveedor(selected.id_proveedor);

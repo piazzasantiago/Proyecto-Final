@@ -9,9 +9,11 @@ import {
 } from "../api/productos";
 import ProductoFormModal from "../components/ProductoFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function ProductosPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
 
   const [productos, setProductos] = useState([]);
@@ -93,7 +95,7 @@ export default function ProductosPage() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar el producto "${selected.producto}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar producto", mensaje: `¿Eliminar el producto "${selected.producto}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     setActionError(null);
     try {
       await deleteProducto(selected.id_producto);

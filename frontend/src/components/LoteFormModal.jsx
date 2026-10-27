@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createLote, updateLote } from "../api/lotes";
+import Combobox from "./Combobox";
 
 const SEMANAS = [1, 2, 3, 4];
 
@@ -186,22 +187,21 @@ export default function LoteFormModal({
               {!isEdit && (
                 <div className="form-group full">
                   <label>Lotes a asignar</label>
-                  <select
+                  <Combobox
                     name="id_linea_compra"
                     value={form.id_linea_compra}
                     onChange={handleChange}
                     onInvalid={handleLoteCompradoInvalid}
                     required
-                  >
-                    <option value="">Seleccioná un lote comprado...</option>
-                    {lotesPendientes.map((l) => (
-                      <option key={l.id_linea_compra} value={l.id_linea_compra}>
-                        Comprobante {l.nro_comprobante} · {l.proveedor_nombre} ·{" "}
-                        {Number(l.cantidad).toLocaleString("es-AR")} aves · comprado el{" "}
-                        {formatFechaCorta(l.fecha_compra)}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Seleccioná un lote comprado..."
+                    options={lotesPendientes.map((l) => ({
+                      value: l.id_linea_compra,
+                      label:
+                        `Comprobante ${l.nro_comprobante} · ${l.proveedor_nombre} · ` +
+                        `${Number(l.cantidad).toLocaleString("es-AR")} aves · comprado el ` +
+                        `${formatFechaCorta(l.fecha_compra)}`,
+                    }))}
+                  />
                   {errors.id_linea_compra && (
                     <span className="form-error">
                       {Array.isArray(errors.id_linea_compra)
@@ -217,34 +217,30 @@ export default function LoteFormModal({
 
               <div className="form-group full">
                 <label>Galpón</label>
-                <select
+                <Combobox
                   name="id_galpon_id"
                   value={form.id_galpon_id}
                   onChange={handleChange}
                   onInvalid={handleGalponInvalid}
                   required
                   disabled={isEdit || sinGalponesLibres}
-                >
-                  <option value="">
-                    {isEdit ? "Galpón del lote" : "Seleccioná un galpón libre..."}
-                  </option>
-                  {/* En edición el galpón del lote puede no estar en la lista (está ocupado por él mismo). */}
-                  {isEdit && !galponElegido && initialData?.galpon && (
-                    <option value={initialData.galpon.id_galpon}>
-                      G-{String(initialData.galpon.id_galpon).padStart(2, "0")} · {initialData.galpon.galpon}
-                    </option>
-                  )}
-                  {galpones.map((g) => {
-                    const noAlcanza =
-                      !isEdit && cantidadInicial !== "" && Number(cantidadInicial) > g.capacidad;
-                    return (
-                      <option key={g.id_galpon} value={g.id_galpon} disabled={noAlcanza}>
-                        G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon} · capacidad {miles(g.capacidad)} aves
-                        {noAlcanza ? " (no alcanza para este lote)" : ""}
-                      </option>
-                    );
+                  placeholder={isEdit ? "Galpón del lote" : "Seleccioná un galpón libre..."}
+                  valueLabel={
+                    isEdit && initialData?.galpon
+                      ? `G-${String(initialData.galpon.id_galpon).padStart(2, "0")} · ${initialData.galpon.galpon}`
+                      : undefined
+                  }
+                  options={galpones.map((g) => {
+                    const noAlcanza = !isEdit && cantidadInicial !== "" && Number(cantidadInicial) > g.capacidad;
+                    return {
+                      value: g.id_galpon,
+                      label:
+                        `G-${String(g.id_galpon).padStart(2, "0")} · ${g.galpon} · capacidad ${miles(g.capacidad)} aves` +
+                        (noAlcanza ? " (no alcanza para este lote)" : ""),
+                      disabled: noAlcanza,
+                    };
                   })}
-                </select>
+                />
                 {sinGalponesLibres && (
                   <span className="form-hint">
                     No hay galpones activos libres. Un galpón queda libre cuando se hace el vaciado
