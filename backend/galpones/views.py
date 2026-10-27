@@ -1,3 +1,4 @@
+from django.db.models import ProtectedError
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -64,6 +65,41 @@ class GalponViewSet(viewsets.ModelViewSet):
             estado__in=[Lote.ESTADO_TRANSICION, Lote.ESTADO_PRODUCCION]
         ).values("id_galpon")
         return qs.exclude(pk__in=ocupados)
+
+    # Registros que impiden borrar un galpón (related_name del FK PROTECT -> nombre legible).
+    _REGISTROS_ASOCIADOS = (
+        ("lotes", "lotes"),
+        ("entradas", "entradas"),
+        ("recolecciones", "recolecciones"),
+        ("descartes", "descartes"),
+    )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        CU12 — Un galpón con registros asociados (lotes, entradas, recolecciones
+        o descartes) no se borra: se responde 409 con un mensaje claro y se
+        sugiere darlo de baja para conservar el historial.
+        """
+        galpon = self.get_object()
+        try:
+            galpon.delete()
+        except ProtectedError:
+            presentes = [
+                nombre
+                for relacion, nombre in self._REGISTROS_ASOCIADOS
+                if getattr(galpon, relacion).exists()
+            ]
+            detalle = ", ".join(presentes) if presentes else "lotes, entradas, recolecciones o descartes"
+            return Response(
+                {
+                    "detail": (
+                        f"No se puede eliminar el galpón porque tiene registros asociados ({detalle}). "
+                        "Dalo de baja en su lugar para conservar el historial."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def update(self, request, *args, **kwargs):
         galpon = self.get_object()

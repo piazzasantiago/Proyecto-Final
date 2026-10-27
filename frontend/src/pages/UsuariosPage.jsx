@@ -35,6 +35,9 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
+  // Error de una acción sobre el usuario seleccionado (borrar, dar de baja...):
+  // se muestra en el panel de detalle y no oculta el listado.
+  const [actionError, setActionError] = useState(null);
 
   const [search, setSearch] = useState("");
   const [rolFilter, setRolFilter] = useState("");
@@ -107,13 +110,14 @@ export default function UsuariosPage() {
   /** Ejecuta una acción sobre la API y refresca la lista. */
   async function ejecutar(accion, textoOk) {
     setTrabajando(true);
-    setError(null);
+    setActionError(null);
     try {
       await accion();
       await fetchUsuarios();
       if (textoOk) mostrarAviso(textoOk);
     } catch (err) {
-      setError(err.message);
+      // Sin red (status 0) o 409 con el motivo explicado por el backend.
+      setActionError(err.status === 0 ? "No se pudo conectar con el servidor." : err.message);
     } finally {
       setTrabajando(false);
     }
@@ -146,7 +150,8 @@ export default function UsuariosPage() {
     if (!selected) return;
     if (!confirm(`¿Eliminar al usuario "${selected.nombre_completo}"? Esta acción no se puede deshacer.`)) return;
     const id = selected.id_usuario;
-    setSelectedId(null);
+    // El usuario queda seleccionado: si el backend rechaza el borrado (409), el
+    // cartel se muestra en su panel. Si se elimina, la recarga elige otro.
     ejecutar(() => deleteUsuario(id), "Usuario eliminado.");
   }
 
@@ -202,7 +207,7 @@ export default function UsuariosPage() {
                 <div
                   key={u.id_usuario}
                   className={`usuario-card ${u.id_usuario === selectedId ? "card-selected" : ""}`}
-                  onClick={() => setSelectedId(u.id_usuario)}
+                  onClick={() => { setSelectedId(u.id_usuario); setActionError(null); }}
                 >
                   <div className="uc-avatar">{iniciales(u)}</div>
                   <div className="uc-nombre">{u.nombre_completo}</div>
@@ -256,6 +261,12 @@ export default function UsuariosPage() {
                 )}
               </div>
 
+              {actionError && (
+                <div className="banner banner-error" style={{ margin: "0 20px 0" }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }}></i>
+                  {actionError}
+                </div>
+              )}
               <div className="detail-actions">
                 <button className="btn btn-outline" disabled={trabajando} onClick={() => setModalMode("edit")}>
                   <i className="fa-solid fa-pen"></i> Editar

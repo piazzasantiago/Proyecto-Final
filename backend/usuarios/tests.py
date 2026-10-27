@@ -7,6 +7,8 @@ elimina al terminar. No toca la base de desarrollo.
 Cada método `test_*` es un test independiente: arranca con la base vacía y
 no depende del orden de ejecución.
 """
+import datetime
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -248,6 +250,26 @@ class ABMUsuariosTests(TestCase):
         uid = self.client.post("/api/usuarios/", self.datos_nuevo, format="json").data["id_usuario"]
         self.assertEqual(self.client.delete(f"/api/usuarios/{uid}/").status_code, 204)
         self.assertFalse(Usuario.objects.filter(pk=uid).exists())
+
+    def test_no_borra_usuario_con_registros_asociados(self):
+        # Un operario que ya cargó una compra: borrarlo dejaría la compra sin autor.
+        from compras.models import Compra
+        from proveedores.models import Proveedor
+
+        uid = self.client.post("/api/usuarios/", self.datos_nuevo, format="json").data["id_usuario"]
+        proveedor = Proveedor.objects.create(
+            nombre="Proveedor Test", email="p@test.com", telefono="3815551234"
+        )
+        Compra.objects.create(
+            id_proveedor=proveedor, id_usuario_id=uid, categoria="M",
+            fecha=datetime.date.today(),
+        )
+        r = self.client.delete(f"/api/usuarios/{uid}/")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("registros asociados", r.data["detail"])
+        self.assertIn("compras", r.data["detail"])
+        self.assertIn("baja", r.data["detail"])
+        self.assertTrue(Usuario.objects.filter(pk=uid).exists())
 
     def test_no_puede_borrarse_a_si_mismo(self):
         r = self.client.delete(f"/api/usuarios/{self.admin.pk}/")

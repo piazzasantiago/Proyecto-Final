@@ -141,15 +141,11 @@ export default function GalponesPage() {
       setSelectedId(null);
       await fetchGalpones();
     } catch (err) {
-      // err.status === 0 → sin red; cualquier otro error es casi siempre
-      // el PROTECT de Django porque el galpón tiene lotes asociados.
+      // err.status === 0 → sin red; con 409 el backend explica qué registros lo impiden.
       if (err.status === 0) {
         setActionError("No se pudo conectar con el servidor.");
       } else {
-        setActionError(
-          "No se puede eliminar el galpón porque tiene lotes asociados. " +
-          "Finalizá o eliminá los lotes primero."
-        );
+        setActionError(err.message || "No se pudo eliminar el galpón.");
       }
     }
   }

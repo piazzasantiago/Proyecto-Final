@@ -21,7 +21,7 @@ la gestión completa de usuarios, tests automatizados y CI con GitHub Actions.
 - Restablecimiento de contraseña por parte del Administrador.
 - Interfaz React conectada a la API, con menú y rutas filtradas por rol.
 - Matriz de visibilidad de secciones por rol, definida en `config/menu.js`.
-- Tests automatizados del backend (34 tests en 4 clases).
+- Tests automatizados del backend (35 tests en 4 clases).
 - Workflow de CI con GitHub Actions que corre los tests en cada push.
 
 ### Qué no incluye
@@ -165,9 +165,15 @@ existe el restablecimiento.
 
 - **1a. El usuario seleccionado es el propio Administrador:** el sistema
   impide la operación.
+- **3a. El usuario tiene registros asociados** (compras, recolecciones,
+  descartes, entradas o salidas que cargó): el sistema no lo elimina y responde
+  `409 Conflict` con un mensaje que indica qué registros lo impiden y sugiere
+  darlo de baja (F-18/F-19). La interfaz lo muestra en un cartel dentro del
+  panel de detalle, sin ocultar el listado.
 
-**Notas:** el borrado es físico. Para conservar el historial de lo que un
-usuario registró conviene darlo de baja (CU08) en lugar de eliminarlo.
+**Notas:** el borrado es físico y solo se permite si el usuario no cargó nada.
+Para conservar el historial de lo que un usuario registró hay que darlo de
+baja (CU08) en lugar de eliminarlo.
 
 ---
 
@@ -371,8 +377,8 @@ crea una base temporaria al principio y la destruye al terminar.
 | `LoginTests` | 7 | CU01: credenciales, email, mensaje genérico, usuario inactivo |
 | `MeTests` | 3 | Token válido, sin token, token inválido |
 | `PermisosPorRolTests` | 8 | Los tres roles × usuarios y galpones |
-| `ABMUsuariosTests` | 16 | CU03 a CU08 completo y restablecimiento de contraseña |
-| **Total** | **34** | |
+| `ABMUsuariosTests` | 17 | CU03 a CU08 completo y restablecimiento de contraseña |
+| **Total** | **35** | |
 
 ### Cómo correrlos localmente
 
@@ -611,12 +617,13 @@ para evitar dos conjuntos de reglas que puedan divergir.
 - Rechazo de contraseñas menores a 8 caracteres.
 - Alta y baja lógica, incluyendo el rechazo de operaciones repetidas (409).
 - Un Administrador no puede eliminarse ni darse de baja a sí mismo.
+- Un usuario con registros asociados no se elimina: responde 409 con el detalle.
 - El restablecimiento invalida la contraseña anterior y habilita la nueva.
 - El hash de la contraseña nunca se incluye en las respuestas de la API.
 
 **Tests y CI**
 
-- 34 tests corren en ~3 segundos: `Ran 34 tests in 3s — OK`.
+- 35 tests corren en pocos segundos: `Ran 35 tests — OK`.
 - El workflow de GitHub Actions se ejecutó correctamente en la rama
   `feature/gestion-usuarios` tras el push.
 - Los pushes con solo cambios en `docs/` no disparan el CI.

@@ -1,4 +1,4 @@
-from django.db.models import Q, Sum
+from django.db.models import ProtectedError, Q, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -77,6 +77,32 @@ class ProductoViewSet(viewsets.ModelViewSet):
         # sin un orden explícito la paginación podría repetir o saltear filas.
         # (?ordering= lo reemplaza cuando se pide otro orden.)
         return productos.order_by("producto")
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        CU53 — Un producto con registros asociados (recolecciones, descartes o
+        salidas) no se borra: se responde 409 con un mensaje claro y se sugiere
+        desactivarlo para conservar el historial.
+        """
+        producto = self.get_object()
+        try:
+            producto.delete()
+        except ProtectedError as error:
+            presentes = sorted(
+                {str(o._meta.verbose_name_plural) for o in error.protected_objects}
+            )
+            detalle = ", ".join(presentes)
+            return Response(
+                {
+                    "detail": (
+                        "No se puede eliminar el producto porque tiene registros asociados"
+                        + (f" ({detalle})" if detalle else "")
+                        + ". Desactivalo en su lugar para conservar el historial."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def update(self, request, *args, **kwargs):
         producto = self.get_object()

@@ -21,7 +21,7 @@ de `feature/gestion-recolecciones` referenciará uno de estos productos.
   finalizados. La API expone `stock_recolectado`, `stock_descartado` y
   `stock_actual` como campos calculados de solo lectura.
 - Acceso de solo lectura para el rol Consulta.
-- Tests automatizados del módulo (44 tests en 8 clases).
+- Tests automatizados del módulo (45 tests en 8 clases).
 - Interfaz React con tarjetas compactas y panel de detalle; botones de acción
   visibles solo para el rol Administrador.
 
@@ -70,9 +70,10 @@ por este medio.
 
 **Actor:** Administrador.
 
-Elimina el producto físicamente. Si tiene líneas de recolección asociadas
-(cuando ese módulo exista), el borrado deberá rechazarse — hoy no hay
-ninguna relación que lo impida.
+Elimina el producto físicamente. Si tiene registros asociados (líneas de
+recolección, descartes o salidas), no se elimina: responde `409 Conflict` con un
+mensaje que indica qué registros lo impiden y sugiere desactivarlo para conservar
+el historial (F-18). La interfaz muestra ese mensaje en el panel de detalle.
 
 ### CU54 – Desactivar Producto
 
@@ -223,12 +224,12 @@ terminar.
 | `BuscarProductoTests` | 6 | CU50: listado, búsqueda por nombre y descripción, filtros por estado |
 | `NuevoProductoTests` | 5 | CU49: alta válida, estado por defecto, descripción opcional, nombre duplicado (400), stock por defecto en 0 |
 | `ModificarProductoTests` | 4 | CU52: modificación parcial, inmutabilidad del estado vía `PATCH`, producto inexistente |
-| `BorrarProductoTests` | 2 | CU53: borrado físico, producto inexistente |
+| `BorrarProductoTests` | 3 | CU53: borrado físico, 409 con registros asociados, producto inexistente |
 | `ActivarProductoTests` | 4 | CU51: activación, persistencia, idempotencia (409), producto inexistente |
 | `DesactivarProductoTests` | 4 | CU54: desactivación, persistencia, idempotencia (409), producto inexistente |
 | `PermisosProductosTests` | 14 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
 | `StockActualProductoTests` | 5 | `stock_inicial` al crear y vía `PATCH`, rechazo de negativos, aislamiento de otros campos, `stock_actual` de solo lectura |
-| **Total** | **44** | |
+| **Total** | **45** | |
 
 ### Cómo correrlos
 
@@ -261,7 +262,7 @@ backend/
     │   ├── 0001_initial.py
     │   ├── 0002_producto_stock_actual.py
     │   └── 0003_rename_stock_actual_producto_stock_inicial.py
-    └── tests.py          44 tests en 8 clases
+    └── tests.py          45 tests en 8 clases
 ```
 
 ### Frontend
@@ -350,7 +351,7 @@ catálogo sin ninguna acción disponible.
 
 **Backend**
 
-- 44 tests en verde; suite completa del proyecto (`galpones`, `lotes`,
+- 45 tests en verde; suite completa del proyecto (`galpones`, `lotes`,
   `productos`, `recolecciones`, `usuarios`) en 272/272.
 - Los tres roles pueden listar y ver el detalle de productos.
 - Operario y Consulta reciben 403 al intentar crear, modificar, borrar o
