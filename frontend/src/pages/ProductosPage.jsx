@@ -103,10 +103,8 @@ export default function ProductosPage() {
       if (err.status === 0) {
         setActionError("No se pudo conectar con el servidor.");
       } else {
-        setActionError(
-          "No se puede eliminar el producto porque tiene registros asociados " +
-          "(por ejemplo, líneas de recolección). Desactivalo en su lugar."
-        );
+        // Con 409 el backend explica qué registros lo impiden.
+        setActionError(err.message || "No se pudo eliminar el producto.");
       }
     }
   }
