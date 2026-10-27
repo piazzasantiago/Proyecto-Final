@@ -258,6 +258,20 @@ class BorrarProductoTests(TestCase):
         self.assertEqual(resp.status_code, 204)
         self.assertFalse(Producto.objects.filter(pk=self.producto.id_producto).exists())
 
+    def test_no_borra_producto_con_registros_asociados(self):
+        # Un producto que ya salió en una salida: borrarlo rompería ese registro.
+        from django.utils import timezone
+        from salidas.models import LineaSalida, Salida
+
+        salida = Salida.objects.create(fecha=timezone.now(), id_usuario=self.admin)
+        LineaSalida.objects.create(id_salida=salida, id_producto=self.producto, cantidad=5)
+        resp = self.client.delete(f"/api/productos/{self.producto.id_producto}/")
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("registros asociados", resp.data["detail"])
+        self.assertIn("líneas de salida", resp.data["detail"])
+        self.assertIn("Desactivalo", resp.data["detail"])
+        self.assertTrue(Producto.objects.filter(pk=self.producto.id_producto).exists())
+
     def test_borrar_producto_inexistente(self):
         resp = self.client.delete("/api/productos/9999/")
         self.assertEqual(resp.status_code, 404)

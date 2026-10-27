@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.db.models import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -138,12 +139,38 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario = serializer.save()
         return Response(UsuarioSerializer(usuario).data)
 
-    def perform_destroy(self, instance):
-        """CU06. Un administrador no puede borrar su propio usuario."""
-        if instance.pk == self.request.user.pk:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("No podés borrar tu propio usuario.")
-        instance.delete()
+    def destroy(self, request, *args, **kwargs):
+        """
+        CU06. Un administrador no puede borrar su propio usuario. Un usuario
+        con registros asociados (compras, recolecciones, descartes, entradas,
+        salidas, etc.) no se borra: se responde 409 con un mensaje claro y se
+        sugiere darlo de baja para conservar el historial.
+        """
+        usuario = self.get_object()
+        if usuario.pk == request.user.pk:
+            return Response(
+                {"detail": "No podés borrar tu propio usuario."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            usuario.delete()
+        except ProtectedError as error:
+            # Nombres legibles de lo que lo impide, sin repetir y en orden estable.
+            presentes = sorted(
+                {str(o._meta.verbose_name_plural) for o in error.protected_objects}
+            )
+            detalle = ", ".join(presentes)
+            return Response(
+                {
+                    "detail": (
+                        "No se puede eliminar el usuario porque tiene registros asociados"
+                        + (f" ({detalle})" if detalle else "")
+                        + ". Dalo de baja en su lugar para conservar el historial."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def alta(self, request, pk=None):
