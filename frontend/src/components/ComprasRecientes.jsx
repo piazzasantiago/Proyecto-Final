@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listCompras } from "../api/compras";
+import CompraFormModal from "./CompraFormModal";
 
 /** Cuántas compras se muestran en el detalle. */
 const CANTIDAD = 4;
@@ -38,6 +39,8 @@ export default function ComprasRecientes({ proveedorId, materiaPrimaId, unidad }
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // Compra abierta en la ventana de detalle (solo lectura).
+  const [abierta, setAbierta] = useState(null);
 
   useEffect(() => {
     let vigente = true; // evita pisar el resultado si cambió la selección mientras cargaba
@@ -81,7 +84,20 @@ export default function ComprasRecientes({ proveedorId, materiaPrimaId, unidad }
               .reduce((suma, l) => suma + Number(l.cantidad), 0)
           : null;
         return (
-          <div className="compra-rec" key={c.id_compra}>
+          <div
+            className="compra-rec"
+            key={c.id_compra}
+            role="button"
+            tabIndex={0}
+            title="Ver el detalle de la compra"
+            onClick={() => setAbierta(c)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setAbierta(c);
+              }
+            }}
+          >
             <div className="compra-rec-top">
               <span className="compra-rec-nro">N° {c.nro_comprobante}</span>
               <span className={`badge ${pendiente ? "badge-gold" : "badge-green"}`}>
@@ -107,6 +123,9 @@ export default function ComprasRecientes({ proveedorId, materiaPrimaId, unidad }
         <div className="compras-rec-mas">
           Mostrando las últimas {compras.length} de {total} compras.
         </div>
+      )}
+      {abierta && (
+        <CompraFormModal initialData={abierta} soloLectura onClose={() => setAbierta(null)} />
       )}
     </div>
   );

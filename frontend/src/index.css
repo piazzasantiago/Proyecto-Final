@@ -871,6 +871,8 @@
   /* ── Compras recientes en los detalles de Proveedores y Materias primas ── */
   .compras-rec{display:flex; flex-direction:column; gap:8px;}
   .compra-rec{border:1px solid var(--gray-200); border-radius:8px; padding:9px 12px; display:flex; flex-direction:column; gap:3px;}
+  .compra-rec{cursor:pointer; transition:.12s;}
+  .compra-rec:hover, .compra-rec:focus-visible{border-color:var(--green-600); background:var(--green-50); outline:none;}
   .compra-rec-top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
   .compra-rec-nro{font-weight:700; color:var(--gray-900); font-size:14px;}
   .compra-rec-linea{display:flex; justify-content:space-between; gap:12px; font-size:13.5px; color:var(--gray-700);}
