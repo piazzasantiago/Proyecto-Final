@@ -5,7 +5,7 @@ Clases de tests:
     BuscarGalponTests       (6)  CU09 – listar, buscar, filtrar
     NuevoGalponTests        (9)  CU10 – crear
     ModificarGalponTests    (4)  CU11 – modificar
-    BorrarGalponTests       (2)  CU12 – eliminar
+    BorrarGalponTests       (4)  CU12 – eliminar (409 si tiene registros asociados, F-19)
     AltaGalponTests         (4)  CU13 – dar de alta
     BajaGalponTests         (9)  CU14 – dar de baja (incluye bloqueo si el
                                   galpón tiene un lote activo)
@@ -16,7 +16,7 @@ Clases de tests:
                                   al editar el galpón
     GalponesLibresTests     (6)  F-10 – ?libre=true: sin lote en curso
 
-Total: 76 tests
+Total: 78 tests
 """
 
 from django.test import TestCase
@@ -254,6 +254,20 @@ class BorrarGalponTests(TestCase):
     def test_borrar_galpon_inexistente(self):
         resp = self.client.delete("/api/galpones/9999/")
         self.assertEqual(resp.status_code, 404)
+
+    def test_borrar_galpon_con_lotes_devuelve_409(self):
+        """F-19: con registros asociados no se borra y se explica por qué."""
+        crear_lote(self.galpon)
+        resp = self.client.delete(f"/api/galpones/{self.galpon.id_galpon}/")
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("lotes", resp.json()["detail"])
+        self.assertIn("baja", resp.json()["detail"])
+        self.assertTrue(Galpon.objects.filter(id_galpon=self.galpon.id_galpon).exists())
+
+    def test_borrar_galpon_con_lote_finalizado_tambien_devuelve_409(self):
+        crear_lote(self.galpon, estado=Lote.ESTADO_FINALIZADO)
+        resp = self.client.delete(f"/api/galpones/{self.galpon.id_galpon}/")
+        self.assertEqual(resp.status_code, 409)
 
 
 # ---------------------------------------------------------------------------

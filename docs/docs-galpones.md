@@ -119,8 +119,14 @@ no cambian.
 3. El Administrador confirma.
 4. El sistema elimina el registro y todas sus asignaciones de operarios.
 
-**Notas:** el borrado es físico. Para conservar el historial conviene darlo de
-baja (CU14) en lugar de eliminarlo.
+**Flujos alternativos**
+
+- **4a. El galpón tiene registros asociados** (lotes, entradas, recolecciones o
+  descartes): el sistema no lo elimina y responde 409 Conflict con un mensaje
+  que indica qué registros lo impiden y sugiere darlo de baja (F-19).
+
+**Notas:** el borrado es físico y solo se permite si el galpón no tiene
+registros asociados. Para conservar el historial conviene darlo de baja (CU14).
 
 ---
 
@@ -305,7 +311,7 @@ terminar.
 | `BuscarGalponTests` | 6 | CU09: listado, búsqueda por nombre y descripción, filtros por estado |
 | `NuevoGalponTests` | 9 | CU10: alta válida, estado por defecto, validaciones de capacidad y superficie |
 | `ModificarGalponTests` | 4 | CU11: modificación parcial, campo inválido, galpón inexistente |
-| `BorrarGalponTests` | 2 | CU12: borrado físico, galpón inexistente |
+| `BorrarGalponTests` | 4 | CU12: borrado físico, galpón inexistente, 409 si tiene lotes (activos o finalizados) |
 | `AltaGalponTests` | 4 | CU13: alta, persistencia, idempotencia (409), galpón inexistente |
 | `BajaGalponTests` | 9 | CU14: baja, persistencia, idempotencia (409), galpón inexistente, y el bloqueo si el galpón tiene un lote activo (Transición o Producción) |
 | `PermisosGalponesTests` | 18 | Matriz rol × operación (Admin / Operario / Consulta / sin token) |
