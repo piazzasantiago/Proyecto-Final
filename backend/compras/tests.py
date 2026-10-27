@@ -162,6 +162,31 @@ class ListarCompraTests(BaseApiTests):
     def test_filtra_por_proveedor(self):
         self.assertEqual(self.ids(f"?id_proveedor={self.otro.pk}"), {self.c2.pk})
 
+    def test_filtra_por_materia_prima(self):
+        otra_mp = crear_materia_prima("Soja")
+        c3 = crear_compra(self.otro, mp=otra_mp, fecha=datetime.date(2026, 3, 1))
+        self.assertEqual(self.ids(f"?id_materia_prima={self.mp.pk}"), {self.c1.pk})
+        self.assertEqual(self.ids(f"?id_materia_prima={otra_mp.pk}"), {c3.pk})
+
+    def test_filtro_por_materia_prima_no_repite_compras(self):
+        # Dos líneas de la misma materia prima en una compra: aparece una sola vez.
+        LineaCompra.objects.create(
+            id_compra=self.c1, id_materia_prima=self.mp, cantidad="5", precio_unitario="10.00"
+        )
+        resp = self.client.get(f"/api/compras/?id_materia_prima={self.mp.pk}")
+        self.assertEqual(resp.data["count"], 1)
+
+    def test_recientes_de_un_proveedor_limitadas_y_ordenadas(self):
+        # Lo que usa el detalle del proveedor: las últimas N, la más nueva primero.
+        for dia in range(1, 6):
+            crear_compra(self.proveedor, mp=self.mp, fecha=datetime.date(2026, 4, dia))
+        resp = self.client.get(f"/api/compras/?id_proveedor={self.proveedor.pk}&page_size=4")
+        self.assertEqual(resp.data["count"], 6)
+        fechas = [c["fecha"] for c in resp.data["results"]]
+        self.assertEqual(len(fechas), 4)
+        self.assertEqual(fechas, sorted(fechas, reverse=True))
+        self.assertEqual(fechas[0], "2026-04-05")
+
     def test_filtra_por_fecha_desde_y_hasta(self):
         self.assertEqual(self.ids("?fecha_desde=2026-02-01"), {self.c2.pk})
         self.assertEqual(self.ids("?fecha_hasta=2026-01-31"), {self.c1.pk})

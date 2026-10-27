@@ -78,6 +78,7 @@ export default function CompraFormModal({
   onSubmit,
   onMateriaPrimaCreada,
   onProveedorCreado,
+  soloLectura = false, // muestra la compra sin permitir editarla (detalle desde otras pantallas)
 }) {
   const isEdit = Boolean(initialData);
   const [form, setForm] = useState(() => initForm(initialData));
@@ -205,7 +206,12 @@ export default function CompraFormModal({
     }));
     (initialData?.lineas ?? []).forEach((l) => {
       if (l.id_materia_prima && !lista.some((o) => o.id === l.id_materia_prima)) {
-        lista.push({ id: l.id_materia_prima, label: `${l.materia_prima_nombre} (inactiva)` });
+        lista.push({
+          id: l.id_materia_prima,
+          label: soloLectura
+            ? `${l.materia_prima_nombre}${l.materia_prima_unidad ? ` (${l.materia_prima_unidad})` : ""}`
+            : `${l.materia_prima_nombre} (inactiva)`,
+        });
       }
     });
     return lista;
@@ -213,7 +219,12 @@ export default function CompraFormModal({
 
   function unidadDe(linea) {
     const id = Number(linea.id_materia_prima);
-    return id ? catalogo.find((m) => m.id_materia_prima === id)?.unidad ?? "" : "";
+    if (!id) return "";
+    return (
+      catalogo.find((m) => m.id_materia_prima === id)?.unidad ??
+      initialData?.lineas?.find((l) => l.id_materia_prima === id)?.materia_prima_unidad ??
+      ""
+    );
   }
 
   function subtotalDe(linea) {
@@ -258,6 +269,10 @@ export default function CompraFormModal({
   const total = form.lineas.reduce((acc, l) => acc + subtotalDe(l), 0);
 
   async function handleSubmit(e) {
+    if (soloLectura) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     setSaving(true);
     setErrors({});
@@ -305,7 +320,7 @@ export default function CompraFormModal({
     >
       <div className="modal-card" style={{ maxWidth: 860 }}>
         <div className="modal-header">
-          <h3>{isEdit ? "Editar compra" : "Nueva compra"}</h3>
+          <h3>{soloLectura ? `Compra N° ${initialData.nro_comprobante ?? ""}` : isEdit ? "Editar compra" : "Nueva compra"}</h3>
           <button className="modal-close" onClick={onClose}>
             <i className="fa-solid fa-xmark"></i>
           </button>
@@ -313,6 +328,10 @@ export default function CompraFormModal({
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            <fieldset
+              disabled={soloLectura}
+              style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+            >
             {errors.non_field_errors && (
               <div className="banner banner-error">{texto(errors.non_field_errors)}</div>
             )}
@@ -332,7 +351,7 @@ export default function CompraFormModal({
                   <option value={CATEGORIA_LOTES}>Lotes de gallinas</option>
                 </select>
                 {errors.categoria && <span className="form-error">{texto(errors.categoria)}</span>}
-                {isEdit && (
+                {isEdit && !soloLectura && (
                   <span className="form-hint">
                     La categoría no se puede cambiar después de crear la compra.
                   </span>
@@ -358,14 +377,16 @@ export default function CompraFormModal({
                 {errors.id_proveedor && (
                   <span className="form-error">{texto(errors.id_proveedor)}</span>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ fontSize: 13, marginTop: 6, alignSelf: "flex-start" }}
-                  onClick={() => setCreandoProveedor(true)}
-                >
-                  <i className="fa-solid fa-plus"></i> Agregar proveedor
-                </button>
+                {!soloLectura && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ fontSize: 13, marginTop: 6, alignSelf: "flex-start" }}
+                    onClick={() => setCreandoProveedor(true)}
+                  >
+                    <i className="fa-solid fa-plus"></i> Agregar proveedor
+                  </button>
+                )}
               </div>
 
               <div className="form-group">
@@ -376,11 +397,13 @@ export default function CompraFormModal({
                   readOnly
                   disabled
                 />
+                {!soloLectura && (
                 <span className="form-hint">
                   {isEdit
                     ? "Lo genera el sistema; no se puede modificar."
                     : "Es el número con el que se guardaría. Lo genera el sistema y se confirma al guardar."}
                 </span>
+                )}
               </div>
 
               <div className="form-group">
@@ -416,11 +439,13 @@ export default function CompraFormModal({
                   value={form.observaciones}
                   onChange={handleChange}
                   maxLength={OBSERVACIONES_MAX}
-                  placeholder="Notas sobre la compra (opcional)"
+                  placeholder={soloLectura ? "Sin observaciones" : "Notas sobre la compra (opcional)"}
                 />
-                <span className="form-hint">
-                  {form.observaciones.length}/{OBSERVACIONES_MAX} caracteres
-                </span>
+                {!soloLectura && (
+                  <span className="form-hint">
+                    {form.observaciones.length}/{OBSERVACIONES_MAX} caracteres
+                  </span>
+                )}
                 {errors.observaciones && (
                   <span className="form-error">{texto(errors.observaciones)}</span>
                 )}
@@ -431,7 +456,7 @@ export default function CompraFormModal({
             <div className="form-lines-title">
               <span>{esDeLotes ? "Lotes comprados" : "Materias primas compradas"}</span>
             </div>
-            {!esDeLotes && (
+            {!esDeLotes && !soloLectura && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span className="form-hint">
                   ¿La materia prima todavía no existe? Podés crearla sin salir de la compra.
@@ -446,7 +471,7 @@ export default function CompraFormModal({
                 </button>
               </div>
             )}
-            {esDeLotes && (
+            {esDeLotes && !soloLectura && (
               <span className="form-hint">
                 Cada línea es un lote. Cuando finalices la compra, quedará esperando que lo asignes
                 a un galpón desde “Lotes de gallinas”.
@@ -547,7 +572,7 @@ export default function CompraFormModal({
                         </td>
                         <td style={{ textAlign: "right" }}>{formatPrecio(subtotalDe(linea))}</td>
                         <td style={{ textAlign: "center" }}>
-                          {form.lineas.length > 1 && (
+                          {!soloLectura && form.lineas.length > 1 && (
                             <button
                               type="button"
                               className="btn btn-outline"
@@ -575,24 +600,29 @@ export default function CompraFormModal({
               </table>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ marginTop: 8, fontSize: 13 }}
-              onClick={addLinea}
-            >
-              <i className="fa-solid fa-plus"></i> {esDeLotes ? "Agregar lote" : "Agregar línea"}
-            </button>
+            {!soloLectura && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ marginTop: 8, fontSize: 13 }}
+                onClick={addLinea}
+              >
+                <i className="fa-solid fa-plus"></i> {esDeLotes ? "Agregar lote" : "Agregar línea"}
+              </button>
+            )}
+            </fieldset>
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>
-              Cancelar
+              {soloLectura ? "Cerrar" : "Cancelar"}
             </button>
-            <button type="submit" className="btn btn-green" disabled={saving}>
-              <i className="fa-solid fa-check"></i>{" "}
-              {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear compra"}
-            </button>
+            {!soloLectura && (
+              <button type="submit" className="btn btn-green" disabled={saving}>
+                <i className="fa-solid fa-check"></i>{" "}
+                {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear compra"}
+              </button>
+            )}
           </div>
         </form>
       </div>

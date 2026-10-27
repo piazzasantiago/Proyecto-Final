@@ -30,6 +30,12 @@ materias primas.
 - Script standalone `seed_materias_primas.py` (raíz del repo) para poblar la
   tabla con 18 materias primas de ejemplo.
 
+- Sección "Compras recientes" en el panel de detalle: las últimas 4 compras que
+  incluyen esa materia prima (la más nueva primero), con N° de comprobante, fecha,
+  estado, cantidad comprada de esa materia prima, proveedor y total de la compra.
+  Usa `GET /api/compras/?id_materia_prima=N&page_size=4`. El Operario no la ve
+  (no tiene acceso al módulo de Compras).
+
 ### Qué no incluye
 
 - Las compras se registran en su propio módulo (ver `docs-compras.md`); acá solo
@@ -389,7 +395,7 @@ romper la paleta del sistema.
 
 ## 10. Pendientes
 
-- **Mostrar las compras recientes** de cada materia prima en el detalle.
+- *Resuelto (F-12):* compras recientes de cada materia prima en el detalle.
 - *Resuelto con Compras:* el borrado de una materia prima con compras, entradas o
   descartes asociados devuelve `409` con un mensaje claro (`ProtectedError`
   capturado en la vista).

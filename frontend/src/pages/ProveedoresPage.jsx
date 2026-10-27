@@ -8,6 +8,7 @@ import {
   bajaProveedor,
 } from "../api/proveedores";
 import ProveedorFormModal from "../components/ProveedorFormModal";
+import ComprasRecientes from "../components/ComprasRecientes";
 import { useAuth } from "../context/AuthContext";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
@@ -228,9 +229,7 @@ export default function ProveedoresPage() {
                 </div>
 
                 <div className="detail-sec-title">Compras recientes</div>
-                <div className="empty-state" style={{ margin: "8px 0", fontSize: "0.85rem" }}>
-                  El módulo de compras estará disponible próximamente.
-                </div>
+                <ComprasRecientes proveedorId={selected.id_proveedor} />
               </div>
 
               {actionError && (
