@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createEntrada, updateEntrada } from "../api/entradas";
+import Combobox from "./Combobox";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -200,28 +201,24 @@ export default function EntradaFormModal({
             <div className="form-row">
               <div className="form-group full">
                 <label>Galpón de destino</label>
-                <select
+                <Combobox
                   name="id_galpon"
                   value={form.id_galpon}
                   onChange={handleChange}
                   onInvalid={handleGalponInvalid}
                   required
                   disabled={isEdit}
-                >
-                  <option value="">Seleccioná un galpón activo...</option>
-                  {galpones.map((g) => (
-                    <option key={g.id_galpon} value={g.id_galpon}>
-                      G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon}
-                    </option>
-                  ))}
-                  {isEdit &&
-                    !galpones.some((g) => g.id_galpon === Number(form.id_galpon)) && (
-                      <option value={form.id_galpon}>
-                        G-{String(form.id_galpon).padStart(2, "0")} ·{" "}
-                        {initialData.galpon?.galpon}
-                      </option>
-                    )}
-                </select>
+                  placeholder="Seleccioná un galpón activo..."
+                  valueLabel={
+                    isEdit
+                      ? `G-${String(form.id_galpon).padStart(2, "0")} · ${initialData.galpon?.galpon}`
+                      : undefined
+                  }
+                  options={galpones.map((g) => ({
+                    value: g.id_galpon,
+                    label: `G-${String(g.id_galpon).padStart(2, "0")} · ${g.galpon}`,
+                  }))}
+                />
                 {errors.id_galpon && <span className="form-error">{texto(errors.id_galpon)}</span>}
                 {isEdit && (
                   <span className="form-hint">
@@ -278,8 +275,8 @@ export default function EntradaFormModal({
               <table className="plan-table" style={{ minWidth: 520 }}>
                 <thead>
                   <tr>
-                    <th>Materia prima</th>
-                    <th style={{ width: 150 }}>Cantidad</th>
+                    <th>Materia prima <span className="req">*</span></th>
+                    <th style={{ width: 150 }}>Cantidad <span className="req">*</span></th>
                     <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
@@ -291,21 +288,16 @@ export default function EntradaFormModal({
                     return (
                       <tr key={index}>
                         <td>
-                          <select
+                          <Combobox
+                            compact
                             name="id_materia_prima"
                             value={linea.id_materia_prima}
                             onChange={(e) => handleLineaChange(index, e)}
                             onInvalid={handleMateriaInvalid}
                             required
-                            style={estiloCampo}
-                          >
-                            <option value="">Seleccioná...</option>
-                            {opciones().map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Seleccioná..."
+                            options={opciones().map((o) => ({ value: o.id, label: o.label }))}
+                          />
                           {(errLinea.id_materia_prima || errLinea.non_field_errors) && (
                             <span className="form-error">
                               {texto(errLinea.id_materia_prima ?? errLinea.non_field_errors)}

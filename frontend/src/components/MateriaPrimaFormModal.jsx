@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { buscarSimilares } from "../api/materias-primas";
+import Combobox from "./Combobox";
 
 const emptyForm = {
   materia_prima: "",
@@ -133,16 +134,16 @@ export default function MateriaPrimaFormModal({ initialData, onClose, onSubmit }
 
               <div className="form-group half">
                 <label>Unidad de medida</label>
-                <select name="unidad" value={form.unidad} onChange={handleChange}>
-                  <option value="kg">kg</option>
-                  <option value="g">g</option>
-                  <option value="L">L</option>
-                  <option value="mL">mL</option>
-                  <option value="unid.">unid.</option>
-                  <option value="dosis">dosis</option>
-                  <option value="bolsa">bolsa</option>
-                  <option value="saco">saco</option>
-                </select>
+                <Combobox
+                  name="unidad"
+                  value={form.unidad}
+                  valueLabel={form.unidad}
+                  onChange={handleChange}
+                  options={["kg", "g", "L", "mL", "unid.", "dosis", "bolsa", "saco"].map((u) => ({
+                    value: u,
+                    label: u,
+                  }))}
+                />
                 {errors.unidad && (
                   <span className="form-error">{errors.unidad.join(" ")}</span>
                 )}

@@ -10,9 +10,11 @@ import {
 import MateriaPrimaFormModal from "../components/MateriaPrimaFormModal";
 import ComprasRecientes from "../components/ComprasRecientes";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 export default function MateriaPrimasPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esConsulta } = useAuth();
 
   const [materias, setMaterias] = useState([]);
@@ -94,7 +96,7 @@ export default function MateriaPrimasPage() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar la materia prima "${selected.materia_prima}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar materia prima", mensaje: `¿Eliminar la materia prima "${selected.materia_prima}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     setActionError(null);
     try {
       await deleteMateriaPrima(selected.id_materia_prima);

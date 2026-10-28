@@ -4,6 +4,7 @@ import { listGalpones } from "../api/galpones";
 import { listLotesPendientes } from "../api/compras";
 import LoteFormModal from "../components/LoteFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
 
 const ESTADO_TRANSICION = "T";
@@ -54,6 +55,7 @@ function semanaActual(lote) {
 }
 
 export default function LotesPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
 
   const [lotes, setLotes] = useState([]);
@@ -150,7 +152,7 @@ export default function LotesPage() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar el lote "${selected.codigo}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar lote", mensaje: `¿Eliminar el lote "${selected.codigo}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     await deleteLote(selected.id_lote);
     setSelectedId(null);
     await fetchLotes();
@@ -161,25 +163,25 @@ export default function LotesPage() {
 
   async function handleIniciarProduccion() {
     if (!selected) return;
-    if (!confirm(`¿Iniciar producción para el lote ${selected.codigo}? El plan de transición quedará finalizado.`)) return;
+    if (!(await confirmar({ titulo: "Iniciar producción", mensaje: `¿Iniciar producción para el lote ${selected.codigo}? El plan de transición quedará finalizado.`, confirmarTexto: "Iniciar producción", peligro: false }))) return;
     try {
       await iniciarProduccion(selected.id_lote);
       await fetchLotes();
     } catch (err) {
-      alert(err.message || "No se pudo iniciar la producción.");
+      await avisar({ titulo: "No se pudo iniciar la producción", mensaje: err.message });
     }
   }
 
   async function handleVaciar() {
     if (!selected) return;
-    if (!confirm(`¿Confirmar vaciado sanitario para el lote ${selected.codigo}? El lote pasará a estado Finalizado.`)) return;
+    if (!(await confirmar({ titulo: "Vaciado sanitario", mensaje: `¿Confirmar vaciado sanitario para el lote ${selected.codigo}? El lote pasará a estado Finalizado.`, confirmarTexto: "Confirmar vaciado", peligro: true }))) return;
     try {
       await vaciarLote(selected.id_lote);
       await fetchLotes();
       // El galpón vaciado queda libre para recibir otro lote.
       await fetchGalponesLibres();
     } catch (err) {
-      alert(err.message || "No se pudo realizar el vaciado.");
+      await avisar({ titulo: "No se pudo realizar el vaciado", mensaje: err.message });
     }
   }
 

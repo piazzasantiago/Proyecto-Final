@@ -4,6 +4,7 @@ import { listProveedores } from "../api/proveedores";
 import { listMateriasPrimas } from "../api/materias-primas";
 import CompraFormModal from "../components/CompraFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 
@@ -38,6 +39,7 @@ function formatPrecio(valor) {
 }
 
 export default function ComprasPage() {
+  const { confirmar, avisar } = useDialogo();
   // Solo el administrador escribe; el rol Consulta únicamente lee.
   const { esAdministrador } = useAuth();
 
@@ -145,9 +147,12 @@ export default function ComprasPage() {
   async function handleDelete() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Eliminar la compra ${selected.nro_comprobante}? Esta acción no se puede deshacer.`
-      )
+      !(await confirmar({
+        titulo: "Eliminar compra",
+        mensaje: `¿Eliminar la compra ${selected.nro_comprobante}? Esta acción no se puede deshacer.`,
+        confirmarTexto: "Eliminar",
+        peligro: true,
+      }))
     )
       return;
     try {
@@ -155,7 +160,7 @@ export default function ComprasPage() {
       setSelectedId(null);
       await fetchCompras();
     } catch (err) {
-      alert(err.message || "No se pudo eliminar la compra.");
+      await avisar({ titulo: "No se pudo eliminar la compra", mensaje: err.message });
     }
   }
 
@@ -166,16 +171,19 @@ export default function ComprasPage() {
         ? "Los lotes quedarán esperando que los asignes a un galpón."
         : "Se sumará al stock de cada materia prima.";
     if (
-      !confirm(
-        `¿Finalizar la compra ${selected.nro_comprobante}? No podrá editarse ni eliminarse después. ${efecto}`
-      )
+      !(await confirmar({
+        titulo: "Finalizar compra",
+        mensaje: `¿Finalizar la compra ${selected.nro_comprobante}? No podrá editarse ni eliminarse después. ${efecto}`,
+        confirmarTexto: "Finalizar",
+        peligro: false,
+      }))
     )
       return;
     try {
       await finalizarCompra(selected.id_compra);
       await fetchCompras();
     } catch (err) {
-      alert(err.message || "No se pudo finalizar la compra.");
+      await avisar({ titulo: "No se pudo finalizar la compra", mensaje: err.message });
     }
   }
 

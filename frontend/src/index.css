@@ -497,11 +497,13 @@
     display:none; position:fixed; inset:0; z-index:300;
     background:rgba(18,52,36,0.45);
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-    align-items:center; justify-content:center; padding:24px;
+    align-items:flex-start; justify-content:center; padding:20px 24px;
+    overflow-y:auto;
   }
   .modal-overlay.active{display:flex;}
   .modal-card{
-    background:#fff; border-radius:20px; width:100%; max-width:560px; max-height:88vh;
+    background:#fff; border-radius:20px; width:100%; max-width:560px;
+    max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px);
     overflow:auto; border:1px solid rgba(18,52,36,0.08); box-shadow:0 24px 60px rgba(18,52,36,0.25);
   }
   .modal-header{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--gray-200);}
@@ -882,3 +884,75 @@
   .compra-rec-sec span:last-child{font-weight:500; color:var(--gray-500);}
   .compras-rec-vacio{margin:8px 0; font-size:13.5px; color:var(--gray-500); text-align:center; padding:10px 0;}
   .compras-rec-mas{font-size:12.5px; color:var(--gray-500); text-align:center; padding-top:2px;}
+
+  /* ===== Campos numéricos sin flechas de incremento/decremento (F-27) ===== */
+  input[type="number"]{-moz-appearance:textfield; appearance:textfield;}
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+
+  /* ===== Asterisco rojo en los campos obligatorios (F-20) =====
+     Se agrega solo a las etiquetas cuyo campo lleva `required`; en las
+     tablas de líneas se marca el encabezado con <span className="req">. */
+  .form-group:has(input:required, select:required, textarea:required) > label::after,
+  .form-group.obligatorio > label::after{
+    content:" *"; color:var(--red-500); font-weight:700;
+  }
+  .req{color:var(--red-500); font-weight:700; margin-left:2px;}
+
+  /* ===== Combobox con buscador y scroll (F-22) ===== */
+  .cb{position:relative; width:100%; min-width:0;}
+  .form-line-row .cb{flex:1;}
+  .cb-trigger{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 12px; border:1.5px solid var(--gray-300); border-radius:9px; background:#fff;
+    font-size:14.5px; font-family:inherit; color:var(--gray-900); text-align:left; cursor:pointer;
+  }
+  .cb-trigger.vacio .cb-texto{color:var(--gray-500);}
+  .cb-trigger:focus, .cb-trigger.abierto{
+    outline:none; border-color:var(--green-600); box-shadow:0 0 0 3px var(--green-100);
+  }
+  .cb-trigger:disabled{background:var(--gray-100); color:var(--gray-500); cursor:not-allowed;}
+  .cb-texto{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cb-flecha{font-size:11px; color:var(--gray-500); flex-shrink:0; transition:transform .15s;}
+  .cb-trigger.abierto .cb-flecha{transform:rotate(180deg);}
+  .cb-compact .cb-trigger{padding:6px 8px; border-radius:7px; font-size:14px;}
+  /* Campo oculto: solo conserva la validación nativa; el aviso sale sobre el combobox. */
+  .cb .cb-oculto{
+    position:absolute; left:0; bottom:0; width:100%; height:1px; padding:0; margin:0; border:0;
+    opacity:0; pointer-events:none;
+  }
+  .cb-panel{
+    position:fixed; z-index:500; display:flex; flex-direction:column; outline:none;
+    background:#fff; border:1px solid var(--gray-200); border-radius:10px;
+    box-shadow:0 14px 36px rgba(18,52,36,0.22); overflow:hidden;
+  }
+  .cb-buscador{position:relative; padding:8px; border-bottom:1px solid var(--gray-200);}
+  .cb-buscador i{position:absolute; left:19px; top:50%; transform:translateY(-50%); color:var(--gray-500); font-size:13px;}
+  .cb-buscador input{
+    width:100%; padding:8px 10px 8px 32px; border:1.5px solid var(--gray-300); border-radius:8px;
+    font-size:14px; font-family:inherit;
+  }
+  .cb-buscador input:focus{outline:none; border-color:var(--green-600); box-shadow:0 0 0 3px var(--green-100);}
+  .cb-lista{overflow-y:auto; flex:1; min-height:0;}
+  .cb-op{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; font-size:14px; cursor:pointer; color:var(--gray-900);}
+  .cb-op.resaltada{background:var(--green-100);}
+  .cb-op.elegida{font-weight:700; color:var(--green-700);}
+  .cb-op.deshabilitada{opacity:.5; cursor:not-allowed;}
+  .cb-op-texto{min-width:0; overflow-wrap:anywhere;}
+  .cb-op-texto small{display:block; font-size:12px; color:var(--gray-500); font-weight:500;}
+  .cb-estado{padding:12px; text-align:center; font-size:13.5px; color:var(--gray-500);}
+
+  /* ===== Cuadros de confirmación y aviso (F-21) ===== */
+  .dialogo-overlay{z-index:600; align-items:center;}
+  .dialogo-card{max-width:440px; padding:24px;}
+  .dialogo-cuerpo{display:flex; gap:16px; align-items:flex-start;}
+  .dialogo-icono{
+    width:44px; height:44px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:var(--green-100); color:var(--green-700); font-size:20px;
+  }
+  .dialogo-icono.peligro{background:var(--red-100); color:var(--red-500);}
+  .dialogo-texto h3{font-size:17px; font-weight:700; color:var(--gray-900); margin:2px 0 6px;}
+  .dialogo-texto p{font-size:14.5px; line-height:1.5; color:var(--gray-700); margin:0; overflow-wrap:anywhere;}
+  .dialogo-botones{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
+  .btn-danger{background:var(--red-500); border:1px solid var(--red-500); color:#fff;}
+  .btn-danger:hover{filter:brightness(.92);}

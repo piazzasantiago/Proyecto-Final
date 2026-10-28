@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createDescarte, updateDescarte } from "../api/descartes";
 import { listLotes } from "../api/lotes";
 import { traerTodas } from "../api/paginado";
+import Combobox from "./Combobox";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -396,21 +397,24 @@ export default function DescarteFormModal({
               {!esStock && (
                 <div className="form-group full">
                   <label>Galpón</label>
-                  <select
+                  <Combobox
                     name="id_galpon"
                     value={form.id_galpon}
                     onChange={handleChange}
                     onInvalid={handleGalponInvalid}
                     required
                     disabled={isEdit}
-                  >
-                    <option value="">Seleccioná un galpón activo...</option>
-                    {galpones.map((g) => (
-                      <option key={g.id_galpon} value={g.id_galpon}>
-                        G-{String(g.id_galpon).padStart(2, "0")} · {g.galpon}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Seleccioná un galpón activo..."
+                    valueLabel={
+                      isEdit
+                        ? `G-${String(form.id_galpon).padStart(2, "0")} · ${initialData.galpon?.galpon}`
+                        : undefined
+                    }
+                    options={galpones.map((g) => ({
+                      value: g.id_galpon,
+                      label: `G-${String(g.id_galpon).padStart(2, "0")} · ${g.galpon}`,
+                    }))}
+                  />
                   {errors.id_galpon && (
                     <span className="form-error">{texto(errors.id_galpon)}</span>
                   )}
@@ -471,9 +475,9 @@ export default function DescarteFormModal({
                 <thead>
                   <tr>
                     <th style={{ width: 150 }}>Tipo</th>
-                    <th>Ítem</th>
-                    <th style={{ width: 100 }}>Cantidad</th>
-                    <th>Motivo</th>
+                    <th>Ítem <span className="req">*</span></th>
+                    <th style={{ width: 100 }}>Cantidad <span className="req">*</span></th>
+                    <th>Motivo <span className="req">*</span></th>
                     <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
@@ -488,39 +492,27 @@ export default function DescarteFormModal({
                     return (
                       <tr key={index}>
                         <td>
-                          <select
+                          <Combobox
+                            compact
                             name="tipo"
                             value={linea.tipo}
                             onChange={(e) => handleLineaChange(index, e)}
-                            style={estiloCampo}
-                          >
-                            {tiposDe(form.categoria).map((t) => (
-                              <option key={t.value} value={t.value}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </select>
+                            options={tiposDe(form.categoria).map((t) => ({ value: t.value, label: t.label }))}
+                          />
                         </td>
                         <td>
-                          <select
+                          <Combobox
+                            compact
                             name="id_item"
                             value={linea.id_item}
                             onChange={(e) => handleLineaChange(index, e)}
                             onInvalid={handleItemInvalid}
                             required
-                            style={estiloCampo}
-                          >
-                            <option value="">
-                              {linea.tipo === "lote" && !form.id_galpon
-                                ? "Elegí primero el galpón..."
-                                : "Seleccioná..."}
-                            </option>
-                            {opcionesDe(linea).map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder={
+                              linea.tipo === "lote" && !form.id_galpon ? "Elegí primero el galpón..." : "Seleccioná..."
+                            }
+                            options={opcionesDe(linea).map((o) => ({ value: o.id, label: o.label }))}
+                          />
                           {errItem && <span className="form-error">{texto(errItem)}</span>}
                         </td>
                         <td>

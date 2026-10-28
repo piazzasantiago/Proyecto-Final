@@ -11,6 +11,7 @@ import RecoleccionFormModal from "../components/RecoleccionFormModal";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -39,6 +40,7 @@ function formatUsuario(rec) {
 }
 
 export default function RecoleccionesPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
 
@@ -144,32 +146,38 @@ export default function RecoleccionesPage() {
   async function handleDelete() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Eliminar la recolección del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`
-      )
+      !(await confirmar({
+        titulo: "Eliminar recolección",
+        mensaje: `¿Eliminar la recolección del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`,
+        confirmarTexto: "Eliminar",
+        peligro: true,
+      }))
     )
       return;
     try {
       await deleteRecoleccion(selected.id_recoleccion);
       await fetchRecolecciones();
     } catch (err) {
-      alert(err.message || "No se pudo eliminar la recolección.");
+      await avisar({ titulo: "No se pudo eliminar la recolección", mensaje: err.message });
     }
   }
 
   async function handleFinalizar() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Finalizar la recolección del ${formatFecha(selected.fecha)}? No podrá editarse después.`
-      )
+      !(await confirmar({
+        titulo: "Finalizar recolección",
+        mensaje: `¿Finalizar la recolección del ${formatFecha(selected.fecha)}? No podrá editarse después.`,
+        confirmarTexto: "Finalizar",
+        peligro: false,
+      }))
     )
       return;
     try {
       await finalizarRecoleccion(selected.id_recoleccion);
       await fetchRecolecciones();
     } catch (err) {
-      alert(err.message || "No se pudo finalizar la recolección.");
+      await avisar({ titulo: "No se pudo finalizar la recolección", mensaje: err.message });
     }
   }
 

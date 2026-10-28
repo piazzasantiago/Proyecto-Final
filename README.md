@@ -137,6 +137,23 @@ frontend/src/
 └── index.css        estilos del sistema
 ```
 
+#### Convenciones de la interfaz
+
+- **Formularios (modales).** Se abren pegados a la parte superior de la pantalla.
+  Los campos obligatorios llevan un asterisco rojo en su etiqueta: se agrega solo,
+  a los campos con el atributo `required`. En los encabezados de las tablas de
+  líneas se marca a mano con `<span className="req">*</span>`.
+- **Campos numéricos.** Sin las flechas de incremento/decremento (regla global en `index.css`).
+- **Listas desplegables.** En los formularios se usa `components/Combobox.jsx` en lugar
+  del `<select>`: tiene buscador y va cargando a medida que se desplaza. Recibe
+  `options` (lista ya cargada; el buscador aparece desde 8 opciones) o `loader`
+  (función que pide cada página al servidor, para catálogos grandes). Es compatible
+  con el `<select>`: `onChange` recibe `target.name` / `target.value` y mantiene la
+  validación nativa (`required`, `onInvalid`).
+- **Confirmaciones y avisos.** No se usan `confirm()` ni `alert()` del navegador:
+  `components/Dialogo.jsx` ofrece `useDialogo()` con `confirmar({ titulo, mensaje, peligro })`
+  y `avisar({ titulo, mensaje })`, que devuelven promesas.
+
 ---
 
 ## 1. Requisitos previos

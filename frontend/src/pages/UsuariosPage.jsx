@@ -12,6 +12,7 @@ import {
 import CampoPassword from "../components/CampoPassword";
 import UsuarioFormModal from "../components/UsuarioFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
@@ -25,6 +26,7 @@ function iniciales(u) {
  * Gestión de Usuarios (CU03 a CU08). Pantalla exclusiva del Administrador.
  */
 export default function UsuariosPage() {
+  const { confirmar, avisar } = useDialogo();
   const { usuario: usuarioActual } = useAuth();
 
   const [usuarios, setUsuarios] = useState([]);
@@ -146,9 +148,9 @@ export default function UsuariosPage() {
     mostrarAviso("Cambios guardados.");
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar al usuario "${selected.nombre_completo}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar usuario", mensaje: `¿Eliminar al usuario "${selected.nombre_completo}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     const id = selected.id_usuario;
     // El usuario queda seleccionado: si el backend rechaza el borrado (409), el
     // cartel se muestra en su panel. Si se elimina, la recarga elige otro.

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createSalida, updateSalida } from "../api/salidas";
+import Combobox from "./Combobox";
 
 // Debe coincidir con el max_length de `observaciones` en el serializer.
 const OBSERVACIONES_MAX = 500;
@@ -236,8 +237,8 @@ export default function SalidaFormModal({ productos = [], initialData, onClose, 
               <table className="plan-table" style={{ minWidth: 520 }}>
                 <thead>
                   <tr>
-                    <th>Producto</th>
-                    <th style={{ width: 150 }}>Cantidad</th>
+                    <th>Producto <span className="req">*</span></th>
+                    <th style={{ width: 150 }}>Cantidad <span className="req">*</span></th>
                     <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
@@ -249,21 +250,16 @@ export default function SalidaFormModal({ productos = [], initialData, onClose, 
                     return (
                       <tr key={index}>
                         <td>
-                          <select
+                          <Combobox
+                            compact
                             name="id_producto"
                             value={linea.id_producto}
                             onChange={(e) => handleLineaChange(index, e)}
                             onInvalid={handleProductoInvalid}
                             required
-                            style={estiloCampo}
-                          >
-                            <option value="">Seleccioná...</option>
-                            {opciones().map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Seleccioná..."
+                            options={opciones().map((o) => ({ value: o.id, label: o.label }))}
+                          />
                           {(errLinea.id_producto || errLinea.non_field_errors) && (
                             <span className="form-error">
                               {texto(errLinea.id_producto ?? errLinea.non_field_errors)}

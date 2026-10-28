@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon, getExistenciasGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
@@ -25,6 +26,7 @@ function formatFechaCorta(iso) {
 }
 
 export default function GalponesPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esOperario } = useAuth();
 
   const [galpones, setGalpones] = useState([]);
@@ -134,7 +136,7 @@ export default function GalponesPage() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm(`¿Eliminar el galpón "${selected.galpon}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ titulo: "Eliminar galpón", mensaje: `¿Eliminar el galpón "${selected.galpon}"? Esta acción no se puede deshacer.`, confirmarTexto: "Eliminar", peligro: true }))) return;
     setActionError(null);
     try {
       await deleteGalpon(selected.id_galpon);

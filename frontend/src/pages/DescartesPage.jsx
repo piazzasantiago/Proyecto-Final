@@ -10,6 +10,7 @@ import DescarteFormModal, {
   TIPOS,
 } from "../components/DescarteFormModal";
 import { useAuth } from "../context/AuthContext";
+import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 
@@ -77,6 +78,7 @@ function notaDeEfecto(d) {
 }
 
 export default function DescartesPage() {
+  const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esOperario } = useAuth();
   const puedeEscribir = esAdministrador || esOperario;
 
@@ -193,9 +195,12 @@ export default function DescartesPage() {
   async function handleDelete() {
     if (!selected) return;
     if (
-      !confirm(
-        `¿Eliminar el descarte del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`
-      )
+      !(await confirmar({
+        titulo: "Eliminar descarte",
+        mensaje: `¿Eliminar el descarte del ${formatFecha(selected.fecha)}? Esta acción no se puede deshacer.`,
+        confirmarTexto: "Eliminar",
+        peligro: true,
+      }))
     )
       return;
     try {
@@ -203,7 +208,7 @@ export default function DescartesPage() {
       setSelectedId(null);
       await fetchDescartes();
     } catch (err) {
-      alert(err.message || "No se pudo eliminar el descarte.");
+      await avisar({ titulo: "No se pudo eliminar el descarte", mensaje: err.message });
     }
   }
 
@@ -216,9 +221,12 @@ export default function DescartesPage() {
       aviso = " Se descontarán las gallinas descartadas de la cantidad actual del lote.";
     }
     if (
-      !confirm(
-        `¿Finalizar el descarte del ${formatFecha(selected.fecha)}? No podrá editarse después.${aviso}`
-      )
+      !(await confirmar({
+        titulo: "Finalizar descarte",
+        mensaje: `¿Finalizar el descarte del ${formatFecha(selected.fecha)}? No podrá editarse después.${aviso}`,
+        confirmarTexto: "Finalizar",
+        peligro: false,
+      }))
     )
       return;
     try {
@@ -226,7 +234,7 @@ export default function DescartesPage() {
       await fetchDescartes();
       if (selected.categoria === CATEGORIA_STOCK) await refrescarStock();
     } catch (err) {
-      alert(err.message || "No se pudo finalizar el descarte.");
+      await avisar({ titulo: "No se pudo finalizar el descarte", mensaje: err.message });
     }
   }
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
+import { DialogoProvider } from "./components/Dialogo";
 import { rolesDe } from "./config/menu";
 import RequireAuth from "./components/RequireAuth";
 import RequireRol from "./components/RequireRol";
@@ -22,11 +23,26 @@ import ComprasPage from "./pages/ComprasPage";
 
 import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
 
+// Evita que la rueda del mouse cambie el valor de un campo numérico con foco:
+// al girar la rueda se le quita el foco y la página sigue haciendo scroll normal.
+if (typeof document !== "undefined") {
+  document.addEventListener(
+    "wheel",
+    () => {
+      const el = document.activeElement;
+      if (el instanceof HTMLInputElement && el.type === "number") el.blur();
+    },
+    { passive: true }
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       {/* AuthProvider envuelve todo: la sesión queda disponible en cualquier página. */}
       <AuthProvider>
+      {/* Cuadros de confirmación y aviso propios (en lugar de confirm/alert del navegador). */}
+      <DialogoProvider>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -55,6 +71,7 @@ function App() {
           <Route path="usuarios" element={<RequireRol roles={rolesDe("/app/usuarios")}><UsuariosPage /></RequireRol>} />
         </Route>
       </Routes>
+      </DialogoProvider>
       </AuthProvider>
     </BrowserRouter>
   );
