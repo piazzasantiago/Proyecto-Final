@@ -36,7 +36,7 @@ function Evento({ titulo, evento, vacio }) {
 }
 
 /**
- * Botón «ojito» del panel de detalle: abre una ventana con quién y cuándo
+ * Botón «ojito» del panel de detalle: abre la ventana «Historial» con quién y cuándo
  * creó, editó y finalizó el registro (F-23).
  *
  * `auditoria` es el campo que manda el backend; solo llega para Administrador
@@ -61,8 +61,8 @@ export default function AuditoriaBoton({ auditoria, conFinalizacion = false }) {
       <button
         type="button"
         className="icon-btn auditoria-btn"
-        title="Ver auditoría"
-        aria-label="Ver auditoría"
+        title="Ver historial"
+        aria-label="Ver historial"
         onClick={() => setAbierto(true)}
       >
         <i className="fa-solid fa-eye"></i>
@@ -72,9 +72,9 @@ export default function AuditoriaBoton({ auditoria, conFinalizacion = false }) {
           className="modal-overlay active"
           onClick={(e) => e.target === e.currentTarget && setAbierto(false)}
         >
-          <div className="modal-card modal-card-sm" role="dialog" aria-label="Auditoría">
+          <div className="modal-card modal-card-sm" role="dialog" aria-label="Historial">
             <div className="modal-header">
-              <h3>Auditoría</h3>
+              <h3>Historial</h3>
               <button className="modal-close" onClick={() => setAbierto(false)}>
                 <i className="fa-solid fa-xmark"></i>
               </button>
