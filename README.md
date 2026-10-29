@@ -30,7 +30,7 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Entradas a galpones | CU33 a CU41 | Funcional |
 | Salidas de productos | CU76 a CU84 | Funcional |
 | Gestión de Proveedores | CU70 a CU75 | Funcional |
-| Gestión de Compras | — | Funcional |
+| Gestión de Compras | CU61 a CU69 | Funcional |
 | Informes e indicadores | CU85 a CU89 | Funcional |
 | Dashboard | — | Solo vista previa |
 
@@ -452,7 +452,7 @@ En `docs/`:
 | `docs-descartes.md` | Descartes de galpón y de stock, finalización, impacto en lotes y stock, FK a usuario ("Cargado por") y tests (CU15 a CU23) |
 | `docs-entradas.md` | Entradas de materias primas a galpones, finalización, stock de materias primas y tests (CU33 a CU41) |
 | `docs-salidas.md` | Salidas de productos, finalización, stock de productos y tests (CU76 a CU84) |
-| `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
+| `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests (CU61 a CU69) |
 | `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
 | `docs-auditoria.md` | Auditoría de los registros (quién y cuándo creó, editó y finalizó), `ModeloAuditable`, visibilidad por rol y tests (F-23) |

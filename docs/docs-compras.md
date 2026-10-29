@@ -1,9 +1,7 @@
 # Compras — documentación de la feature
 
 **Rama:** `feature/gestion-compras`
-**Casos de uso cubiertos:** buscar, nueva, modificar, borrar y finalizar compra, y
-gestión de sus líneas (la numeración CU de este módulo todavía no está confirmada
-en esta documentación).
+**Casos de uso cubiertos:** CU61 a CU65 (cabecera) y sus líneas (CU66 a CU69)
 
 ---
 
@@ -30,7 +28,7 @@ Una compra tiene dos estados: **Pendiente** y **Finalizada**. Mientras está
 pendiente se puede editar, finalizar y eliminar. Una compra finalizada ya hizo
 efecto: queda de solo lectura y no se puede eliminar.
 
-### Buscar compras
+### CU61 – Buscar Avanzado Compras
 
 **Actor:** Administrador y Consulta (el Operario no ve la sección).
 
@@ -47,7 +45,7 @@ reciente a la más antigua. Se filtran con criterios combinables:
 El detalle se obtiene con `GET /api/compras/{id}/` e incluye `total` (suma de los
 subtotales de las líneas) e `items_count`.
 
-### Nueva compra
+### CU62 – Nueva Compra
 
 **Actor:** Administrador.
 
@@ -89,7 +87,7 @@ queda una compra sin líneas. Se rechaza con 400 si:
   desplegables y elegida en la primera línea sin materia prima (o en una línea nueva).
   El botón que suma una fila a la tabla se llama "Agregar línea".
 
-### Modificar compra
+### CU63 – Modificar Compra
 
 **Actor:** Administrador.
 
@@ -98,14 +96,14 @@ No se puede editar."*). Permite cambiar los datos de la cabecera y reemplazar la
 líneas. La categoría no se puede cambiar. Si el proveedor o una materia prima de la
 compra se dieron de baja después de cargarla, se conservan al editar.
 
-### Borrar compra
+### CU64 – Borrar Compra
 
 **Actor:** Administrador.
 
 Solo mientras está Pendiente: se elimina junto con sus líneas. Una compra
 finalizada devuelve **409**.
 
-### Finalizar compra
+### CU65 – Finalizar Compra
 
 **Actor:** Administrador.
 
@@ -138,6 +136,15 @@ en `cantidad_inicial` se ignora) y editar la cantidad inicial de un lote que vie
 una compra devuelve 400. Los lotes cargados antes de que existiera Compras no tienen
 compra asociada y siguen editándose como siempre.
 
+### Líneas de compra (CU66 a CU69)
+
+| Caso de uso | Cómo se hace |
+|---|---|
+| CU66 Listar líneas de compra | En el campo `lineas` de la compra |
+| CU67 Nueva línea de compra | Se agrega al crear o modificar la compra |
+| CU68 Modificar línea de compra | Se cambia la cantidad, el precio o la materia prima al modificar la compra |
+| CU69 Borrar línea de compra | Se quita al modificar la compra (siempre queda al menos una) |
+
 ---
 
 ## Permisos
@@ -147,6 +154,18 @@ compra asociada y siguen editándose como siempre.
 | Administrador | CRUD completo y finalizar |
 | Consulta | Solo lectura (403 al escribir) |
 | Operario | No ve la sección (403) |
+
+### Matriz rol × caso de uso
+
+| Caso de uso | Administrador | Consulta | Operario |
+|---|:---:|:---:|:---:|
+| CU61 Buscar / ver | ✅ | ✅ | ❌ |
+| CU62 Nueva | ✅ | ❌ | ❌ |
+| CU63 Modificar | ✅ | ❌ | ❌ |
+| CU64 Borrar | ✅ | ❌ | ❌ |
+| CU65 Finalizar | ✅ | ❌ | ❌ |
+| CU66 Listar líneas | ✅ | ✅ | ❌ |
+| CU67 a CU69 Nueva, modificar y borrar línea | ✅ | ❌ | ❌ |
 
 `lotes-pendientes` es la excepción: lo consulta cualquier usuario autenticado
 (`IsAuthenticated`).
@@ -283,6 +302,4 @@ La migración se aplica con `python manage.py migrate`.
 - Mostrar las compras recientes de cada proveedor y de cada materia prima.
 - El archivo `frontend/src/pages/static/raw/compras.html` (el mockup) ya no se usa y
   puede borrarse.
-- Confirmar la numeración de casos de uso de Compras y completarla en esta
-  documentación y en el README.
 - Informes e indicadores productivos.
