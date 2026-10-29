@@ -10,9 +10,10 @@ from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 from config.pagination import PaginacionListado
 from .models import Producto
 from .serializers import ProductoSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class ProductoViewSet(viewsets.ModelViewSet):
+class ProductoViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD completo de Productos más acciones de cambio de estado.
 

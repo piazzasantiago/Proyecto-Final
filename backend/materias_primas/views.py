@@ -10,9 +10,10 @@ from config.pagination import PaginacionListado
 from .models import MateriaPrima
 from .normalizacion import normalizar_nombre
 from .serializers import MateriaPrimaSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class MateriaPrimaViewSet(viewsets.ModelViewSet):
+class MateriaPrimaViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD completo de Materias Primas más acciones de cambio de estado.
 

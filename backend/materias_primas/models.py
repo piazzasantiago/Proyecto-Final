@@ -1,7 +1,8 @@
 from django.db import models
+from config.auditoria import ModeloAuditable
 
 
-class MateriaPrima(models.Model):
+class MateriaPrima(ModeloAuditable):
     """
     Corresponde a la tabla 'MateriasPrimas' del modelo relacional:
     idMateriaPrima INT PK, estado CHAR(1), materiaPrima VARCHAR(80),

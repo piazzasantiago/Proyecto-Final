@@ -1,7 +1,8 @@
 from django.db import models
+from config.auditoria import ModeloAuditable
 
 
-class Producto(models.Model):
+class Producto(ModeloAuditable):
     """
     Corresponde a la tabla 'Productos' del modelo relacional:
     idProducto INT PK, producto VARCHAR(80), descripcion MEDIUMTEXT, estado CHAR(1).

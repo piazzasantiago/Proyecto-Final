@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from config.auditoria import ModeloAuditable
 
 
 class UsuarioManager(BaseUserManager):
@@ -36,7 +37,7 @@ class UsuarioManager(BaseUserManager):
         return self.create_user(usuario, email, password, **extra_fields)
 
 
-class Usuario(AbstractBaseUser, PermissionsMixin):
+class Usuario(ModeloAuditable, AbstractBaseUser, PermissionsMixin):
     """
     Corresponde a la tabla 'Usuarios' del modelo relacional:
     idUsuario INT PK, nombre VARCHAR(100), apellido VARCHAR(100),

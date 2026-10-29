@@ -4,9 +4,10 @@ from galpones.models import Galpon
 from lotes.models import Lote
 from productos.models import Producto
 from usuarios.models import Usuario
+from config.auditoria import ModeloAuditable
 
 
-class Recoleccion(models.Model):
+class Recoleccion(ModeloAuditable):
     """
     Cabecera de una recolección diaria.
 
@@ -30,6 +31,7 @@ class Recoleccion(models.Model):
 
     ESTADO_PENDIENTE = "P"
     ESTADO_FINALIZADA = "F"
+    ESTADOS_FINALIZADO = ("F",)  # auditoría: estados que cuentan como finalizado
     ESTADO_CHOICES = [
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_FINALIZADA, "Finalizada"),

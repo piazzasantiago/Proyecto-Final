@@ -12,9 +12,10 @@ from usuarios.permissions import EsAdministrador, EsAdministradorOOperario
 
 from .models import Recoleccion
 from .serializers import RecoleccionSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class RecoleccionViewSet(viewsets.ModelViewSet):
+class RecoleccionViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de recolecciones diarias + acción /finalizar/.
 

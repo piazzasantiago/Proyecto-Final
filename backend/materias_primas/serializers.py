@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import MateriaPrima
 from .normalizacion import normalizar_nombre
+from config.auditoria import AuditoriaSerializerMixin
 
 
 # Debe coincidir con las opciones del combo "Unidad de medida" del frontend
@@ -9,7 +10,7 @@ from .normalizacion import normalizar_nombre
 UNIDADES_VALIDAS = ["kg", "g", "L", "mL", "unid.", "dosis", "bolsa", "saco"]
 
 
-class MateriaPrimaSerializer(serializers.ModelSerializer):
+class MateriaPrimaSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_descartado = serializers.SerializerMethodField()
     stock_entradas = serializers.SerializerMethodField()

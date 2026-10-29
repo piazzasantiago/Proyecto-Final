@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -179,6 +180,9 @@ export default function SalidasPage() {
     }
   }
 
+  // Con auditoría disponible (Administrador y Consulta) la columna de usuario es opcional y se suma el ojito.
+  const conAuditoria = salidas.some((x) => x.auditoria);
+
   return (
     <div className="page active" id="page-salidas">
       <div className="page-header">
@@ -270,7 +274,8 @@ export default function SalidasPage() {
                     <th>Estado</th>
                     <th>Ítems</th>
                     <th>Total uds.</th>
-                    <th>Cargada por</th>
+                    <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
+                    {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -297,7 +302,12 @@ export default function SalidasPage() {
                         </td>
                         <td>{s.items_count ?? (s.lineas ?? []).length}</td>
                         <td>{formatCantidad(totalUnidades(s))}</td>
-                        <td>{formatUsuario(s)}</td>
+                        <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(s)}</td>
+                        {conAuditoria && (
+                          <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>
+                            <AuditoriaBoton auditoria={s.auditoria} conFinalizacion />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

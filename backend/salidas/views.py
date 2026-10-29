@@ -13,6 +13,7 @@ from usuarios.permissions import EsAdministradorOOperario
 from config.pagination import PaginacionListado
 from .models import Salida
 from .serializers import SalidaSerializer
+from config.auditoria import AuditoriaMixin
 
 
 class SalidaFilter(django_filters.FilterSet):
@@ -36,7 +37,7 @@ class SalidaFilter(django_filters.FilterSet):
         fields = ["estado"]
 
 
-class SalidaViewSet(viewsets.ModelViewSet):
+class SalidaViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de salidas de productos + acción /finalizar/.
 

@@ -1,8 +1,9 @@
 from django.db import models
 from django.db.models import Q
+from config.auditoria import ModeloAuditable
 
 
-class Proveedor(models.Model):
+class Proveedor(ModeloAuditable):
     """
     Corresponde a la tabla 'Proveedores' del modelo relacional:
     idProveedor INT PK, direccion VARCHAR(150), email VARCHAR(150),

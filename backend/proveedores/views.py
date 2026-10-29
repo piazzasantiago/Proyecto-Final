@@ -10,9 +10,10 @@ from usuarios.permissions import LecturaAdministradorYConsulta_EscrituraAdminist
 from config.pagination import PaginacionListado
 from .models import Proveedor
 from .serializers import ProveedorSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class ProveedorViewSet(viewsets.ModelViewSet):
+class ProveedorViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de Proveedores más acciones de alta y baja.
 

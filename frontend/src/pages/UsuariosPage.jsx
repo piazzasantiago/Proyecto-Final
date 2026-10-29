@@ -14,6 +14,7 @@ import UsuarioFormModal from "../components/UsuarioFormModal";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
 const BADGE_ROL = { A: "badge-gold", O: "badge-green", C: "badge-gray" };
@@ -246,6 +247,7 @@ export default function UsuariosPage() {
                   </div>
                 </div>
                 <span className={`badge ${BADGE_ROL[selected.rol] ?? ""}`}>{selected.rol_display}</span>
+                <AuditoriaBoton auditoria={selected.auditoria} />
               </div>
 
               <div className="detail-body">

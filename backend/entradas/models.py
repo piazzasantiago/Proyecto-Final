@@ -3,9 +3,10 @@ from django.db import models
 from galpones.models import Galpon
 from materias_primas.models import MateriaPrima
 from usuarios.models import Usuario
+from config.auditoria import ModeloAuditable
 
 
-class Entrada(models.Model):
+class Entrada(ModeloAuditable):
     """
     Cabecera de una entrada a un galpón (CU33–CU37).
 
@@ -28,6 +29,7 @@ class Entrada(models.Model):
 
     ESTADO_PENDIENTE = "P"
     ESTADO_FINALIZADA = "F"
+    ESTADOS_FINALIZADO = ("F",)  # auditoría: estados que cuentan como finalizado
     ESTADO_CHOICES = [
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_FINALIZADA, "Finalizada"),

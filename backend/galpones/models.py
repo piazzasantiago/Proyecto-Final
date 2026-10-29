@@ -1,9 +1,10 @@
 from django.db import models
 
 from usuarios.models import Usuario
+from config.auditoria import ModeloAuditable
 
 
-class Galpon(models.Model):
+class Galpon(ModeloAuditable):
     """
     Corresponde a la tabla 'Galpones' del modelo relacional:
     idGalpon INT PK, galpon VARCHAR(80), latitud DECIMAL(9,6), longitud DECIMAL(9,6),

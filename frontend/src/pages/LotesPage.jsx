@@ -6,6 +6,7 @@ import LoteFormModal from "../components/LoteFormModal";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
@@ -446,6 +447,7 @@ export default function LotesPage() {
                   <div className="sub">{formatGalpon(selected)}</div>
                 </div>
                 <span className={`badge ${BADGE[selected.estado]}`}>{selected.estado_display}</span>
+                <AuditoriaBoton auditoria={selected.auditoria} conFinalizacion />
               </div>
 
               <div className="detail-body">

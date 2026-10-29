@@ -2,9 +2,10 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from .models import Producto
+from config.auditoria import AuditoriaSerializerMixin
 
 
-class ProductoSerializer(serializers.ModelSerializer):
+class ProductoSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     stock_recolectado = serializers.SerializerMethodField()
     stock_descartado = serializers.SerializerMethodField()

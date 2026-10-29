@@ -7,6 +7,7 @@ from productos.models import Producto
 from usuarios.models import Usuario
 
 from .models import LineaRecoleccion, Recoleccion
+from config.auditoria import AuditoriaSerializerMixin
 
 
 # Tope por línea: evita valores absurdos y desbordes del entero de la base.
@@ -83,7 +84,7 @@ class LineaRecoleccionSerializer(serializers.ModelSerializer):
 
 # ── Cabecera ──────────────────────────────────────────────────────────────────
 
-class RecoleccionSerializer(serializers.ModelSerializer):
+class RecoleccionSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     galpon = GalponResumenSerializer(source="id_galpon", read_only=True)
     lote = LoteResumenSerializer(source="id_lote", read_only=True)
     usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)

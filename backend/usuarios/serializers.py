@@ -1,9 +1,10 @@
 from rest_framework import serializers
 
 from .models import Usuario
+from config.auditoria import AuditoriaSerializerMixin
 
 
-class UsuarioSerializer(serializers.ModelSerializer):
+class UsuarioSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     """
     Representación de un usuario para la API.
 

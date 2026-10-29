@@ -6,9 +6,10 @@ from lotes.models import Lote
 from materias_primas.models import MateriaPrima
 from proveedores.models import Proveedor
 from usuarios.models import Usuario
+from config.auditoria import ModeloAuditable
 
 
-class Compra(models.Model):
+class Compra(ModeloAuditable):
     """
     Cabecera de una compra a un proveedor.
 
@@ -55,6 +56,7 @@ class Compra(models.Model):
 
     ESTADO_PENDIENTE = "P"
     ESTADO_FINALIZADA = "F"
+    ESTADOS_FINALIZADO = ("F",)  # auditoría: estados que cuentan como finalizado
     ESTADO_CHOICES = [
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_FINALIZADA, "Finalizada"),
