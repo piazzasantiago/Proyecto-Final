@@ -1143,7 +1143,11 @@ class FiltrosRecoleccionTests(TestCase):
     def test_consulta_y_operario_tambien_pueden_filtrar(self):
         for rol in (Usuario.ROL_CONSULTA, Usuario.ROL_OPERARIO):
             with self.subTest(rol=rol):
-                token_de(self.client, crear_usuario(f"u_{rol}", rol=rol))
+                usuario = crear_usuario(f"u_{rol}", rol=rol)
+                if rol == Usuario.ROL_OPERARIO:
+                    # El operario solo ve los galpones que tiene asignados (F-32).
+                    UsuarioDelGalpon.objects.create(id_usuario=usuario, id_galpon=self.galpon)
+                token_de(self.client, usuario)
                 resp = self.client.get("/api/recolecciones/?fecha_desde=2026-06-15")
                 self.assertEqual(resp.status_code, 200)
                 self.assertEqual(resp.data["count"], 2)
