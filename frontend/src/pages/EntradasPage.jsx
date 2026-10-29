@@ -190,6 +190,9 @@ export default function EntradasPage() {
     }
   }
 
+  // Con auditoría disponible (Administrador y Consulta) la columna de usuario es opcional y se suma el ojito.
+  const conAuditoria = entradas.some((x) => x.auditoria);
+
   return (
     <div className="page active" id="page-entradas">
       <div className="page-header">
@@ -292,7 +295,8 @@ export default function EntradasPage() {
                     <th>Galpón</th>
                     <th>Estado</th>
                     <th>Ítems</th>
-                    <th>Cargada por</th>
+                    <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
+                    {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -319,7 +323,12 @@ export default function EntradasPage() {
                           </span>
                         </td>
                         <td>{e.items_count ?? (e.lineas ?? []).length}</td>
-                        <td>{formatUsuario(e)}</td>
+                        <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(e)}</td>
+                        {conAuditoria && (
+                          <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>
+                            <AuditoriaBoton auditoria={e.auditoria} conFinalizacion />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

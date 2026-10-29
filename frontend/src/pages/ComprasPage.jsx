@@ -190,6 +190,9 @@ export default function ComprasPage() {
 
   const esDeLotes = selected?.categoria === CATEGORIA_LOTES;
 
+  // Con auditoría disponible (Administrador y Consulta) la columna de usuario es opcional y se suma el ojito.
+  const conAuditoria = compras.some((x) => x.auditoria);
+
   return (
     <div className="page active" id="page-compras">
       <div className="page-header">
@@ -298,7 +301,8 @@ export default function ComprasPage() {
                     <th>Categoría</th>
                     <th className="col-opcional-2">Forma de pago</th>
                     <th>Estado</th>
-                    <th className="col-opcional">Cargada por</th>
+                    <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
+                    {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -327,7 +331,12 @@ export default function ComprasPage() {
                             {c.estado_display}
                           </span>
                         </td>
-                        <td className="col-opcional">{formatUsuario(c)}</td>
+                        <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(c)}</td>
+                        {conAuditoria && (
+                          <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>
+                            <AuditoriaBoton auditoria={c.auditoria} conFinalizacion />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

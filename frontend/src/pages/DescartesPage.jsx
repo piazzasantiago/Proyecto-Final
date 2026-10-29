@@ -241,6 +241,9 @@ export default function DescartesPage() {
 
   const categoriaSel = selected ? categoriaDe(selected.categoria) : null;
 
+  // Con auditoría disponible (Administrador y Consulta) la columna de usuario es opcional y se suma el ojito.
+  const conAuditoria = descartes.some((x) => x.auditoria);
+
   return (
     <div className="page active" id="page-descartes">
       <div className="page-header">
@@ -329,7 +332,8 @@ export default function DescartesPage() {
                     <th>Galpón</th>
                     <th>Estado</th>
                     <th>Ítems</th>
-                    <th>Cargado por</th>
+                    <th className={conAuditoria ? "col-opcional" : undefined}>Cargado por</th>
+                    {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -360,7 +364,12 @@ export default function DescartesPage() {
                           </span>
                         </td>
                         <td>{d.items_count ?? (d.lineas ?? []).length}</td>
-                        <td>{formatUsuario(d)}</td>
+                        <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(d)}</td>
+                        {conAuditoria && (
+                          <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>
+                            <AuditoriaBoton auditoria={d.auditoria} conFinalizacion />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

@@ -188,6 +188,9 @@ export default function RecoleccionesPage() {
     return (rec.lineas ?? []).reduce((s, l) => s + (l.cantidad || 0), 0);
   }
 
+  // Con auditoría disponible (Administrador y Consulta) la columna de usuario es opcional y se suma el ojito.
+  const conAuditoria = recolecciones.some((x) => x.auditoria);
+
   return (
     <div className="page active" id="page-recoleccion">
       <div className="page-header">
@@ -305,7 +308,8 @@ export default function RecoleccionesPage() {
                     <th>Estado</th>
                     <th>Ítems</th>
                     <th>Total uds.</th>
-                    <th>Cargado por</th>
+                    <th className={conAuditoria ? "col-opcional" : undefined}>Cargado por</th>
+                    {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -338,7 +342,12 @@ export default function RecoleccionesPage() {
                         </td>
                         <td>{(rec.lineas ?? []).length}</td>
                         <td>{totalUnidades(rec).toLocaleString("es-AR")}</td>
-                        <td>{formatUsuario(rec)}</td>
+                        <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(rec)}</td>
+                        {conAuditoria && (
+                          <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>
+                            <AuditoriaBoton auditoria={rec.auditoria} conFinalizacion />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

@@ -442,6 +442,7 @@
   .detail-head{gap:8px;}
   .detail-head > div:first-child{flex:1 1 auto; min-width:0;}
   .auditoria-btn{flex-shrink:0;}
+  .data-table th.col-auditoria, .data-table td.col-auditoria{width:44px; padding-left:6px; padding-right:10px; text-align:right;}
   /* Ventana de auditoría (F-23) */
   .auditoria-fila{padding:10px 0; border-bottom:1px solid var(--gray-200);}
   .auditoria-fila:first-child{padding-top:0;}
