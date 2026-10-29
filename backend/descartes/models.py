@@ -5,9 +5,10 @@ from lotes.models import Lote
 from materias_primas.models import MateriaPrima
 from productos.models import Producto
 from usuarios.models import Usuario
+from config.auditoria import ModeloAuditable
 
 
-class Descarte(models.Model):
+class Descarte(ModeloAuditable):
     """
     Cabecera de un descarte (CU15–CU19).
 
@@ -40,6 +41,7 @@ class Descarte(models.Model):
 
     ESTADO_PENDIENTE = "P"
     ESTADO_FINALIZADO = "F"
+    ESTADOS_FINALIZADO = ("F",)  # auditoría: estados que cuentan como finalizado
     ESTADO_CHOICES = [
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_FINALIZADO, "Finalizado"),

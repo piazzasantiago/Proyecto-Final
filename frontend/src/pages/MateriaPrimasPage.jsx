@@ -12,6 +12,7 @@ import ComprasRecientes from "../components/ComprasRecientes";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 export default function MateriaPrimasPage() {
   const { confirmar, avisar } = useDialogo();
@@ -234,6 +235,7 @@ export default function MateriaPrimasPage() {
                 <span className={`badge ${selected.estado === "A" ? "badge-green" : "badge-red"}`}>
                   {selected.estado_display}
                 </span>
+                <AuditoriaBoton auditoria={selected.auditoria} />
               </div>
 
               {Number(selected.stock_actual) < Number(selected.stock_minimo) && (

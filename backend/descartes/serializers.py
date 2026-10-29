@@ -11,6 +11,7 @@ from recolecciones.serializers import UsuarioResumenSerializer
 
 from .models import Descarte, LineaDescarte
 from .stock import verificar_stock
+from config.auditoria import AuditoriaSerializerMixin
 
 
 # ── Resúmenes de objetos relacionados ─────────────────────────────────────────
@@ -127,7 +128,7 @@ class LineaDescarteSerializer(serializers.ModelSerializer):
 
 # ── Cabecera ──────────────────────────────────────────────────────────────────
 
-class DescarteSerializer(serializers.ModelSerializer):
+class DescarteSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     galpon = GalponResumenSerializer(source="id_galpon", read_only=True)
     usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)
     categoria_display = serializers.CharField(source="get_categoria_display", read_only=True)

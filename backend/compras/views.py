@@ -15,6 +15,7 @@ from config.pagination import PaginacionListado
 from .models import Compra
 from .serializers import CompraSerializer, LotePendienteSerializer
 from .stock import lotes_pendientes_de_asignar
+from config.auditoria import AuditoriaMixin
 
 
 class CompraFilter(django_filters.FilterSet):
@@ -54,7 +55,7 @@ class CompraFilter(django_filters.FilterSet):
         )
 
 
-class CompraViewSet(viewsets.ModelViewSet):
+class CompraViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de compras a proveedores + acción /finalizar/.
 

@@ -6,6 +6,7 @@ from productos.models import Producto
 from recolecciones.serializers import UsuarioResumenSerializer
 
 from .models import LineaSalida, Salida
+from config.auditoria import AuditoriaSerializerMixin
 
 # Tope sensato por línea (evita cargas absurdas por error de tipeo).
 CANTIDAD_MAX = 1_000_000
@@ -34,7 +35,7 @@ class LineaSalidaSerializer(serializers.ModelSerializer):
 
 # ── Cabecera ──────────────────────────────────────────────────────────────────
 
-class SalidaSerializer(serializers.ModelSerializer):
+class SalidaSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     items_count = serializers.SerializerMethodField()

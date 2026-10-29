@@ -4,6 +4,7 @@ import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
@@ -266,6 +267,7 @@ export default function GalponesPage() {
                 <span className={`badge ${selected.estado === "A" ? "badge-green" : "badge-red"}`}>
                   {selected.estado_display}
                 </span>
+                <AuditoriaBoton auditoria={selected.auditoria} />
               </div>
               <div className="detail-body">
                 <div className="detail-sec-title" style={{ marginTop: 0 }}>Datos del galpón</div>

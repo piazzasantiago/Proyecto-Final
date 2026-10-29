@@ -10,6 +10,7 @@ from materias_primas.models import MateriaPrima
 from recolecciones.serializers import UsuarioResumenSerializer
 
 from .models import Entrada, LineaEntrada
+from config.auditoria import AuditoriaSerializerMixin
 
 # Tope sensato por línea (evita cargas absurdas por error de tipeo).
 CANTIDAD_MAX = Decimal("1000000")
@@ -50,7 +51,7 @@ class LineaEntradaSerializer(serializers.ModelSerializer):
 
 # ── Cabecera ──────────────────────────────────────────────────────────────────
 
-class EntradaSerializer(serializers.ModelSerializer):
+class EntradaSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     galpon = GalponResumenSerializer(source="id_galpon", read_only=True)
     usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)

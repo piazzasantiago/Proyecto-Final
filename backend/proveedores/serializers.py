@@ -5,6 +5,7 @@ from rest_framework import serializers
 from materias_primas.normalizacion import normalizar_nombre
 
 from .models import Proveedor
+from config.auditoria import AuditoriaSerializerMixin
 
 _PESOS_CUIT = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
 
@@ -69,7 +70,7 @@ def telefono_internacional(texto):
     return d
 
 
-class ProveedorSerializer(serializers.ModelSerializer):
+class ProveedorSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     cuit_formateado = serializers.SerializerMethodField()
     nombre = serializers.CharField(max_length=100)

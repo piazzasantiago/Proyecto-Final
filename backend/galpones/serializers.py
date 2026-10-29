@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from usuarios.models import Usuario
 from .models import Galpon, UsuarioDelGalpon
+from config.auditoria import AuditoriaSerializerMixin
 
 
 class OperarioResumenSerializer(serializers.ModelSerializer):
@@ -14,7 +15,7 @@ class OperarioResumenSerializer(serializers.ModelSerializer):
         fields = ["id_usuario", "nombre_completo"]
 
 
-class GalponSerializer(serializers.ModelSerializer):
+class GalponSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
 
     # Lectura: lista de objetos {id_usuario, nombre_completo}

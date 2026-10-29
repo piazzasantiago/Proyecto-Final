@@ -13,6 +13,7 @@ from config.pagination import PaginacionListado
 from .models import Descarte
 from .serializers import DescarteSerializer
 from .stock import verificar_stock
+from config.auditoria import AuditoriaMixin
 
 
 class DescarteFilter(django_filters.FilterSet):
@@ -34,7 +35,7 @@ class DescarteFilter(django_filters.FilterSet):
         fields = ["categoria", "estado", "id_galpon"]
 
 
-class DescarteViewSet(viewsets.ModelViewSet):
+class DescarteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de descartes + acción /finalizar/.
 

@@ -6,6 +6,7 @@ from rest_framework import serializers
 from compras.models import Compra, LineaCompra
 from galpones.models import Galpon
 from .models import Lote, PlanTransicion
+from config.auditoria import AuditoriaSerializerMixin
 
 
 def _miles(n):
@@ -116,7 +117,7 @@ class GalponResumenSerializer(serializers.ModelSerializer):
         fields = ["id_galpon", "galpon"]
 
 
-class LoteSerializer(serializers.ModelSerializer):
+class LoteSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     """
     Serializer principal del módulo de lotes.
 

@@ -9,6 +9,7 @@ from proveedores.models import Proveedor
 from recolecciones.serializers import UsuarioResumenSerializer
 
 from .models import Compra, LineaCompra
+from config.auditoria import AuditoriaSerializerMixin
 
 # Topes sensatos por línea (evitan cargas absurdas por error de tipeo).
 CANTIDAD_MAX = Decimal("1000000")
@@ -76,7 +77,7 @@ class LineaCompraSerializer(serializers.ModelSerializer):
 
 # ── Cabecera ──────────────────────────────────────────────────────────────────
 
-class CompraSerializer(serializers.ModelSerializer):
+class CompraSerializer(AuditoriaSerializerMixin, serializers.ModelSerializer):
     proveedor = ProveedorResumenSerializer(source="id_proveedor", read_only=True)
     usuario = UsuarioResumenSerializer(source="id_usuario", read_only=True)
     categoria_display = serializers.CharField(source="get_categoria_display", read_only=True)

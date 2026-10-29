@@ -13,6 +13,7 @@ from usuarios.permissions import EsAdministradorOOperario
 from config.pagination import PaginacionListado
 from .models import Entrada
 from .serializers import EntradaSerializer
+from config.auditoria import AuditoriaMixin
 
 
 class EntradaFilter(django_filters.FilterSet):
@@ -37,7 +38,7 @@ class EntradaFilter(django_filters.FilterSet):
         fields = ["estado", "id_galpon"]
 
 
-class EntradaViewSet(viewsets.ModelViewSet):
+class EntradaViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD de entradas a galpones + acción /finalizar/.
 

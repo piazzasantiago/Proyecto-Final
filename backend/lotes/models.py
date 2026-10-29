@@ -1,9 +1,10 @@
 from django.db import models
 
 from galpones.models import Galpon
+from config.auditoria import ModeloAuditable
 
 
-class Lote(models.Model):
+class Lote(ModeloAuditable):
     """
     Corresponde a la tabla 'Lotes' del modelo relacional:
     idLote INT PK, idGalpon INT FK, fechaIngreso DATE, fechaVaciado DATE,
@@ -26,6 +27,7 @@ class Lote(models.Model):
     ESTADO_TRANSICION = "T"
     ESTADO_PRODUCCION = "P"
     ESTADO_FINALIZADO = "F"
+    ESTADOS_FINALIZADO = ("F",)  # auditoría: estados que cuentan como finalizado
     ESTADO_CHOICES = [
         (ESTADO_TRANSICION, "Transición"),
         (ESTADO_PRODUCCION, "Producción"),

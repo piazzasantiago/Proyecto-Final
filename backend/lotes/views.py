@@ -12,9 +12,10 @@ from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 from .models import Lote
 from .transiciones import pasar_a_produccion_vencidos
 from .serializers import LoteSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class LoteViewSet(viewsets.ModelViewSet):
+class LoteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD completo de Lotes más acciones de cambio de estado.
 

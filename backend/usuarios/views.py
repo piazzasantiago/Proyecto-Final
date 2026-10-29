@@ -1,3 +1,4 @@
+from config.auditoria import AuditoriaMixin
 from django.contrib.auth import authenticate
 from django.db.models import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
@@ -93,7 +94,7 @@ def logout(request):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UsuarioViewSet(viewsets.ModelViewSet):
+class UsuarioViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     Gestión de Usuarios. Exclusiva del rol Administrador.
 

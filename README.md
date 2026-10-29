@@ -455,6 +455,7 @@ En `docs/`:
 | `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests |
 | `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
+| `docs-auditoria.md` | Auditoría de los registros (quién y cuándo creó, editó y finalizó), `ModeloAuditable`, visibilidad por rol y tests (F-23) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
 | `Plan de Trabajo.pdf` | Plan de trabajo presentado a la facultad |

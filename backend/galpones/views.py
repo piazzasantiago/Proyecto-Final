@@ -10,9 +10,10 @@ from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 from config.pagination import PaginacionListado
 from .models import Galpon
 from .serializers import GalponSerializer
+from config.auditoria import AuditoriaMixin
 
 
-class GalponViewSet(viewsets.ModelViewSet):
+class GalponViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     """
     CRUD completo de Galpones más acciones de cambio de estado.
 

@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
+import AuditoriaBoton from "../components/AuditoriaBoton";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -333,6 +334,7 @@ export default function SalidasPage() {
                 >
                   {selected.estado_display}
                 </span>
+                <AuditoriaBoton auditoria={selected.auditoria} conFinalizacion />
               </div>
 
               <div className="detail-body">
