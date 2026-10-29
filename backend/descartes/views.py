@@ -10,6 +10,7 @@ from lotes.models import Lote
 from usuarios.permissions import EsAdministradorOOperario
 
 from config.pagination import PaginacionListado
+from galpones.acceso import limitar_a_galpones_asignados, validar_galpon_asignado
 from .models import Descarte
 from .serializers import DescarteSerializer
 from .stock import verificar_stock
@@ -55,6 +56,9 @@ class DescarteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
           permisos por rol del README.
         - Consulta: solo lectura (list + retrieve).
         - Sin token: 401.
+        - El Operario solo ve y trabaja con los descartes de los galpones que tiene
+          asignados (F-32). Los descartes de stock no pertenecen a ningún galpón y
+          los ve cualquier operario. Los de otros galpones devuelven 404.
     """
 
     queryset = (
@@ -79,8 +83,14 @@ class DescarteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
 
     # ── Creación: registra quién cargó el descarte ────────────────────────────
 
+    def get_queryset(self):
+        return limitar_a_galpones_asignados(
+            super().get_queryset(), self.request.user, incluir_sin_galpon=True
+        )
+
     def perform_create(self, serializer):
         """El usuario autenticado queda como responsable de la carga."""
+        validar_galpon_asignado(self.request.user, serializer.validated_data.get("id_galpon"))
         serializer.save(id_usuario=self.request.user)
 
     # ── Eliminación: bloquea descartes finalizados ────────────────────────────
