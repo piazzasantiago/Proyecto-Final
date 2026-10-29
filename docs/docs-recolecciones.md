@@ -18,6 +18,8 @@ modifican siempre a través de la recolección a la que pertenecen (ver cada CU)
 
 **Actor:** cualquier usuario autenticado (Administrador, Operario y Consulta).
 
+**Operario:** solo ve las recolecciones de los galpones que tiene asignados; las de otros galpones no se listan y, si pide una por su id, recibe 404 (F-32). Administrador y Consulta ven todas. Tampoco puede crear una recolección en un galpón que no tiene asignado (400).
+
 Lista las recolecciones con sus líneas, lote, galpón y usuario que las cargó.
 Permite filtrar por galpón (`?id_galpon=`), lote (`?id_lote=`), estado
 (`?estado=P|F`) y rango de fechas (`?fecha_desde=AAAA-MM-DD` y

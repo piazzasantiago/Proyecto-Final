@@ -85,6 +85,10 @@ El sistema define tres roles con distintos niveles de acceso:
 | Informes | Sí | No | Sí |
 | Usuarios | Sí (CRUD) | No | No |
 
+> **Galpones asignados:** un Operario solo ve (y solo puede cargar) las
+> recolecciones, entradas y descartes de los galpones que tiene asignados (igual
+> que ya ocurría con Galpones y Lotes). Administrador y Consulta ven todos.
+
 > Los módulos sin backend real todavía muestran el mockup. Los permisos de
 > escritura/lectura dentro de cada sección se aplicarán en el backend cuando
 > cada módulo se implemente. El detalle completo está en `docs/docs-usuarios.md`.
