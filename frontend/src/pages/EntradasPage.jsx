@@ -362,7 +362,6 @@ export default function EntradasPage() {
                 >
                   {selected.estado_display}
                 </span>
-                <AuditoriaBoton auditoria={selected.auditoria} conFinalizacion />
               </div>
 
               <div className="detail-body">

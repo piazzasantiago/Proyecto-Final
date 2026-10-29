@@ -52,9 +52,15 @@ Consulta. El Operario no lo recibe y no ve el botón.
 
 ## Pantalla
 
-En el panel de detalle de cada módulo, junto al estado, hay un ícono de ojo
-(`AuditoriaBoton`) que abre una ventana con **Creado**, **Última edición** y, en los
-módulos que se finalizan, **Finalizado**, con el nombre, el usuario y la fecha y hora.
+Un ícono de ojo (`AuditoriaBoton`) abre una ventana con **Creado**, **Última edición** y,
+en los módulos que se finalizan, **Finalizado**, con el nombre, el usuario y la fecha y hora.
+
+- **Compras, Descartes, Entradas, Salidas y Recolecciones** (listados en tabla): el ojito
+  está al final de cada fila. La columna «Cargado por» se ve en pantallas de 1700 px o más
+  y se oculta en las angostas cuando la persona ve la auditoría; el Operario, que no ve el
+  ojito, la conserva siempre. El dato sigue en el panel de detalle.
+- **Galpones, Lotes, Materias primas, Productos, Proveedores y Usuarios** (tarjetas): el ojito
+  está en el panel de detalle, junto al estado.
 
 ## Rendimiento
 

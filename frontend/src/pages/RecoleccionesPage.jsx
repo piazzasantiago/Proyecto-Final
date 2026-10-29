@@ -383,7 +383,6 @@ export default function RecoleccionesPage() {
                 >
                   {selected.estado_display}
                 </span>
-                <AuditoriaBoton auditoria={selected.auditoria} conFinalizacion />
               </div>
 
               <div className="detail-body">
