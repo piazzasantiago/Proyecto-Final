@@ -52,7 +52,7 @@ Consulta. El Operario no lo recibe y no ve el botón.
 
 ## Pantalla
 
-Un ícono de ojo (`AuditoriaBoton`, «Ver historial») abre la ventana **Historial** con **Creado**, **Última edición** y,
+Un ícono de ojo (`AuditoriaBoton`) muestra el historial de dos maneras: al **pasar el cursor** (o enfocarlo con el teclado) aparece una tarjeta chica, y al **hacer clic** se abre la ventana **Historial** (también sirve en pantallas táctiles). Ambas tienen **Creado**, **Última edición** y,
 en los módulos que se finalizan, **Finalizado**, con el nombre, el usuario y la fecha y hora.
 
 - **Compras, Descartes, Entradas, Salidas y Recolecciones** (listados en tabla): el ojito
