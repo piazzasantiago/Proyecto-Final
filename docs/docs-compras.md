@@ -300,6 +300,4 @@ La migración se aplica con `python manage.py migrate`.
 ## Pendientes
 
 - Mostrar las compras recientes de cada proveedor y de cada materia prima.
-- El archivo `frontend/src/pages/static/raw/compras.html` (el mockup) ya no se usa y
-  puede borrarse.
 - Informes e indicadores productivos.

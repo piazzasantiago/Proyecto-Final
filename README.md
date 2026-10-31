@@ -59,11 +59,10 @@ Lotes de gallinas muestra un cartel rojo y el alta de un lote exige elegir uno d
 esos lotes comprados). Solo el Administrador las gestiona; Consulta solo lee y el
 Operario no ve la sección.
 
-Las secciones marcadas como *vista previa* muestran el HTML del mockup aprobado
-por el tutor: **no leen ni guardan datos**, y sus botones no realizan
-operaciones. Sirven para presentar la aplicación completa mientras se
-implementan los módulos restantes, uno por uno, siguiendo el mismo patrón que
-los módulos ya funcionales.
+El Dashboard, la única sección marcada como *vista previa*, muestra el HTML del
+mockup aprobado por el tutor: **no lee ni guarda datos**, y sus botones no
+realizan operaciones. Se reemplazará por la pantalla real siguiendo el mismo
+patrón que los módulos ya funcionales.
 
 ### Acceso por rol
 
@@ -89,7 +88,7 @@ El sistema define tres roles con distintos niveles de acceso:
 > recolecciones, entradas y descartes de los galpones que tiene asignados (igual
 > que ya ocurría con Galpones y Lotes). Administrador y Consulta ven todos.
 
-> Los módulos sin backend real todavía muestran el mockup. Los permisos de
+> El Dashboard todavía muestra el mockup. Los permisos de
 > escritura/lectura dentro de cada sección se aplicarán en el backend cuando
 > cada módulo se implemente. El detalle completo está en `docs/docs-usuarios.md`.
 
@@ -519,7 +518,6 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
    - **Productos y Galpones:** responder 409 con un mensaje claro al eliminar
      registros con datos asociados.
    - **Registro de auditoría** (`ModeloAuditable`, ver más abajo).
-   - **Limpieza de mockups** estáticos que ya no se usan.
 3. **Despliegue.**
 
 Cada módulo se implementa con el mismo patrón: modelo y migración en el
