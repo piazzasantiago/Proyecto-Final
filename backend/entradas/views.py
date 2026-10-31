@@ -11,6 +11,7 @@ from materias_primas.models import MateriaPrima
 from usuarios.permissions import EsAdministradorOOperario
 
 from config.pagination import PaginacionListado
+from galpones.acceso import limitar_a_galpones_asignados, validar_galpon_asignado
 from .models import Entrada
 from .serializers import EntradaSerializer
 from config.auditoria import AuditoriaMixin
@@ -53,6 +54,8 @@ class EntradaViewSet(AuditoriaMixin, viewsets.ModelViewSet):
         - Administrador y Operario: CRUD + finalizar.
         - Consulta: solo lectura (list + retrieve).
         - Sin token: 401.
+        - El Operario solo ve y trabaja con las entradas de los galpones que tiene
+          asignados (F-32); las de otros galpones no se listan y devuelven 404.
     """
 
     queryset = (
@@ -70,8 +73,12 @@ class EntradaViewSet(AuditoriaMixin, viewsets.ModelViewSet):
             return [IsAuthenticated()]
         return [EsAdministradorOOperario()]
 
+    def get_queryset(self):
+        return limitar_a_galpones_asignados(super().get_queryset(), self.request.user)
+
     def perform_create(self, serializer):
         """El usuario autenticado queda como responsable de la carga."""
+        validar_galpon_asignado(self.request.user, serializer.validated_data.get("id_galpon"))
         serializer.save(id_usuario=self.request.user)
 
     def destroy(self, request, *args, **kwargs):

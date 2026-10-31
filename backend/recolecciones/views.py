@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from config.pagination import PaginacionListado
+from galpones.acceso import limitar_a_galpones_asignados, validar_galpon_asignado
 from lotes.models import Lote
 from usuarios.permissions import EsAdministrador, EsAdministradorOOperario
 
@@ -26,6 +27,8 @@ class RecoleccionViewSet(AuditoriaMixin, viewsets.ModelViewSet):
         - Solo se puede eliminar una recolección PENDIENTE: una finalizada ya
           sumó stock y es parte del historial, se rechaza (409) para cualquier rol.
         - Consulta: solo lectura (list + retrieve).
+        - El Operario solo ve y trabaja con las recolecciones de los galpones que
+          tiene asignados (F-32); las de otros galpones no se listan y devuelven 404.
     """
 
     queryset = (
@@ -63,7 +66,7 @@ class RecoleccionViewSet(AuditoriaMixin, viewsets.ModelViewSet):
         return int(valor)
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = limitar_a_galpones_asignados(super().get_queryset(), self.request.user)
         params = self.request.query_params
         galpon = params.get("id_galpon")
         lote = params.get("id_lote")
@@ -104,6 +107,7 @@ class RecoleccionViewSet(AuditoriaMixin, viewsets.ModelViewSet):
             raise ValidationError(
                 {"id_galpon_id": "El galpón es obligatorio para crear una recolección."}
             )
+        validar_galpon_asignado(self.request.user, galpon, "id_galpon_id")
 
         lote = (
             Lote.objects.filter(

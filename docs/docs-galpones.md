@@ -396,6 +396,13 @@ Esto aplica también al endpoint de detalle (`GET /galpones/{id}/`): si el
 operario no está asignado a ese galpón, recibe 404, no 403, porque para él ese
 recurso simplemente no existe.
 
+La misma regla se aplica a los registros de cada galpón (F-32): el operario solo
+ve las recolecciones, entradas y descartes de sus galpones asignados, con el
+mismo 404 para los ajenos, y no puede cargar registros en un galpón que no tiene
+asignado. La lógica compartida está en `galpones/acceso.py`
+(`limitar_a_galpones_asignados` y `validar_galpon_asignado`) y se prueba en
+`galpones/tests_acceso_operario.py` (17 tests).
+
 ### 8.5 `operarios_ids` solo al escribir, `operarios` solo al leer
 
 El campo `operarios_ids` (lista de IDs) es `write_only`; el campo `operarios`

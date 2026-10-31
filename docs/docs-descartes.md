@@ -32,6 +32,8 @@ cambiar después. Define de dónde sale lo descartado y qué efecto tiene:
 
 **Actor:** cualquier usuario autenticado (Administrador, Operario y Consulta).
 
+**Operario:** solo ve las descartes de los galpones que tiene asignados y los descartes de stock (que no pertenecen a ningún galpón); las de otros galpones no se listan y, si pide una por su id, recibe 404 (F-32). Administrador y Consulta ven todas. Tampoco puede crear un descarte de galpón en un galpón que no tiene asignado (400).
+
 Lista los descartes con sus líneas, galpón y usuario que los cargó, ordenados del
 más reciente al más antiguo. No hay buscador de texto: se filtra con tres
 criterios, que se pueden combinar:

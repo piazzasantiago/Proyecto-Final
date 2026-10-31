@@ -29,7 +29,7 @@ from django.utils import timezone as dj_timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from galpones.models import Galpon
+from galpones.models import Galpon, UsuarioDelGalpon
 from lotes.models import Lote
 from materias_primas.models import MateriaPrima
 from productos.models import Producto
@@ -623,6 +623,7 @@ class ModificarDescarteTests(TestCase):
         self.d.id_usuario = self.admin
         self.d.save(update_fields=["id_usuario"])
         otro = make_operario()
+        UsuarioDelGalpon.objects.create(id_usuario=otro, id_galpon=self.d.id_galpon)
         auth(self.client, otro)
         r = self.client.patch(
             f"/api/descartes/{self.d.pk}/", {"observaciones": "editado por otro"}, format="json"
@@ -757,6 +758,8 @@ class PermisosDescarteTests(TestCase):
         self.operario = make_operario()
         self.consulta = make_consulta()
         self.g = make_galpon()
+        # El operario solo trabaja con los galpones que tiene asignados (F-32).
+        UsuarioDelGalpon.objects.create(id_usuario=self.operario, id_galpon=self.g)
         self.mp = make_materia_prima()
         self.d = make_descarte(self.g)
         add_linea(self.d, id_materia_prima=self.mp)

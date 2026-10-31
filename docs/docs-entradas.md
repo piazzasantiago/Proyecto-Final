@@ -24,6 +24,8 @@ prima. El stock no se guarda: se calcula (ver *Decisiones de diseño*).
 
 **Actor:** cualquier usuario autenticado (Administrador, Operario y Consulta).
 
+**Operario:** solo ve las entradas de los galpones que tiene asignados; las de otros galpones no se listan y, si pide una por su id, recibe 404 (F-32). Administrador y Consulta ven todas. Tampoco puede crear una entrada en un galpón que no tiene asignado (400).
+
 Lista las entradas con sus líneas, galpón y usuario que las cargó, ordenadas de
 la más reciente a la más antigua. Se filtra con criterios combinables:
 

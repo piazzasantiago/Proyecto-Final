@@ -975,3 +975,11 @@
   .dialogo-botones{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
   .btn-danger{background:var(--red-500); border:1px solid var(--red-500); color:#fff;}
   .btn-danger:hover{filter:brightness(.92);}
+
+/* Sin registros (F-35): el mensaje ocupa todo el ancho de la sección y queda centrado.
+   - Tarjetas: el mensaje abarca todas las columnas de la grilla.
+   - Con la lista o la grilla vacía, no se reserva la columna del panel de detalle. */
+.card-grid > .empty-state, .producto-grid > .empty-state{grid-column:1 / -1;}
+.page-body-split:has(> .list-panel > .empty-state:only-child),
+.page-body-split:has(> .card-column > .card-grid > .empty-state:only-child),
+.page-body-split:has(> .card-column > .producto-grid > .empty-state:only-child){grid-template-columns:minmax(0,1fr);}

@@ -746,6 +746,8 @@ class PermisosEntradaTests(TestCase):
         self.admin = make_admin()
         self.operario = make_operario()
         self.consulta = make_consulta()
+        # El operario solo trabaja con los galpones que tiene asignados (F-32).
+        UsuarioDelGalpon.objects.create(id_usuario=self.operario, id_galpon=self.g)
         self.e = make_entrada(self.g)
         add_linea(self.e, self.mp, 5)
 
