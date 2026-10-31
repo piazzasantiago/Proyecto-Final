@@ -270,10 +270,10 @@ export default function SalidasPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
-                    <th>Estado</th>
                     <th>Ítems</th>
                     <th>Total uds.</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
                     <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
                     {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
@@ -290,6 +290,8 @@ export default function SalidasPage() {
                           background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
                         }}
                       >
+                        <td>{s.items_count ?? (s.lineas ?? []).length}</td>
+                        <td>{formatCantidad(totalUnidades(s))}</td>
                         <td>{formatFecha(s.fecha)}</td>
                         <td>
                           <span
@@ -300,8 +302,6 @@ export default function SalidasPage() {
                             {s.estado_display}
                           </span>
                         </td>
-                        <td>{s.items_count ?? (s.lineas ?? []).length}</td>
-                        <td>{formatCantidad(totalUnidades(s))}</td>
                         <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(s)}</td>
                         {conAuditoria && (
                           <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>

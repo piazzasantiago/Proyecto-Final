@@ -291,10 +291,10 @@ export default function EntradasPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
                     <th>Galpón</th>
-                    <th>Estado</th>
                     <th>Ítems</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
                     <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
                     {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
@@ -311,8 +311,9 @@ export default function EntradasPage() {
                           background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
                         }}
                       >
-                        <td>{formatFecha(e.fecha)}</td>
                         <td>{formatGalpon(e)}</td>
+                        <td>{e.items_count ?? (e.lineas ?? []).length}</td>
+                        <td>{formatFecha(e.fecha)}</td>
                         <td>
                           <span
                             className={`badge ${
@@ -322,7 +323,6 @@ export default function EntradasPage() {
                             {e.estado_display}
                           </span>
                         </td>
-                        <td>{e.items_count ?? (e.lineas ?? []).length}</td>
                         <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(e)}</td>
                         {conAuditoria && (
                           <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>

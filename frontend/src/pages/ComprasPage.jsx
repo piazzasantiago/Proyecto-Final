@@ -297,9 +297,9 @@ export default function ComprasPage() {
                   <tr>
                     <th>Nº comprobante</th>
                     <th>Proveedor</th>
-                    <th>Fecha</th>
                     <th>Categoría</th>
                     <th className="col-opcional-2">Forma de pago</th>
+                    <th>Fecha</th>
                     <th>Estado</th>
                     <th className={conAuditoria ? "col-opcional" : undefined}>Cargada por</th>
                     {conAuditoria && <th className="col-auditoria"></th>}
@@ -319,9 +319,9 @@ export default function ComprasPage() {
                       >
                         <td>{c.nro_comprobante}</td>
                         <td>{c.proveedor?.nombre ?? "—"}</td>
-                        <td>{formatFecha(c.fecha)}</td>
                         <td>{c.categoria_display}</td>
                         <td className="col-opcional-2">{c.tipo_display}</td>
+                        <td>{formatFecha(c.fecha)}</td>
                         <td>
                           <span
                             className={`badge ${

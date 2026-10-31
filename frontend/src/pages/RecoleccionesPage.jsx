@@ -302,12 +302,12 @@ export default function RecoleccionesPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
                     <th>Galpón</th>
                     <th>Lote</th>
-                    <th>Estado</th>
                     <th>Ítems</th>
                     <th>Total uds.</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
                     <th className={conAuditoria ? "col-opcional" : undefined}>Cargado por</th>
                     {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
@@ -326,9 +326,11 @@ export default function RecoleccionesPage() {
                             : undefined,
                         }}
                       >
-                        <td>{formatFecha(rec.fecha)}</td>
                         <td>{formatGalpon(rec)}</td>
                         <td>{rec.lote?.codigo ?? "—"}</td>
+                        <td>{(rec.lineas ?? []).length}</td>
+                        <td>{totalUnidades(rec).toLocaleString("es-AR")}</td>
+                        <td>{formatFecha(rec.fecha)}</td>
                         <td>
                           <span
                             className={`badge ${
@@ -340,8 +342,6 @@ export default function RecoleccionesPage() {
                             {rec.estado_display}
                           </span>
                         </td>
-                        <td>{(rec.lineas ?? []).length}</td>
-                        <td>{totalUnidades(rec).toLocaleString("es-AR")}</td>
                         <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(rec)}</td>
                         {conAuditoria && (
                           <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>

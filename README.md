@@ -38,6 +38,11 @@ Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
 "Cargado por" en la tabla y en el panel de detalle.
 
+En las tablas de Compras, Descartes, Entradas, Salidas y Recolecciones, las
+columnas comunes van siempre al final y en el mismo orden: **Fecha, Estado,
+Cargado por** (y el ojito del historial, para Administrador y Consulta). Las
+columnas propias de cada módulo van antes.
+
 Los **Descartes** tienen dos categorías: *Galpón* (algo que ocurre dentro de un
 galpón; es estadístico y solo las gallinas descuentan del lote) y *Stock* (baja de
 productos y materias primas almacenados, que sí reduce su stock actual). El stock
