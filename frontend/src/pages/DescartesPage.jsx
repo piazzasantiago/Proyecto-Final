@@ -327,11 +327,11 @@ export default function DescartesPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
                     <th>Categoría</th>
                     <th>Galpón</th>
-                    <th>Estado</th>
                     <th>Ítems</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
                     <th className={conAuditoria ? "col-opcional" : undefined}>Cargado por</th>
                     {conAuditoria && <th className="col-auditoria"></th>}
                   </tr>
@@ -349,11 +349,12 @@ export default function DescartesPage() {
                           background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
                         }}
                       >
-                        <td>{formatFecha(d.fecha)}</td>
                         <td>
                           {cat && <i className={`fa-solid ${cat.icono}`}></i>} {d.categoria_display}
                         </td>
                         <td>{formatGalpon(d)}</td>
+                        <td>{d.items_count ?? (d.lineas ?? []).length}</td>
+                        <td>{formatFecha(d.fecha)}</td>
                         <td>
                           <span
                             className={`badge ${
@@ -363,7 +364,6 @@ export default function DescartesPage() {
                             {d.estado_display}
                           </span>
                         </td>
-                        <td>{d.items_count ?? (d.lineas ?? []).length}</td>
                         <td className={conAuditoria ? "col-opcional" : undefined}>{formatUsuario(d)}</td>
                         {conAuditoria && (
                           <td className="col-auditoria" onClick={(e) => e.stopPropagation()}>

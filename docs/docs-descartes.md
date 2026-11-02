@@ -378,7 +378,7 @@ No se envían `id_usuario` ni `estado`: la API los completa.
 
 - **Filtros:** rango de fechas (Desde / Hasta), categoría y estado, con un botón
   "Limpiar". No hay buscador.
-- **Tabla:** fecha, categoría, galpón, estado, cantidad de ítems y "Cargado por".
+- **Tabla:** categoría, galpón, cantidad de ítems, fecha, estado y "Cargado por".
 - **Panel de detalle:** datos del descarte, quién lo cargó, observaciones, líneas
   y una nota con el efecto que tiene (o tendrá) en el stock o en el lote.
 - **Formulario:** selector de categoría (Galpón / Stock). En Galpón pide el
