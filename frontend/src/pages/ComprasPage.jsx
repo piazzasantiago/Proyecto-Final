@@ -8,6 +8,7 @@ import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import useAtajoAlta from "../components/useAtajoAlta";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -60,6 +61,9 @@ export default function ComprasPage() {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+
+  // Atajo "Nueva compra" del panel principal.
+  useAtajoAlta(() => setModalMode("create"));
 
   const hayFiltros = Boolean(
     search || proveedorFilter || categoriaFilter || estadoFilter || fechaDesde || fechaHasta

@@ -14,6 +14,7 @@ import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import useAtajoAlta from "../components/useAtajoAlta";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADO = "F";
@@ -98,6 +99,9 @@ export default function DescartesPage() {
   const [categoriaFilter, setCategoriaFilter] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+
+  // Atajo "Registrar descarte" del panel principal.
+  useAtajoAlta(() => setModalMode("create"));
 
   const hayFiltros = Boolean(fechaDesde || fechaHasta || categoriaFilter || estadoFilter);
 

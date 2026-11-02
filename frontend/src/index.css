@@ -983,3 +983,18 @@
 .page-body-split:has(> .list-panel > .empty-state:only-child),
 .page-body-split:has(> .card-column > .card-grid > .empty-state:only-child),
 .page-body-split:has(> .card-column > .producto-grid > .empty-state:only-child){grid-template-columns:minmax(0,1fr);}
+
+/* ── Panel principal ─────────────────────────────────────────────────────── */
+/* Aclaración bajo el título de una tarjeta y dato suelto a la derecha. */
+.card-title .card-sub{font-size:12.5px; color:var(--gray-500); font-weight:500; margin-top:3px;}
+.card-nota{font-size:12.5px; color:var(--gray-500); font-weight:600;}
+/* La barra de hoy se distingue de los días ya cerrados. */
+.bar-hoy{background:linear-gradient(180deg, var(--gold-500), #b3831f);}
+/* Los accesos directos son botones de verdad, pero se ven como las tarjetas. */
+.qa-btn{font:inherit; color:inherit; text-align:left; align-items:flex-start;}
+/* Stock: cada producto toma el mismo tono en su tarjeta y en el anillo. */
+.stock-icon-dato{width:42px; height:42px; font-size:19px;}
+.stock-tono-a{background:var(--green-100); color:var(--green-700);}
+.stock-tono-b{background:var(--gold-100); color:#96721e;}
+.stock-tono-c{background:var(--gray-200); color:var(--gray-700);}
+.stock-tono-d{background:var(--green-100); color:var(--green-900);}

@@ -13,6 +13,7 @@ import { traerTodas } from "../api/paginado";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import useAtajoAlta from "../components/useAtajoAlta";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -61,6 +62,9 @@ export default function RecoleccionesPage() {
   const [pageSize, setPageSize] = useTamanoPagina("recolecciones", PAGE_SIZE);
   const [count, setCount] = useState(0);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+
+  // Atajo "Nueva recolección" del panel principal.
+  useAtajoAlta(() => setModalMode("create"));
 
   async function fetchRecolecciones() {
     setLoading(true);

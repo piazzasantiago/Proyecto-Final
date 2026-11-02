@@ -7,6 +7,7 @@ import RequireAuth from "./components/RequireAuth";
 import RequireRol from "./components/RequireRol";
 import LoginPage from "./pages/LoginPage";
 import AppLayout from "./pages/AppLayout";
+import DashboardPage from "./pages/DashboardPage";
 import GalponesPage from "./pages/GalponesPage";
 import LotesPage from "./pages/LotesPage";
 import ProductosPage from "./pages/ProductosPage";
@@ -16,23 +17,37 @@ import MateriaPrimasPage from "./pages/MateriaPrimasPage";
 import DescartesPage from "./pages/DescartesPage";
 import EntradasPage from "./pages/EntradasPage";
 import SalidasPage from "./pages/SalidasPage";
-import StaticPage from "./pages/static/StaticPage";
 import ProveedoresPage from "./pages/ProveedoresPage";
 import InformesPage from "./pages/InformesPage";
 import ComprasPage from "./pages/ComprasPage";
 
-import dashboardHtml from "./pages/static/raw/dashboard.html?raw";
-
-// Evita que la rueda del mouse cambie el valor de un campo numérico con foco:
-// al girar la rueda se le quita el foco y la página sigue haciendo scroll normal.
-if (typeof document !== "undefined") {
-  document.addEventListener(
+// Evita que la rueda del mouse cambie el valor de un campo numérico: los
+// valores se escriben a mano, girar la rueda sobre un campo no tiene que
+// modificarlo sin querer.
+//
+// Se escucha en la fase de captura y con passive: false porque hace falta
+// llegar antes que el navegador y poder cancelar el evento; quitarle el foco
+// al campo no alcanza, el navegador ya aplicó el cambio. Después de blur() el
+// preventDefault corta ese movimiento de rueda y la página sigue haciendo
+// scroll normal con el siguiente.
+//
+// La bandera evita registrar el listener dos veces si el módulo se recarga.
+if (typeof window !== "undefined" && !window.__sinRuedaNumerica) {
+  window.__sinRuedaNumerica = true;
+  window.addEventListener(
     "wheel",
-    () => {
-      const el = document.activeElement;
-      if (el instanceof HTMLInputElement && el.type === "number") el.blur();
+    (evento) => {
+      const el = evento.target;
+      if (
+        el instanceof HTMLInputElement &&
+        el.type === "number" &&
+        document.activeElement === el
+      ) {
+        el.blur();
+        evento.preventDefault();
+      }
     },
-    { passive: true }
+    { capture: true, passive: false }
   );
 }
 
@@ -56,7 +71,7 @@ function App() {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<StaticPage html={dashboardHtml} />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="galpones" element={<GalponesPage />} />
           <Route path="lotes" element={<LotesPage />} />
           <Route path="productos" element={<RequireRol roles={rolesDe("/app/productos")}><ProductosPage /></RequireRol>} />
