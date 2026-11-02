@@ -299,5 +299,6 @@ La migración se aplica con `python manage.py migrate`.
 
 ## Pendientes
 
-- Mostrar las compras recientes de cada proveedor y de cada materia prima.
-- Informes e indicadores productivos.
+No quedan pendientes propios del módulo. Las compras recientes de cada proveedor y de
+cada materia prima ya se muestran en sus detalles, y los informes e indicadores
+productivos están en `docs-informes.md`.
