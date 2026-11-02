@@ -6,8 +6,10 @@ número de CU asignado todavía).
 
 El Dashboard deja de ser una vista previa estática y pasa a mostrar datos
 reales. Resume en una sola pantalla cómo viene el día: lo recolectado, la
-postura, los galpones en producción, las **alertas** de los lotes, la producción
-de la última semana y el stock de productos.
+postura, los galpones en producción, las **alertas** de los lotes, lo que quedó
+**pendiente de finalizar**, la producción de la última semana y el stock de
+productos. Todo lo que muestra es **navegable**: cada tarjeta lleva a la sección
+con el detalle, ya filtrada.
 
 Junto con la pantalla se agrega el módulo de **alertas**, que es lo único de
 esta feature con modelos y migraciones propias.
@@ -20,15 +22,19 @@ esta feature con modelos y migraciones propias.
 
 - Pantalla `/app/dashboard` con datos reales, en una sola petición.
 - Cuatro indicadores del día: huevos recolectados, postura promedio, galpones en
-  producción y alertas activas; los tres primeros comparados contra ayer.
+  producción y alertas activas; los dos primeros comparados contra ayer.
 - Gráfico de barras con la producción de los últimos 7 días.
-- Tarjeta de alertas recientes (pendientes y las resueltas de la última semana).
-- Stock actual de productos con el reparto en un anillo.
-- Accesos directos que abren el formulario de alta de la sección
+- Tarjeta de alertas recientes (pendientes y las resueltas de la última semana),
+  agrupadas por tipo.
+- Tarjeta de **pendientes de finalizar**: cuántos registros de cada módulo
+  siguen sin finalizar.
+- Stock actual de productos con el porcentaje de cada uno sobre el total.
+- Botones en el encabezado que abren el formulario de alta de la sección
   correspondiente, según el rol.
+- Navegación desde cada tarjeta (sección 2).
 - Módulo de alertas: tablas `TiposAlerta` y `Alertas`, cuatro reglas,
   generación y resolución automáticas, y API de solo lectura.
-- 53 tests automatizados.
+- 58 tests automatizados.
 
 ### Qué no incluye
 
@@ -47,15 +53,15 @@ esta feature con modelos y migraciones propias.
 
 | Bloque | Qué muestra |
 |--------|-------------|
-| Encabezado | Fecha de hoy en palabras. Al Operario le aclara que ve sus galpones asignados |
-| Huevos recolectados hoy | Huevos de recolecciones finalizadas de hoy, y la variación contra ayer |
-| Postura promedio de hoy | Postura del día; la variación va en **puntos** (de 70 % a 72 % son 2 puntos, no un 2,8 % más) |
+| Encabezado | Fecha de hoy en palabras (al Operario le aclara que ve sus galpones asignados) y los botones de alta rápida |
+| Huevos recolectados hoy | Huevos de recolecciones finalizadas de hoy, la variación contra ayer y el valor de ayer |
+| Postura promedio de hoy | Postura del día; la variación va en **puntos** (de 70 % a 72 % son 2 puntos, no un 2,8 % más). Sin recolecciones de hoy muestra «—» y «Sin datos hoy» |
 | Galpones en producción | Galpones activos con un lote en producción, sobre el total de galpones activos |
 | Alertas activas | Alertas pendientes; en verde cuando no hay ninguna |
-| Producción — últimos 7 días | Una barra por día, la de hoy en dorado. El enlace al informe completo solo lo ven Administrador y Consulta |
-| Accesos directos | *Nueva recolección* y *Registrar descarte* (Administrador y Operario), *Nueva compra* (solo Administrador) |
-| Alertas recientes | Hasta 6 alertas: primero las pendientes, más graves y más nuevas arriba |
-| Stock actual de productos | Una tarjeta por producto y un anillo con el reparto del stock total |
+| Producción — últimos 7 días | Una barra por día, la de hoy en dorado. El enlace al informe completo y las barras navegables solo los ven Administrador y Consulta |
+| Alertas recientes | Hasta 6 alertas agrupadas por tipo, con su cantidad. Cada fila dice «Lote X · Galpón Y», la etiqueta de severidad (Alta / Media) o «Resuelta», y el detalle sin repetir el lote. Si hay más pendientes que las que entran, la tarjeta lo avisa |
+| Pendientes de finalizar | Recolecciones, entradas, salidas, compras y descartes que siguen en estado Pendiente. El Operario no ve compras |
+| Stock actual de productos | Una tarjeta por producto con su stock, la barra y el porcentaje del total; el total va en el encabezado |
 
 Cuando todavía no hay datos, cada bloque lo dice en lugar de mostrar ceros
 sueltos ("Todavía no hay recolecciones finalizadas en los últimos siete días").
@@ -105,17 +111,36 @@ Lo primero que hace es poner al día los lotes
 
 ---
 
-## 4. Matriz rol × sección
+### Navegación
+
+| Elemento | Lleva a | Con qué filtro |
+|----------|---------|----------------|
+| Huevos recolectados hoy | Recolección diaria | Finalizadas de hoy |
+| Postura promedio de hoy | Informes (Administrador y Consulta) | — |
+| Galpones en producción | Galpones | — |
+| Alertas activas | Baja hasta la tarjeta de alertas | — |
+| Barras de producción | Informes (Administrador y Consulta) | — |
+| Cada alerta | Lotes | Buscando el código del lote |
+| Cada pendiente | La sección correspondiente | Estado «Pendiente» |
+| Cada producto del stock | Productos (Administrador y Consulta) | — |
+| Botones del encabezado | La sección, con el formulario de alta abierto | — |
+
+Las tarjetas que el rol no puede abrir se muestran sin enlace, igual que el menú.
+
+---
+
+## 5. Matriz rol × sección
 
 | Qué | Administrador | Operario | Consulta |
 |-----|:---:|:---:|:---:|
 | Ver el panel | Sí | Sí | Sí |
 | Ver las alertas | Sí | Solo las de sus galpones | Sí |
-| Acceso directo a nueva recolección / descarte | Sí | Sí | No |
-| Acceso directo a nueva compra | Sí | No | No |
-| Enlace al informe de producción | Sí | No | Sí |
+| Botones de nueva recolección / descarte | Sí | Sí | No |
+| Botón de nueva compra | Sí | No | No |
+| Enlaces a Informes y a Productos | Sí | No | Sí |
+| Pendientes de finalizar | Todos los módulos | Los de sus galpones, sin compras | Todos los módulos |
 
-Los accesos directos se muestran según el rol, pero quien decide es el backend:
+Los botones y enlaces se muestran según el rol, pero quien decide es el backend:
 cada sección valida sus permisos como siempre.
 
 ---
@@ -153,12 +178,22 @@ cada sección valida sus permisos como siempre.
 - **Dos columnas agregadas al modelo relacional**: `clave` en `TiposAlerta`
   (identifica el tipo en el código y en la pantalla; el nombre es un texto que
   puede cambiar) y `fecha_resolucion` en `Alertas` (para mostrar el historial).
-- **Los accesos directos navegan con estado**, no con un parámetro en la URL: la
+- **Los botones del encabezado navegan con estado**, no con un parámetro en la URL: la
   sección abre el formulario de alta y limpia el estado enseguida, así volver
   con el botón «atrás» o refrescar no lo abre de nuevo
   (`components/useAtajoAlta.js`).
-- **El anillo es CSS**, un `conic-gradient` armado con los porcentajes, sin
-  librerías de gráficos (igual que las gráficas de los informes).
+- **El stock ya no lleva anillo.** Repetía lo que dicen las tarjetas; ahora cada
+  una muestra su porcentaje y una barra (CSS, sin librerías de gráficos). El
+  porcentaje se reparte entre los stocks positivos: uno negativo (una carga mal
+  hecha) no se come la porción de los demás.
+- **Los pendientes son lo que el usuario tiene a medio hacer.** Un registro
+  pendiente todavía no suma ni resta stock, así que mirarlo desde el panel
+  evita que quede olvidado. El Operario cuenta solo los de sus galpones (F-32);
+  los descartes de stock no tienen galpón y los ve cualquiera.
+- **Los atajos pueden llevar filtros.** `useAtajoAlta(abrirAlta, filtros)`
+  recibe, además del alta, un objeto `{ clave: setter }`; si la navegación trae
+  `state.filtros`, aplica cada valor con su setter y limpia el estado. Así una
+  tarjeta puede abrir «Salidas pendientes» sin parámetros en la URL.
 - **La fórmula del stock quedó en un solo lugar** (`productos/stock.py`), que
   ahora usan el listado de productos y el panel.
 
@@ -184,6 +219,8 @@ alerta de otro galpón devuelve 404 para el Operario (no se revela que existe).
   "postura_hoy": 87.4, "postura_ayer": 86.9, "variacion_postura": 0.5,
   "galpones_activos": 8, "galpones_en_produccion": 6,
   "alertas_pendientes": 3,
+  "pendientes": {"recolecciones": 2, "entradas": 0, "descartes": 1, "salidas": 1, "compras": 3},
+  "pendientes_total": 7,
   "produccion": [{"fecha": "2026-08-03", "huevos": 1700}],
   "stock_productos": {
     "total": 10830,
@@ -198,7 +235,8 @@ alerta de otro galpón devuelve 404 para el Operario (no se revela que existe).
 ```
 
 `postura_hoy`, `variacion_huevos` y `variacion_postura` son `null` cuando no hay
-con qué comparar; la pantalla muestra «—» y no inventa un cero.
+con qué comparar; la pantalla muestra «—» y no inventa un cero. Para el
+Operario, `pendientes` no trae la clave `compras` (no tiene esa sección).
 
 ---
 
@@ -227,18 +265,18 @@ cuatro tipos de alerta.
 
 - `frontend/src/pages/DashboardPage.jsx`: la pantalla entera. Reemplaza la vista
   estática, que se elimina junto con `pages/static/`.
-- `frontend/src/components/useAtajoAlta.js`: abre el formulario de alta cuando
-  se llega desde un acceso directo.
+- `frontend/src/components/useAtajoAlta.js`: abre el formulario de alta y/o
+  aplica filtros cuando se llega desde el panel.
 - `frontend/src/api/dashboard.js`: resumen del panel y listado de alertas.
 - Estilos nuevos al final de `index.css` (aclaración bajo el título de una
-  tarjeta, barra de hoy, accesos directos como botones y tonos del stock). El
-  resto ya existía del mockup.
+  tarjeta, barra de hoy, tarjetas navegables, alertas agrupadas, pendientes y
+  barra de porcentaje del stock). El resto ya existía del mockup.
 
 ---
 
 ## 9. Tests
 
-`python manage.py test alertas dashboard` — 53 tests:
+`python manage.py test alertas dashboard` — 58 tests:
 
 | Clase | Qué verifica |
 |-------|--------------|
@@ -252,6 +290,7 @@ cuatro tipos de alerta.
 | `ResumenVacioTests` | Una granja sin movimientos no rompe la pantalla |
 | `ResumenTests` | Indicadores, variaciones, producción, stock y alertas |
 | `ResumenOperarioTests` | Huevos, galpones y alertas limitados a sus galpones; stock general |
+| `PendientesTests` | Conteo por módulo, mismo resultado para Consulta, el Operario solo cuenta los de sus galpones y no recibe compras, y lo finalizado no suma |
 | `PermisosTests` | Los tres roles entran; sin sesión, 401 |
 
 ---
@@ -267,7 +306,7 @@ backend/informes/calculos.py      (helpers públicos + filtro por varios galpone
 backend/config/{settings,urls}.py
 frontend/src/{api/dashboard.js, components/useAtajoAlta.js, pages/DashboardPage.jsx}
 frontend/src/{App.jsx, index.css}
-frontend/src/pages/{ComprasPage,DescartesPage,RecoleccionesPage}.jsx
+frontend/src/pages/{ComprasPage,DescartesPage,EntradasPage,LotesPage,RecoleccionesPage,SalidasPage}.jsx
 frontend/src/pages/static/        (eliminado: era el último mockup)
 ```
 

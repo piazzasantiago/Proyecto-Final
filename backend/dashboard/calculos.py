@@ -18,12 +18,17 @@ from django.utils import timezone
 
 from alertas.views import alertas_visibles
 from alertas.models import Alerta
-from galpones.acceso import es_operario, ids_galpones_asignados
+from compras.models import Compra
+from descartes.models import Descarte
+from entradas.models import Entrada
+from galpones.acceso import es_operario, ids_galpones_asignados, limitar_a_galpones_asignados
 from galpones.models import Galpon
 from informes.calculos import dias_del_periodo, serie_postura, huevos_por_lote_y_dia
 from lotes.models import Lote
 from productos.models import Producto
 from productos.stock import anotar_stock, stock_actual
+from recolecciones.models import Recoleccion
+from salidas.models import Salida
 
 #: Días de producción que muestra el gráfico de barras.
 DIAS_PRODUCCION = 7
@@ -108,6 +113,35 @@ def _stock_productos():
     return {"total": sum(item["stock"] for item in items), "items": items}
 
 
+def _pendientes(usuario):
+    """
+    Cuántos registros siguen sin finalizar en cada módulo que ve el usuario.
+
+    Es lo que tiene a medio hacer: una recolección cargada que todavía no
+    sumó stock, una compra que no se cerró. El Operario cuenta solo los de sus
+    galpones asignados (F-32) y no recibe las compras, porque no tiene esa
+    sección.
+    """
+    pendientes = {
+        "recolecciones": limitar_a_galpones_asignados(
+            Recoleccion.objects.filter(estado=Recoleccion.ESTADO_PENDIENTE), usuario
+        ).count(),
+        "entradas": limitar_a_galpones_asignados(
+            Entrada.objects.filter(estado=Entrada.ESTADO_PENDIENTE), usuario
+        ).count(),
+        # Los descartes de stock no pertenecen a ningún galpón: los ve cualquiera.
+        "descartes": limitar_a_galpones_asignados(
+            Descarte.objects.filter(estado=Descarte.ESTADO_PENDIENTE),
+            usuario,
+            incluir_sin_galpon=True,
+        ).count(),
+        "salidas": Salida.objects.filter(estado=Salida.ESTADO_PENDIENTE).count(),
+    }
+    if not es_operario(usuario):
+        pendientes["compras"] = Compra.objects.filter(estado=Compra.ESTADO_PENDIENTE).count()
+    return pendientes
+
+
 def _alertas(usuario, ahora):
     """
     Las alertas de la tarjeta: las pendientes y las que se resolvieron hace
@@ -145,6 +179,7 @@ def resumen(usuario):
 
     galpones = _galpones(ids_galpones)
     alertas = _alertas(usuario, timezone.now())
+    pendientes = _pendientes(usuario)
 
     return {
         "fecha": hoy.isoformat(),
@@ -163,6 +198,8 @@ def resumen(usuario):
         "galpones_activos": galpones["activos"],
         "galpones_en_produccion": galpones["en_produccion"],
         "alertas_pendientes": alertas["pendientes"],
+        "pendientes": pendientes,
+        "pendientes_total": sum(pendientes.values()),
         "produccion": produccion,
         "stock_productos": _stock_productos(),
         "alertas": alertas["recientes"],

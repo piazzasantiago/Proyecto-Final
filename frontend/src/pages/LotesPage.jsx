@@ -3,6 +3,7 @@ import { listLotes, deleteLote, iniciarProduccion, vaciarLote } from "../api/lot
 import { listGalpones } from "../api/galpones";
 import { listLotesPendientes } from "../api/compras";
 import LoteFormModal from "../components/LoteFormModal";
+import useAtajoAlta from "../components/useAtajoAlta";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
@@ -74,6 +75,8 @@ export default function LotesPage() {
   // Galpones activos y sin lote en curso: los únicos que pueden recibir un lote nuevo.
   const [galponesLibres, setGalponesLibres] = useState([]);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+  // Atajos del panel principal: abrir los lotes con el código de un lote buscado.
+  useAtajoAlta(null, { search: setSearch });
 
   async function fetchLotes() {
     setLoading(true);

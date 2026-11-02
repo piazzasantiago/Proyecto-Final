@@ -8,6 +8,7 @@ import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import useAtajoAlta from "../components/useAtajoAlta";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -57,6 +58,8 @@ export default function EntradasPage() {
   const [galponFilter, setGalponFilter] = useState("");
   const [materiaFilter, setMateriaFilter] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
+  // Atajos del panel principal: abrir la sección con el filtro de estado ya puesto.
+  useAtajoAlta(null, { estado: setEstadoFilter });
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   const hayFiltros = Boolean(

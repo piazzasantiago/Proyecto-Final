@@ -63,7 +63,7 @@ export default function ComprasPage() {
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   // Atajo "Nueva compra" del panel principal.
-  useAtajoAlta(() => setModalMode("create"));
+  useAtajoAlta(() => setModalMode("create"), { estado: setEstadoFilter });
 
   const hayFiltros = Boolean(
     search || proveedorFilter || categoriaFilter || estadoFilter || fechaDesde || fechaHasta

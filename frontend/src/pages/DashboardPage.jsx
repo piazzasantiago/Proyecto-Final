@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { getResumenDashboard } from "../api/dashboard";
@@ -13,9 +13,9 @@ const ICONO_ALERTA = {
   sin_recoleccion: "fa-calendar-xmark",
 };
 
-// Tonos que se van turnando en las tarjetas de stock y en el anillo. En la
-// granja son tres productos (huevo Nº1, Nº2 y Nº3), pero si mañana hay más,
-// el cuarto vuelve a empezar la vuelta.
+// Tonos que se van turnando en las tarjetas de stock. En la granja son tres
+// productos (huevo Nº1, Nº2 y Nº3), pero si mañana hay más, el cuarto vuelve
+// a empezar la vuelta.
 const TONOS = [
   { clase: "stock-tono-a", color: "var(--green-600)" },
   { clase: "stock-tono-b", color: "var(--gold-500)" },
@@ -89,9 +89,14 @@ function deltaPostura(variacion) {
   };
 }
 
-function Kpi({ icono, fondo, color, valor, etiqueta, delta }) {
-  return (
-    <div className="kpi-card">
+/**
+ * Tarjeta de indicador. Si recibe `to` navega a la sección con el detalle (y
+ * `state` con los filtros a aplicar); si recibe `onClick` hace esa acción; y
+ * sin ninguna de las dos es solo informativa.
+ */
+function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda }) {
+  const contenido = (
+    <>
       <div className="kpi-top">
         <div className="kpi-icon" style={{ background: fondo, color }}>
           <i className={`fa-solid ${icono}`}></i>
@@ -100,12 +105,29 @@ function Kpi({ icono, fondo, color, valor, etiqueta, delta }) {
       </div>
       <div className="value">{valor}</div>
       <div className="label">{etiqueta}</div>
-    </div>
+      {sub && <div className="kpi-sub">{sub}</div>}
+      {(to || onClick) && <i className="fa-solid fa-chevron-right kpi-flecha"></i>}
+    </>
   );
+  if (to) {
+    return (
+      <Link className="kpi-card kpi-link" to={to} state={state} title={ayuda}>
+        {contenido}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" className="kpi-card kpi-link" onClick={onClick} title={ayuda}>
+        {contenido}
+      </button>
+    );
+  }
+  return <div className="kpi-card">{contenido}</div>;
 }
 
 /** Gráfico de barras de la última semana (altura relativa al mejor día). */
-function Produccion({ dias, hoy }) {
+function Produccion({ dias, hoy, enlazar }) {
   const maximo = Math.max(...dias.map((d) => d.huevos));
   if (maximo === 0) {
     return (
@@ -118,8 +140,8 @@ function Produccion({ dias, hoy }) {
     <div className="bars">
       {dias.map((dia) => {
         const esHoy = dia.fecha === hoy;
-        return (
-          <div className="bar-col" key={dia.fecha}>
+        const columna = (
+          <>
             <b>{entero(dia.huevos)}</b>
             <div
               className={`bar${esHoy ? " bar-hoy" : ""}`}
@@ -127,6 +149,15 @@ function Produccion({ dias, hoy }) {
               title={`${entero(dia.huevos)} huevos`}
             ></div>
             <span>{esHoy ? "Hoy" : diaCorto(dia.fecha)}</span>
+          </>
+        );
+        return enlazar ? (
+          <Link className="bar-col bar-col-link" key={dia.fecha} to="/app/informes">
+            {columna}
+          </Link>
+        ) : (
+          <div className="bar-col" key={dia.fecha}>
+            {columna}
           </div>
         );
       })}
@@ -147,70 +178,66 @@ function Etiqueta({ item, tono }) {
   return <span className={`stock-size-tag ${tono}`}>{texto}</span>;
 }
 
-function Alerta({ alerta }) {
+/** Quita el «Lote X · Galpón Y — » del comienzo: ya va como título de la fila. */
+function sinEncabezado(descripcion) {
+  const corte = descripcion.indexOf(" — ");
+  return corte === -1 ? descripcion : descripcion.slice(corte + 3);
+}
+
+/** Agrupa las alertas por tipo conservando el orden en que llegan. */
+function agruparPorTipo(alertas) {
+  const grupos = new Map();
+  alertas.forEach((alerta) => {
+    if (!grupos.has(alerta.clave)) grupos.set(alerta.clave, { tipo: alerta.tipo, items: [] });
+    grupos.get(alerta.clave).items.push(alerta);
+  });
+  return [...grupos.entries()].map(([clave, grupo]) => ({ clave, ...grupo }));
+}
+
+/** Una alerta: al hacer clic abre Lotes buscando el lote afectado. */
+function Alerta({ alerta, clave }) {
   const resuelta = alerta.estado === "R";
   const severidad = resuelta ? "sev-green" : alerta.severidad === "A" ? "sev-red" : "sev-gold";
-  const icono = resuelta ? "fa-check" : ICONO_ALERTA[alerta.clave] || "fa-triangle-exclamation";
+  const icono = resuelta ? "fa-check" : ICONO_ALERTA[clave] || "fa-triangle-exclamation";
   return (
-    <div className={`alert-item ${severidad}`}>
+    <Link
+      className={`alert-item alert-link ${severidad}`}
+      to="/app/lotes"
+      state={{ filtros: { search: alerta.lote } }}
+      title="Ver el lote"
+    >
       <div className="alert-icon">
         <i className={`fa-solid ${icono}`}></i>
       </div>
       <div className="alert-text">
         <div className="alert-top">
-          <b>{alerta.tipo}</b>
+          <b>
+            Lote {alerta.lote} · {alerta.galpon}
+          </b>
           <span className={`status-tag ${resuelta ? "tag-resuelta" : "tag-pendiente"}`}>
-            {alerta.estado_display}
+            {resuelta ? "Resuelta" : alerta.severidad === "A" ? "Alta" : "Media"}
           </span>
         </div>
-        <div className="alert-sub">{alerta.descripcion}</div>
+        <div className="alert-sub">{sinEncabezado(alerta.descripcion)}</div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-/** Anillo con el reparto del stock entre los productos. */
-function Anillo({ items, total }) {
-  // Cada producto ocupa su porción; el color es el mismo que el de su tarjeta,
-  // así que se toma del lugar que ocupa en la lista completa y no en la de
-  // los que tienen stock. Lo que sobre por el redondeo lo cubre el último.
-  const tramos = [];
-  let grados = 0;
-  items.forEach((item, indice) => {
-    if (item.porcentaje <= 0) return;
-    const desde = grados;
-    grados += (item.porcentaje / 100) * 360;
-    tramos.push(`${TONOS[indice % TONOS.length].color} ${desde}deg ${grados}deg`);
-  });
-  const fondo = tramos.length ? `conic-gradient(${tramos.join(", ")})` : null;
-
-  return (
-    <div className="donut-wrap">
-      <div className="donut" style={{ background: fondo ?? "var(--gray-200)" }}>
-        <div className="donut-center">
-          <b>{entero(total)}</b>
-          <span>Stock total</span>
-        </div>
-      </div>
-      <div className="donut-legend">
-        {items.map((item, indice) => (
-          <div className="legend-item" key={item.id_producto}>
-            <span
-              className="legend-dot"
-              style={{ background: TONOS[indice % TONOS.length].color }}
-            ></span>
-            {item.producto} <b>{decimal(item.porcentaje, 0)}%</b>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// Módulos con registros que pueden quedar sin finalizar.
+const MODULOS_PENDIENTES = [
+  { clave: "recolecciones", texto: "Recolecciones", ruta: "/app/recoleccion", icono: "fa-egg" },
+  { clave: "entradas", texto: "Entradas", ruta: "/app/entradas", icono: "fa-arrow-right-to-bracket" },
+  { clave: "salidas", texto: "Salidas", ruta: "/app/salidas", icono: "fa-arrow-right-from-bracket" },
+  { clave: "compras", texto: "Compras", ruta: "/app/compras", icono: "fa-cart-shopping" },
+  { clave: "descartes", texto: "Descartes", ruta: "/app/descartes", icono: "fa-trash-can" },
+];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { esAdministrador, esOperario, esConsulta } = useAuth();
 
+  const alertasRef = useRef(null);
   const [datos, setDatos] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -242,6 +269,8 @@ export default function DashboardPage() {
 
   const puedeCargarProduccion = esAdministrador || esOperario;
   const puedeVerInformes = esAdministrador || esConsulta;
+  // Productos e Informes no están disponibles para el Operario (ver config/menu.js).
+  const puedeVerProductos = esAdministrador || esConsulta;
 
   if (loading) {
     return (
@@ -260,6 +289,12 @@ export default function DashboardPage() {
   }
 
   const stock = datos.stock_productos;
+  const hoy = datos.fecha;
+  const pendientes = datos.pendientes || {};
+  const modulosPendientes = MODULOS_PENDIENTES.filter((m) => m.clave in pendientes);
+  const grupos = agruparPorTipo(datos.alertas);
+  const alertasMostradas = datos.alertas.filter((a) => a.estado === "P").length;
+  const alertasOcultas = datos.alertas_pendientes - alertasMostradas;
 
   return (
     <div className="page active" id="page-dashboard">
@@ -267,12 +302,27 @@ export default function DashboardPage() {
         <div>
           <h1>Panel principal</h1>
           <div className="desc">
-            {fechaLarga(datos.fecha)} ·{" "}
+            {fechaLarga(hoy)} ·{" "}
             {esOperario
               ? "Resumen de los galpones que tenés asignados"
               : "Resumen general de la granja"}
           </div>
         </div>
+        {puedeCargarProduccion && (
+          <div className="page-header-actions">
+            <button type="button" className="btn btn-green" onClick={() => irACargar("/app/recoleccion")}>
+              <i className="fa-solid fa-egg"></i> Nueva recolección
+            </button>
+            <button type="button" className="btn btn-outline" onClick={() => irACargar("/app/descartes")}>
+              <i className="fa-solid fa-trash-can"></i> Registrar descarte
+            </button>
+            {esAdministrador && (
+              <button type="button" className="btn btn-outline" onClick={() => irACargar("/app/compras")}>
+                <i className="fa-solid fa-cart-plus"></i> Nueva compra
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="kpi-grid">
@@ -283,6 +333,10 @@ export default function DashboardPage() {
           valor={entero(datos.huevos_hoy)}
           etiqueta="Huevos recolectados hoy"
           delta={deltaHuevos(datos.variacion_huevos)}
+          sub={`Ayer: ${entero(datos.huevos_ayer)}`}
+          to="/app/recoleccion"
+          state={{ filtros: { estado: "F", fechaDesde: hoy, fechaHasta: hoy } }}
+          ayuda="Ver las recolecciones de hoy"
         />
         <Kpi
           icono="fa-chart-line"
@@ -291,6 +345,13 @@ export default function DashboardPage() {
           valor={porcentaje(datos.postura_hoy)}
           etiqueta="Postura promedio de hoy"
           delta={deltaPostura(datos.variacion_postura)}
+          sub={
+            datos.postura_hoy === null || datos.postura_hoy === undefined
+              ? "Sin datos hoy"
+              : `Ayer: ${porcentaje(datos.postura_ayer)}`
+          }
+          to={puedeVerInformes ? "/app/informes" : undefined}
+          ayuda={puedeVerInformes ? "Ver los informes de postura" : undefined}
         />
         <Kpi
           icono="fa-warehouse"
@@ -302,6 +363,8 @@ export default function DashboardPage() {
             clase: "delta-neutral",
             texto: `${datos.galpones_en_produccion} de ${datos.galpones_activos}`,
           }}
+          to="/app/galpones"
+          ayuda="Ver los galpones"
         />
         <Kpi
           icono="fa-triangle-exclamation"
@@ -314,6 +377,8 @@ export default function DashboardPage() {
               ? { clase: "delta-down", texto: "Requieren atención" }
               : { clase: "delta-up", texto: "Todo en orden" }
           }
+          onClick={() => alertasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          ayuda="Ir a las alertas"
         />
       </div>
 
@@ -331,29 +396,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <Produccion dias={datos.produccion} hoy={datos.fecha} />
-
-          {puedeCargarProduccion && (
-            <div className="quick-actions">
-              <button type="button" className="qa-btn" onClick={() => irACargar("/app/recoleccion")}>
-                <i className="fa-solid fa-egg"></i>
-                <span>Nueva recolección</span>
-              </button>
-              <button type="button" className="qa-btn" onClick={() => irACargar("/app/descartes")}>
-                <i className="fa-solid fa-trash-can"></i>
-                <span>Registrar descarte</span>
-              </button>
-              {esAdministrador && (
-                <button type="button" className="qa-btn" onClick={() => irACargar("/app/compras")}>
-                  <i className="fa-solid fa-cart-plus"></i>
-                  <span>Nueva compra</span>
-                </button>
-              )}
-            </div>
-          )}
+          <Produccion dias={datos.produccion} hoy={hoy} enlazar={puedeVerInformes} />
         </div>
 
-        <div className="card">
+        <div className="card" ref={alertasRef}>
           <div className="card-title">
             <h3>Alertas recientes</h3>
             {datos.alertas_pendientes > 0 && (
@@ -362,37 +408,102 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          {datos.alertas.length === 0 ? (
+          {grupos.length === 0 ? (
             <div className="empty-state">
               No hay alertas. Los lotes vienen trabajando dentro de lo esperado.
             </div>
           ) : (
-            datos.alertas.map((alerta) => <Alerta key={alerta.id_alerta} alerta={alerta} />)
+            grupos.map((grupo) => (
+              <div className="alert-grupo" key={grupo.clave}>
+                <div className="alert-grupo-titulo">
+                  {grupo.tipo} <span>{grupo.items.length}</span>
+                </div>
+                {grupo.items.map((alerta) => (
+                  <Alerta key={alerta.id_alerta} alerta={alerta} clave={grupo.clave} />
+                ))}
+              </div>
+            ))
+          )}
+          {alertasOcultas > 0 && (
+            <div className="alert-resto">
+              Hay {alertasOcultas} {alertasOcultas === 1 ? "alerta activa más" : "alertas activas más"} que
+              no se muestran acá.
+            </div>
           )}
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
         <div className="card-title">
+          <div>
+            <h3>Pendientes de finalizar</h3>
+            <div className="card-sub">Registros cargados que todavía no impactan en el stock</div>
+          </div>
+          {datos.pendientes_total > 0 && (
+            <span className="card-nota">{entero(datos.pendientes_total)} en total</span>
+          )}
+        </div>
+        {datos.pendientes_total === 0 ? (
+          <div className="empty-state">No hay registros pendientes. Todo está finalizado.</div>
+        ) : (
+          <div className="pendientes-grid">
+            {modulosPendientes.map((modulo) => (
+              <Link
+                key={modulo.clave}
+                className={`pendiente-item${pendientes[modulo.clave] ? "" : " pendiente-cero"}`}
+                to={modulo.ruta}
+                state={{ filtros: { estado: "P" } }}
+                title={`Ver ${modulo.texto.toLowerCase()} pendientes`}
+              >
+                <i className={`fa-solid ${modulo.icono}`}></i>
+                <b>{entero(pendientes[modulo.clave])}</b>
+                <span>{modulo.texto}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="card-title">
           <h3>Stock actual de productos</h3>
+          {stock.items.length > 0 && (
+            <span className="card-nota">{entero(stock.total)} huevos en total</span>
+          )}
         </div>
         {stock.items.length === 0 ? (
           <div className="empty-state">Todavía no hay productos con stock para mostrar.</div>
         ) : (
-          <div className="stock-donut-row">
-            <div className="stock-grid">
-              {stock.items.map((item, indice) => (
-                <div className="stock-item" key={item.id_producto}>
-                  <div className={`stock-icon stock-icon-dato ${TONOS[indice % TONOS.length].clase}`}>
+          <div className="stock-grid">
+            {stock.items.map((item, indice) => {
+              const tono = TONOS[indice % TONOS.length];
+              const cuerpo = (
+                <>
+                  <div className={`stock-icon stock-icon-dato ${tono.clase}`}>
                     <i className="fa-solid fa-egg"></i>
                   </div>
                   <div className="stock-value">{entero(item.stock)}</div>
                   <div className="stock-label">{item.producto}</div>
-                  <Etiqueta item={item} tono={TONOS[indice % TONOS.length].clase} />
+                  <Etiqueta item={item} tono={tono.clase} />
+                  <div className="stock-bar" title={`${decimal(item.porcentaje, 0)}% del total`}>
+                    <div
+                      className="stock-bar-fill"
+                      style={{ width: `${Math.min(Math.max(item.porcentaje, 0), 100)}%`, background: tono.color }}
+                    ></div>
+                  </div>
+                  <div className="stock-pct">{decimal(item.porcentaje, 0)}% del total</div>
+                </>
+              );
+              return puedeVerProductos ? (
+                <Link className="stock-item stock-link" key={item.id_producto} to="/app/productos">
+                  {cuerpo}
+                </Link>
+              ) : (
+                <div className="stock-item" key={item.id_producto}>
+                  {cuerpo}
                 </div>
-              ))}
-            </div>
-            <Anillo items={stock.items} total={stock.total} />
+              );
+            })}
           </div>
         )}
       </div>

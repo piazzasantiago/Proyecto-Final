@@ -101,7 +101,7 @@ export default function DescartesPage() {
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   // Atajo "Registrar descarte" del panel principal.
-  useAtajoAlta(() => setModalMode("create"));
+  useAtajoAlta(() => setModalMode("create"), { estado: setEstadoFilter });
 
   const hayFiltros = Boolean(fechaDesde || fechaHasta || categoriaFilter || estadoFilter);
 

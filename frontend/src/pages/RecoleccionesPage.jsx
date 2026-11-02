@@ -64,7 +64,11 @@ export default function RecoleccionesPage() {
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
 
   // Atajo "Nueva recolección" del panel principal.
-  useAtajoAlta(() => setModalMode("create"));
+  useAtajoAlta(() => setModalMode("create"), {
+    estado: setEstadoFilter,
+    fechaDesde: setFechaDesde,
+    fechaHasta: setFechaHasta,
+  });
 
   async function fetchRecolecciones() {
     setLoading(true);
