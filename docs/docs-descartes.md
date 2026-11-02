@@ -475,5 +475,3 @@ python manage.py test descartes --verbosity=2
   error.
 - **Estadísticas:** los descartes de galpón existen para alimentar los informes
   (CU85 a CU89); falta construir esas vistas.
-- El mockup `descartes.html` en `frontend/src/pages/static/raw/` quedó sin uso y
-  puede eliminarse.

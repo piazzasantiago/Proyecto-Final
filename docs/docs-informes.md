@@ -218,5 +218,3 @@ frontend/src/{App.jsx, index.css}
 - Dashboard con datos reales (hoy es una vista previa).
 - Registro del consumo diario de materias primas para un consumo real.
 - Objetivos guardados por indicador, si se los quiere persistentes.
-- El mockup `frontend/src/pages/static/raw/informes.html` ya no se usa y puede
-  borrarse.
