@@ -32,7 +32,7 @@ Gallinas**, **Productos**, **Recolección diaria**, **Materias Primas**,
 | Gestión de Proveedores | CU70 a CU75 | Funcional |
 | Gestión de Compras | CU61 a CU69 | Funcional |
 | Informes e indicadores | CU85 a CU89 | Funcional |
-| Dashboard | — | Solo vista previa |
+| Dashboard y alertas | a definir | Funcional |
 
 Los módulos de Recolección diaria y Descartes registran además el **usuario
 responsable de la carga** (`id_usuario`) en cada registro, visible como columna
@@ -64,10 +64,17 @@ Lotes de gallinas muestra un cartel rojo y el alta de un lote exige elegir uno d
 esos lotes comprados). Solo el Administrador las gestiona; Consulta solo lee y el
 Operario no ve la sección.
 
-El Dashboard, la única sección marcada como *vista previa*, muestra el HTML del
-mockup aprobado por el tutor: **no lee ni guarda datos**, y sus botones no
-realizan operaciones. Se reemplazará por la pantalla real siguiendo el mismo
-patrón que los módulos ya funcionales.
+El **Dashboard** resume el día en una sola pantalla: huevos recolectados, postura
+promedio, galpones en producción, alertas activas, la producción de la última
+semana y el stock de productos. Incluye accesos directos que abren el formulario
+de alta de recolecciones, descartes y compras, según el rol. Con esta pantalla ya
+no queda ninguna sección como vista previa.
+
+Las **alertas** avisan que un lote está en una situación que conviene mirar:
+postura baja, mortandad alta, plan de transición por vencer o varios días sin
+recolecciones. No las carga nadie: el sistema las genera y las resuelve solo al
+evaluar las reglas, igual que la transición automática de los lotes. Cada regla y
+su umbral están en `docs/docs-dashboard.md`.
 
 ### Acceso por rol
 
@@ -93,9 +100,9 @@ El sistema define tres roles con distintos niveles de acceso:
 > recolecciones, entradas y descartes de los galpones que tiene asignados (igual
 > que ya ocurría con Galpones y Lotes). Administrador y Consulta ven todos.
 
-> El Dashboard todavía muestra el mockup. Los permisos de
-> escritura/lectura dentro de cada sección se aplicarán en el backend cuando
-> cada módulo se implemente. El detalle completo está en `docs/docs-usuarios.md`.
+> En el Dashboard, el Operario ve los datos y las alertas de los galpones que
+> tiene asignados, y solo los accesos directos que le corresponden. El detalle
+> completo de los permisos está en `docs/docs-usuarios.md`.
 
 ---
 
@@ -128,6 +135,8 @@ backend/
 ├── proveedores/     módulo de Proveedores
 ├── compras/         módulo de Compras (materias primas y lotes)
 ├── informes/        módulo de Informes (solo lectura, Excel y PDF)
+├── alertas/         alertas de los lotes: reglas y generación automática
+├── dashboard/       resumen del panel principal (sin modelos propios)
 ├── poblar_datos.py  script que carga datos de ejemplo para probar el sistema
 └── manage.py
 ```
@@ -141,7 +150,6 @@ frontend/src/
 ├── context/         estado de la sesión (AuthContext)
 ├── components/      componentes reutilizables
 ├── pages/           una pantalla por módulo
-│   └── static/      HTML de los módulos aún no implementados
 └── index.css        estilos del sistema
 ```
 
@@ -463,6 +471,7 @@ En `docs/`:
 | `docs-compras.md` | Compras de materias primas y de lotes, finalización, lotes pendientes de asignar a un galpón, stock de materias primas y tests (CU61 a CU69) |
 | `docs-informes.md` | Informes de producción, lotes, materias primas y descartes, indicadores contra un objetivo, exportación a Excel y PDF, y tests (CU85 a CU89) |
 | `docs-proveedores.md` | Gestión de proveedores, CUIT, teléfono argentino o internacional, nombres parecidos, permisos y tests (CU70 a CU75) |
+| `docs-dashboard.md` | Panel principal con datos reales, alertas de los lotes (reglas, generación y resolución automáticas), accesos directos y tests |
 | `docs-auditoria.md` | Auditoría de los registros (quién y cuándo creó, editó y finalizó), `ModeloAuditable`, visibilidad por rol y tests (F-23) |
 | `convencion-commits.md` | Convención de mensajes de commit adoptada por el equipo |
 | `modelo-relacional/` | Diagrama y documentación del modelo de datos |
@@ -504,8 +513,7 @@ del `.env`, pero crean su propia base `test_granja_avicola` automáticamente.
 
 ## Próximos pasos
 
-1. **Dashboard con alertas.** Es el único módulo que sigue como vista previa.
-   Se desarrolla después de refinar lo ya construido.
+1. **Tutoriales de uso** de cada sección, ahora que el Dashboard está terminado.
 2. **Fixes planificados**, a trabajar en ramas `fix/*` hacia `develop`:
    - **Recolecciones:** ocultar "Eliminar" en las finalizadas y agregar filtros
      por fecha desde, fecha hasta y lote.
