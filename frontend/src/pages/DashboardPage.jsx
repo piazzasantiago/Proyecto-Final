@@ -227,8 +227,8 @@ function Alerta({ alerta, clave }) {
 // Módulos con registros que pueden quedar sin finalizar.
 const MODULOS_PENDIENTES = [
   { clave: "recolecciones", texto: "Recolecciones", ruta: "/app/recoleccion", icono: "fa-egg" },
-  { clave: "entradas", texto: "Entradas", ruta: "/app/entradas", icono: "fa-arrow-right-to-bracket" },
-  { clave: "salidas", texto: "Salidas", ruta: "/app/salidas", icono: "fa-arrow-right-from-bracket" },
+  { clave: "entradas", texto: "Entradas", ruta: "/app/entradas", icono: "fa-dolly" },
+  { clave: "salidas", texto: "Salidas", ruta: "/app/salidas", icono: "fa-truck-ramp-box" },
   { clave: "compras", texto: "Compras", ruta: "/app/compras", icono: "fa-cart-shopping" },
   { clave: "descartes", texto: "Descartes", ruta: "/app/descartes", icono: "fa-trash-can" },
 ];
