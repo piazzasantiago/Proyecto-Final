@@ -11,34 +11,41 @@
  * Los permisos de escritura/lectura de cada endpoint se validan en el backend
  * (permission_classes de cada ViewSet), que responde 403 ante cualquier
  * operación no autorizada aunque el usuario llegue por otra vía.
- * Cuando una sección pase de estática a funcional, replicar esta matriz
- * en el permission_classes del ViewSet correspondiente.
+ *
+ * Orden del menú (F-24). Las secciones van de lo que más se usa a lo que menos:
+ *
+ *   Principal   lo primero que se abre al entrar al sistema.
+ *   Producción  el ciclo productivo y las operaciones de todos los días:
+ *               primero dónde y con qué se produce (Galpones y Lotes) y después
+ *               lo que se carga a diario (Recolección, Entradas, Descartes y
+ *               Salidas). Entradas vive acá, y no en Insumos, porque llevar
+ *               alimento al galpón es una tarea diaria del operario, igual que
+ *               recolectar.
+ *   Insumos     el abastecimiento, que se toca cada tanto: cuando se pide, se
+ *               compra o se da de alta un proveedor.
+ *   Gestión     catálogo, análisis y administración del sistema.
  *
  * Matriz definida según la descripción de usuarios participantes:
  *
  *   Administrador: CRUD completo en todas las secciones.
  *
  *   Operario:
- *     - Dashboard: sí
+ *     - Dashboard: sí (solo los datos de sus galpones asignados)
  *     - Galpones: solo consulta
  *     - Lotes de Gallinas: solo consulta
  *     - Recolección diaria: CRUD completo
+ *     - Entradas: CRUD completo
  *     - Descartes: CRUD completo
  *     - Salidas: CRUD completo
- *     - Entradas: CRUD completo
  *     - Materias Primas: solo consulta
- *     - Compras, Proveedores, Informes, Usuarios: sin acceso
- *     - Productos: sin acceso
+ *     - Compras, Proveedores, Productos, Informes y Usuarios: sin acceso
  *
  *   Consulta:
  *     - Todas las secciones excepto Usuarios: solo consulta (lectura)
  *     - Usuarios: sin acceso
  *
- * Nota: los permisos de escritura (CRUD vs solo consulta) dentro de cada
- * sección se implementan en el backend cuando la sección tenga endpoints
- * propios. En el menú, si el rol puede ver la sección (aunque sea solo para
- * consultar) el enlace aparece; el backend rechaza las operaciones no
- * permitidas con 403.
+ * En el menú, si el rol puede ver la sección (aunque sea solo para consultar)
+ * el enlace aparece; el backend rechaza las operaciones no permitidas con 403.
  */
 
 export const TODOS = ["A", "O", "C"];
@@ -77,6 +84,12 @@ export const MENU = [
         roles: TODOS,              // A: CRUD · O: CRUD · C: consulta
       },
       {
+        to: "/app/entradas",
+        icono: "fa-dolly",
+        texto: "Entradas",
+        roles: TODOS,              // A: CRUD · O: CRUD · C: consulta
+      },
+      {
         to: "/app/descartes",
         icono: "fa-trash-can",
         texto: "Descartes",
@@ -93,12 +106,6 @@ export const MENU = [
   {
     grupo: "Insumos",
     items: [
-      {
-        to: "/app/entradas",
-        icono: "fa-dolly",
-        texto: "Entradas",
-        roles: TODOS,              // A: CRUD · O: CRUD · C: consulta
-      },
       {
         to: "/app/materias-primas",
         icono: "fa-boxes-stacked",
@@ -123,16 +130,16 @@ export const MENU = [
     grupo: "Gestión",
     items: [
       {
-        to: "/app/informes",
-        icono: "fa-chart-simple",
-        texto: "Informes",
-        roles: ["A", "C"],         // A: acceso · C: acceso · O: sin acceso
-      },
-      {
         to: "/app/productos",
         icono: "fa-egg",
         texto: "Productos",
         roles: ["A", "C"],         // A: CRUD completo · C: solo consulta (CU49-54)
+      },
+      {
+        to: "/app/informes",
+        icono: "fa-chart-simple",
+        texto: "Informes",
+        roles: ["A", "C"],         // A: acceso · C: acceso · O: sin acceso
       },
       {
         to: "/app/usuarios",

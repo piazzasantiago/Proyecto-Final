@@ -13,6 +13,8 @@ import { traerTodas } from "../api/paginado";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import useAtajoAlta from "../components/useAtajoAlta";
+import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -61,6 +63,13 @@ export default function RecoleccionesPage() {
   const [pageSize, setPageSize] = useTamanoPagina("recolecciones", PAGE_SIZE);
   const [count, setCount] = useState(0);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+
+  // Atajo "Nueva recolección" del panel principal.
+  useAtajoAlta(() => setModalMode("create"), {
+    estado: setEstadoFilter,
+    fechaDesde: setFechaDesde,
+    fechaHasta: setFechaHasta,
+  });
 
   async function fetchRecolecciones() {
     setLoading(true);
@@ -284,7 +293,7 @@ export default function RecoleccionesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando recolecciones...</div>}
+      {loading && <EsqueletoTabla texto="Cargando recolecciones..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

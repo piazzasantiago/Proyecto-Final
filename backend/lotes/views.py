@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from rest_framework import filters, status, viewsets
 from rest_framework.exceptions import ValidationError
@@ -13,6 +14,39 @@ from .models import Lote
 from .transiciones import pasar_a_produccion_vencidos
 from .serializers import LoteSerializer
 from config.auditoria import AuditoriaMixin
+
+# El código del lote, tal como se ve en pantalla y en las alertas: L-2026-029.
+# Se aceptan también variantes razonables de tipeo: sin la L, con espacios en
+# lugar de guiones y sin los ceros de relleno.
+_CODIGO_CON_ANIO = re.compile(r"^(?:l[-\s]?)?(\d{4})[-\s]0*(\d{1,9})$")
+_CODIGO_SIN_ANIO = re.compile(r"^l[-\s]?0*(\d{1,9})$")
+
+
+def filtrar_por_busqueda(queryset, texto):
+    """
+    Busca un lote por su código, por su número o por parte del número.
+
+    El código que muestra el sistema (L-2026-029) no es una columna de la base:
+    se arma con el año de ingreso y el id del lote. Por eso, cuando el texto
+    tiene forma de código se traduce a esos dos datos. Un número suelto sigue
+    funcionando como antes, por coincidencia parcial del id, que es lo que
+    espera quien escribe «29» en el buscador.
+    """
+    texto = (texto or "").strip().lower()
+    if not texto:
+        return queryset
+    con_anio = _CODIGO_CON_ANIO.match(texto)
+    if con_anio:
+        anio, numero = con_anio.groups()
+        return queryset.filter(pk=int(numero), fecha_ingreso__year=int(anio))
+    sin_anio = _CODIGO_SIN_ANIO.match(texto)
+    if sin_anio:
+        return queryset.filter(pk=int(sin_anio.group(1)))
+    # «029»: el número del código con sus ceros de relleno. Sin esto no
+    # encontraría nada, porque ningún id empieza con cero.
+    if texto.isdigit() and texto.startswith("0") and len(texto) <= 10:
+        return queryset.filter(pk=int(texto))
+    return queryset.filter(id_lote__icontains=texto)
 
 
 class LoteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
@@ -34,6 +68,10 @@ class LoteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
     Permisos: leer requiere autenticación con cualquier rol; crear, modificar
     y eliminar requiere rol Administrador.
 
+    Búsqueda (solo en el listado): ?search= acepta el código del lote tal como
+    se ve en pantalla (L-2026-029), el año con el número (2026-029) o el número
+    suelto (29, que busca por coincidencia parcial del id).
+
     Rango de fechas (solo en el listado): ?fecha_desde= y ?fecha_hasta= (ambos
     inclusivos y opcionales) dejan los lotes cuya fecha de ingreso, o sea el día
     en que se asignaron a un galpón, cae dentro del rango. Sin ninguno, se
@@ -47,9 +85,8 @@ class LoteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
 
     serializer_class = LoteSerializer
     permission_classes = [LecturaAutenticados_EscrituraAdministrador]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["estado", "id_galpon"]
-    search_fields = ["id_lote"]
     ordering_fields = ["fecha_ingreso", "cantidad_inicial", "cantidad_actual"]
 
     def get_queryset(self):
@@ -68,6 +105,9 @@ class LoteViewSet(AuditoriaMixin, viewsets.ModelViewSet):
             qs = qs.all()
         if self.action == "list":
             qs = self._filtrar_por_fecha_de_ingreso(qs)
+            # La búsqueda se resuelve acá (y no con SearchFilter) porque el
+            # código del lote se arma con dos columnas; ver filtrar_por_busqueda.
+            qs = filtrar_por_busqueda(qs, self.request.query_params.get("search"))
         return qs
 
     def _fecha_param(self, nombre):

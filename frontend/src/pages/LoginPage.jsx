@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import CampoPassword from "../components/CampoPassword";
+import LogoAvigest from "../components/LogoAvigest";
 import { useAuth } from "../context/AuthContext";
+
+// Número de versión que se muestra al pie del login.
+const VERSION = "0.1";
 
 // Pantalla de login (CU01), con el mismo diseño del mockup aprobado.
 export default function LoginPage() {
@@ -58,8 +62,7 @@ export default function LoginPage() {
 
       <div className="login-panel">
         <div className="login-brand">
-          <div className="logo-mark"><i className="fa-solid fa-egg"></i></div>
-          <span>AvíGest</span>
+          <LogoAvigest />
         </div>
         <h1>Gestión integral de tu producción avícola.</h1>
         <p>Centralizá el registro de galpones, lotes, producción diaria y materias primas en un solo lugar, con información confiable para tomar mejores decisiones.</p>
@@ -119,7 +122,10 @@ export default function LoginPage() {
             {enviando ? "Ingresando…" : <>Ingresar <i className="fa-solid fa-arrow-right"></i></>}
           </button>
 
-          <div className="login-footnote">Sistema de Gestión Avícola · v0.1 — módulos Galpones y Usuarios funcionales</div>
+          <div className="login-footnote">
+            <span>AviGest · v{VERSION}</span>
+            <span>Desarrollado por Santiago Piazza &amp; Antonio Vargas</span>
+          </div>
         </form>
       </div>
 

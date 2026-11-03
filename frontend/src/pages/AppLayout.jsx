@@ -2,6 +2,8 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { MENU } from "../config/menu";
+import MarcaSidebar from "../components/MarcaSidebar";
+import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
 
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
@@ -15,6 +17,7 @@ function iniciales(usuario) {
 export default function AppLayout() {
   const navigate = useNavigate();
   const { usuario, cerrarSesion } = useAuth();
+  const { esOscuro, alternar } = useTema();
   // Controla el sidebar como panel deslizante en tablet/celular.
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -46,8 +49,7 @@ export default function AppLayout() {
 
       <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sb-brand">
-          <div className="logo-mark"><i className="fa-solid fa-egg"></i></div>
-          <span>AvíGest</span>
+          <MarcaSidebar />
           <button
             type="button"
             className="sidebar-close"
@@ -85,6 +87,16 @@ export default function AppLayout() {
               <span>{usuario?.rol_display}</span>
             </div>
           </div>
+          <button
+            type="button"
+            className="sb-tema"
+            onClick={alternar}
+            aria-pressed={esOscuro}
+            title={esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          >
+            <i className={`fa-solid ${esOscuro ? "fa-sun" : "fa-moon"}`}></i>
+            {esOscuro ? "Modo claro" : "Modo oscuro"}
+          </button>
           <div className="sb-logout" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket"></i> Cerrar sesión
           </div>

@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "proveedores",
     "compras",
     "informes",
+    "alertas",
+    "dashboard",
 ]
 
 MIDDLEWARE = [

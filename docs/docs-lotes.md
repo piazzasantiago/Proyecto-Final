@@ -167,10 +167,26 @@ Devuelve una lista paginada de lotes. Los resultados se filtran por rol:
 
 | Parámetro | Descripción | Ejemplo |
 |---|---|---|
+| `search` | Busca por código o por número de lote | `?search=L-2026-029` |
 | `estado` | Filtra por estado del ciclo de vida | `?estado=T` |
 | `id_galpon` | Filtra por galpón | `?id_galpon=3` |
 | `fecha_desde` | Inicio del rango de fechas (`AAAA-MM-DD`, inclusive) | `?fecha_desde=2025-10-24` |
 | `fecha_hasta` | Fin del rango de fechas (`AAAA-MM-DD`, inclusive) | `?fecha_hasta=2026-10-24` |
+
+**Búsqueda.** El código que muestra el sistema (`L-2026-029`) no es una
+columna de la base: se arma con el año de ingreso y el id del lote. Por eso
+`?search=` traduce el texto antes de consultar:
+
+| Lo que se escribe | Qué busca |
+|---|---|
+| `L-2026-029`, `l 2026 29`, `2026-029` | El lote 29 cuyo ingreso fue en 2026 |
+| `L-29`, `L-029`, `029` | El lote 29, sin mirar el año |
+| `29` | Los lotes cuyo id contiene «29» (29, 129, 290…) |
+| Cualquier otro texto | Nada, igual que antes |
+
+Buscar por código importa porque es lo que se ve en las tarjetas, en las
+alertas del panel y en los informes: al tocar una alerta, el panel manda el
+código del lote a esta pantalla.
 
 **Rango de fechas.** Se listan los lotes cuya `fecha_ingreso` (el día en que se
 asignaron a un galpón) cae dentro del rango. Los dos extremos son inclusivos y
@@ -190,7 +206,7 @@ Lotes envía por defecto el último año.
   "results": [
     {
       "id_lote": 1,
-      "codigo": "L-001",
+      "codigo": "L-2026-001",
       "id_galpon_id": 1,
       "galpon_nombre": "Galpón Norte",
       "fecha_ingreso": "2026-01-18",
@@ -364,7 +380,7 @@ muestra el navegador por defecto.
 
 Ubicación: `backend/lotes/tests.py`
 
-**Total: 80 tests — 80/80 ✅**
+**Total: 90 tests — 90/90 ✅**
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
@@ -380,6 +396,7 @@ Ubicación: `backend/lotes/tests.py`
 | `CapacidadGalponTests` | 6 | F-07: rechazo si la capacidad no alcanza, mensaje, nada se crea, capacidad justa y mayor, PATCH no revalida |
 | `InicioProduccionTests` | 6 | F-09: fecha nula al crear, se registra al iniciar producción, se conserva al vaciar, solo lectura |
 | `PasoAutomaticoAProduccionTests` | 7 | Pasa solo a Producción a los 28 días (no antes), la producción arranca cuando venció la transición, plan finalizado, no pisa fechas existentes, 409 al iniciar a mano un lote ya vencido |
+| `BusquedaPorCodigoTests` | 10 | Búsqueda por el código completo, con el año correcto, en minúsculas y con espacios, sin la «L», sin el año, con los ceros de relleno, por número suelto, sin resultados, con texto cualquiera y combinada con los demás filtros |
 
 Los tests de `?libre=true` (F-10) están en `backend/galpones/tests.py`
 (`GalponesLibresTests`, 6).

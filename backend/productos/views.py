@@ -1,5 +1,4 @@
-from django.db.models import ProtectedError, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import ProtectedError
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +9,7 @@ from usuarios.permissions import LecturaAutenticados_EscrituraAdministrador
 from config.pagination import PaginacionListado
 from .models import Producto
 from .serializers import ProductoSerializer
+from .stock import anotar_stock
 from config.auditoria import AuditoriaMixin
 
 
@@ -51,33 +51,13 @@ class ProductoViewSet(AuditoriaMixin, viewsets.ModelViewSet):
         (stock_recolectado), lo descartado en descartes de stock FINALIZADOS
         (stock_descartado) y lo que salió en salidas FINALIZADAS
         (stock_salidas), para calcular el stock actual sin una consulta
-        por producto.
+        por producto. La fórmula vive en productos/stock.py, que también usa
+        el dashboard.
         """
-        # Import diferido: recolecciones, descartes y salidas dependen de
-        # productos, no al revés.
-        from descartes.stock import anotar_descartado
-        from recolecciones.models import Recoleccion
-        from salidas.stock import anotar_egresado
-
-        productos = Producto.objects.annotate(
-            stock_recolectado=Coalesce(
-                Sum(
-                    "lineas_recoleccion__cantidad",
-                    filter=Q(
-                        lineas_recoleccion__id_recoleccion__estado=Recoleccion.ESTADO_FINALIZADA
-                    ),
-                ),
-                0,
-            )
-        )
-        # Descartes y salidas se suman con subconsultas (no con otro JOIN) para
-        # no multiplicar las filas del Sum de recolecciones.
-        productos = anotar_descartado(productos, "id_producto")
-        productos = anotar_egresado(productos)
         # Al agrupar por el Sum, Django ignora el orden por defecto del modelo;
         # sin un orden explícito la paginación podría repetir o saltear filas.
         # (?ordering= lo reemplaza cuando se pide otro orden.)
-        return productos.order_by("producto")
+        return anotar_stock().order_by("producto")
 
     def destroy(self, request, *args, **kwargs):
         """

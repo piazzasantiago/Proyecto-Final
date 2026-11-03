@@ -104,8 +104,14 @@ def dias_del_periodo(desde, hasta):
 
 # ── Datos base ────────────────────────────────────────────────────────────────
 
-def _huevos_por_lote_y_dia(desde, hasta, id_galpon=None):
-    """{(id_lote, id_galpon, día): huevos} de recolecciones finalizadas."""
+def huevos_por_lote_y_dia(desde, hasta, id_galpon=None, ids_galpones=None):
+    """
+    {(id_lote, id_galpon, día): huevos} de recolecciones finalizadas.
+
+    `id_galpon` limita el cálculo a un galpón; `ids_galpones`, a un conjunto
+    de galpones (lo usan el dashboard y las alertas para el operario, que solo
+    ve los galpones que tiene asignados).
+    """
     qs = LineaRecoleccion.objects.filter(
         id_recoleccion__estado=Recoleccion.ESTADO_FINALIZADA,
         id_recoleccion__fecha__date__gte=desde,
@@ -113,6 +119,8 @@ def _huevos_por_lote_y_dia(desde, hasta, id_galpon=None):
     )
     if id_galpon is not None:
         qs = qs.filter(id_recoleccion__id_galpon=id_galpon)
+    if ids_galpones is not None:
+        qs = qs.filter(id_recoleccion__id_galpon__in=ids_galpones)
     huevos = defaultdict(int)
     for id_lote, galpon, fecha, cantidad in qs.values_list(
         "id_recoleccion__id_lote", "id_recoleccion__id_galpon", "id_recoleccion__fecha", "cantidad"
@@ -135,7 +143,7 @@ def _gallinas_descartadas(ids_lotes, hasta=None):
     return por_lote
 
 
-class _Gallinas:
+class Gallinas:
     """Cantidad de gallinas de cada lote en cada día."""
 
     def __init__(self, ids_lotes):
@@ -150,19 +158,19 @@ class _Gallinas:
         return max(self.inicial[id_lote] - descartadas, 0)
 
 
-def _postura(huevos, gallinas):
+def postura_del_dia(huevos, gallinas):
     if not gallinas:
         return None
     return huevos / gallinas * 100
 
 
-def serie_postura(desde, hasta, id_galpon=None):
+def serie_postura(desde, hasta, id_galpon=None, ids_galpones=None):
     """
     [{fecha, valor}] con la postura de cada día (huevos del día / gallinas de
     los lotes que tuvieron recolección ese día). valor = None si no hubo.
     """
-    huevos = _huevos_por_lote_y_dia(desde, hasta, id_galpon)
-    gallinas = _Gallinas(k[0] for k in huevos)
+    huevos = huevos_por_lote_y_dia(desde, hasta, id_galpon, ids_galpones)
+    gallinas = Gallinas(k[0] for k in huevos)
     huevos_dia = defaultdict(int)
     gallinas_dia = defaultdict(int)
     for (id_lote, _g, dia), cantidad in huevos.items():
@@ -171,7 +179,7 @@ def serie_postura(desde, hasta, id_galpon=None):
         if g:
             gallinas_dia[dia] += g
     return [
-        {"fecha": d.isoformat(), "valor": _redondear(_postura(huevos_dia[d], gallinas_dia[d])) if d in huevos_dia else None}
+        {"fecha": d.isoformat(), "valor": _redondear(postura_del_dia(huevos_dia[d], gallinas_dia[d])) if d in huevos_dia else None}
         for d in dias_del_periodo(desde, hasta)
     ]
 
@@ -180,8 +188,8 @@ def serie_postura(desde, hasta, id_galpon=None):
 
 def informe_produccion(desde, hasta, galpon=None):
     id_galpon = galpon.pk if galpon else None
-    huevos = _huevos_por_lote_y_dia(desde, hasta, id_galpon)
-    gallinas = _Gallinas(k[0] for k in huevos)
+    huevos = huevos_por_lote_y_dia(desde, hasta, id_galpon)
+    gallinas = Gallinas(k[0] for k in huevos)
 
     por_lote = defaultdict(lambda: {"huevos": 0, "dias": set(), "posturas": []})
     for (id_lote, id_g, dia), cantidad in huevos.items():
@@ -189,7 +197,7 @@ def informe_produccion(desde, hasta, galpon=None):
         fila["huevos"] += cantidad
         fila["dias"].add(dia)
         g = gallinas.en(id_lote, dia)
-        fila["posturas"].append(_postura(cantidad, g))
+        fila["posturas"].append(postura_del_dia(cantidad, g))
 
     galpones = dict(Galpon.objects.values_list("pk", "galpon"))
     lotes = {l.pk: l for l in Lote.objects.filter(pk__in=[k[0] for k in por_lote if k[0]])}
@@ -502,7 +510,7 @@ def indicadores(desde, hasta, indicador, galpon=None, materia=None, objetivo=Non
     else:
         serie, unidad = _serie_consumo(desde, hasta, materia, id_galpon), materia.unidad
 
-    huevos = sum(_huevos_por_lote_y_dia(desde, hasta, id_galpon).values())
+    huevos = sum(huevos_por_lote_y_dia(desde, hasta, id_galpon).values())
     valores = [p["valor"] for p in serie if p["valor"] is not None]
     nombre = INDICADORES[indicador][0] + (f" — {materia.materia_prima}" if indicador == "consumo" else "")
     resumen = {

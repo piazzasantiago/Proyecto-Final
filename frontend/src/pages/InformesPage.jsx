@@ -4,6 +4,7 @@ import { listGalpones } from "../api/galpones";
 import { listMateriasPrimas } from "../api/materias-primas";
 import GraficoIndicador from "../components/GraficoIndicador";
 import { BarrasHorizontales, COLORES, Dona } from "../components/GraficosInforme";
+import { EsqueletoInforme } from "../components/Esqueleto";
 
 const TABS = [
   { id: "produccion", ruta: "produccion", texto: "Producción", icono: "fa-egg", cu: "CU85" },
@@ -138,7 +139,7 @@ function TablaInforme({ informe }) {
                   key={c.clave}
                   style={{
                     textAlign: c.tipo === "entero" || c.tipo === "decimal" ? "right" : undefined,
-                    ...(c.clave === "stock_actual" && f.bajo_minimo ? { color: "#c0392b", fontWeight: 700 } : {}),
+                    ...(c.clave === "stock_actual" && f.bajo_minimo ? { color: "var(--red-alerta)", fontWeight: 700 } : {}),
                   }}
                 >
                   {formatear(f[c.clave], c.tipo)}
@@ -431,7 +432,7 @@ export default function InformesPage() {
         </div>
       )}
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Generando informe...</div>}
+      {loading && <EsqueletoInforme texto="Generando informe..." />}
       {faltaFiltro && (
         <div className="empty-state" style={{ padding: 28 }}>
           Elegí una materia prima para ver su consumo en el período.
@@ -480,7 +481,7 @@ export default function InformesPage() {
         <>
           <div className="kpi-grid">
             <Kpi
-              icono="fa-chart-line" fondo="var(--gold-100)" color="#96721e"
+              icono="fa-chart-line" fondo="var(--gold-100)" color="var(--gold-texto)"
               valor={informe.resumen.postura_promedio === null ? "—" : `${nfDecimal.format(informe.resumen.postura_promedio)} %`}
               etiqueta="Postura promedio del período"
             />
@@ -516,7 +517,7 @@ export default function InformesPage() {
             <GraficoIndicador serie={informe.serie} objetivo={objetivoNumero} unidad={informe.unidad} />
 
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 12 }}>
-              <span className="legend-item"><span className="legend-dot" style={{ background: "#2e7d4f" }}></span> Valor real</span>
+              <span className="legend-item"><span className="legend-dot" style={{ background: "var(--serie-real)" }}></span> Valor real</span>
               {objetivoNumero !== null && (
                 <span className="legend-item"><span className="legend-dot" style={{ background: "#c9962b" }}></span> Valor objetivo</span>
               )}

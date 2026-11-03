@@ -3,10 +3,12 @@ import { listLotes, deleteLote, iniciarProduccion, vaciarLote } from "../api/lot
 import { listGalpones } from "../api/galpones";
 import { listLotesPendientes } from "../api/compras";
 import LoteFormModal from "../components/LoteFormModal";
+import useAtajoAlta from "../components/useAtajoAlta";
 import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTablero } from "../components/Esqueleto";
 
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
@@ -74,6 +76,15 @@ export default function LotesPage() {
   // Galpones activos y sin lote en curso: los únicos que pueden recibir un lote nuevo.
   const [galponesLibres, setGalponesLibres] = useState([]);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
+  // Atajos del panel principal: abrir los lotes con el código de un lote buscado.
+  // Atajo desde una alerta del panel: además del código del lote, limpia el
+  // rango de fechas, porque un lote que entró hace más de un año queda fuera
+  // del rango por defecto y la búsqueda no encontraría nada.
+  useAtajoAlta(null, {
+    search: setSearch,
+    fechaDesde: setFechaDesde,
+    fechaHasta: setFechaHasta,
+  });
 
   async function fetchLotes() {
     setLoading(true);
@@ -325,9 +336,9 @@ export default function LotesPage() {
                   gap: 8,
                   padding: "8px 12px",
                   borderRadius: 8,
-                  background: "#fee2e2",
-                  border: "1px solid #fca5a5",
-                  color: "#b91c1c",
+                  background: "var(--red-100)",
+                  border: "1px solid var(--red-borde)",
+                  color: "var(--red-texto)",
                   fontSize: 13,
                   fontWeight: 600,
                 }}
@@ -414,7 +425,7 @@ export default function LotesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando lotes...</div>}
+      {loading && <EsqueletoTablero texto="Cargando lotes..." />}
 
       {!loading && !error && (
         <div className="page-body-split">
