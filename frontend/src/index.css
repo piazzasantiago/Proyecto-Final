@@ -202,8 +202,8 @@
     flex-direction:column;
   }
   .sb-brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:16px;}
-  .sb-brand .logo-mark{width:32px; height:32px; border-radius:9px; background:var(--gold-500); display:flex; align-items:center; justify-content:center; color:var(--green-900); font-size:17px;}
-  .sb-brand span{font-weight:700; font-size:17px;}
+  .sb-brand{min-height:44px;}
+  .sb-marca{position:relative; flex:1; min-width:0; height:44px;}
   .sb-section-label{font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:rgba(255,255,255,0.4); padding:14px 10px 6px;}
   .sb-item{
     display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:8px; color:rgba(255,255,255,0.78);
@@ -1156,3 +1156,34 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 }
 @keyframes logo-aparecer{from{opacity:0;} to{opacity:1;}}
 @media (prefers-reduced-motion: reduce){ .logo-marca{animation:none;} }
+
+/* ── Encabezado del menú: logo + saludo de bienvenida (components/MarcaSidebar.jsx) ── */
+.logo-marca.compacto{font-size:25px; padding:0 0 0 1.15em; animation:none; height:44px; align-items:center;}
+.logo-marca.compacto .logo-huevo-pos{width:1.4em; height:1.75em; margin-top:-.875em;}
+.logo-marca.compacto .logo-huevo{cursor:default;}
+.logo-marca.compacto .logo-sombra{display:none;}
+.sb-marca-logo,.sb-marca-saludo{position:absolute; inset:0; display:flex; align-items:center;}
+.sb-marca-saludo{font-size:20px; font-weight:700; letter-spacing:-0.01em; color:#fff; padding-left:8px; animation:saludo-entra .5s cubic-bezier(.2,.8,.2,1) both;}
+/* Barrido horizontal con máscara: el borde suave recorre el elemento de derecha a izquierda. */
+.sb-marca.fase-saliendo .sb-marca-saludo,
+.sb-marca.fase-entrando .sb-marca-logo{
+  -webkit-mask-size:300% 100%; mask-size:300% 100%; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+}
+.sb-marca.fase-saliendo .sb-marca-saludo{
+  -webkit-mask-image:linear-gradient(90deg,#000 33.33%,transparent 66.66%); mask-image:linear-gradient(90deg,#000 33.33%,transparent 66.66%);
+  animation:barrido-sale .45s cubic-bezier(.4,0,.6,1) forwards;
+}
+.sb-marca.fase-entrando .sb-marca-logo{
+  -webkit-mask-image:linear-gradient(90deg,transparent 33.33%,#000 66.66%); mask-image:linear-gradient(90deg,transparent 33.33%,#000 66.66%);
+  animation:barrido-entra .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.sb-marca.fase-saludo .sb-marca-logo,
+.sb-marca.fase-saliendo .sb-marca-logo{opacity:0;}
+@keyframes barrido-sale{from{-webkit-mask-position:0 0; mask-position:0 0;} to{-webkit-mask-position:100% 0; mask-position:100% 0;}}
+@keyframes barrido-entra{from{-webkit-mask-position:0 0; mask-position:0 0;} to{-webkit-mask-position:100% 0; mask-position:100% 0;}}
+@keyframes saludo-entra{from{opacity:0; transform:translateY(6px); filter:blur(4px);} to{opacity:1; transform:none; filter:none;}}
+@media (prefers-reduced-motion: reduce){
+  .sb-marca-saludo{animation:none;}
+  .sb-marca.fase-saliendo .sb-marca-saludo{animation:none; opacity:0; -webkit-mask-image:none; mask-image:none;}
+  .sb-marca.fase-entrando .sb-marca-logo{animation:none; -webkit-mask-image:none; mask-image:none;}
+}

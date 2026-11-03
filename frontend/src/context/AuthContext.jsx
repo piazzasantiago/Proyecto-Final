@@ -46,6 +46,12 @@ export function AuthProvider({ children }) {
     setToken(data.access);
     // El login ya devuelve el usuario, así que no hace falta pedir /me/.
     setUsuario(data.usuario);
+    try {
+      // Hace que el menú lateral muestre "¡Bienvenido!" una vez en esta sesión.
+      sessionStorage.setItem("avigest-bienvenida", "pendiente");
+    } catch {
+      // Sin sessionStorage simplemente no hay saludo.
+    }
     return data.usuario;
   }, []);
 

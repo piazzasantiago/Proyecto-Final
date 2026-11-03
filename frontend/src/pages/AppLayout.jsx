@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { MENU } from "../config/menu";
+import MarcaSidebar from "../components/MarcaSidebar";
 import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
 
@@ -48,8 +49,7 @@ export default function AppLayout() {
 
       <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sb-brand">
-          <div className="logo-mark"><i className="fa-solid fa-egg"></i></div>
-          <span>AvíGest</span>
+          <MarcaSidebar />
           <button
             type="button"
             className="sidebar-close"
