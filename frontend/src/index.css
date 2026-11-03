@@ -1187,3 +1187,14 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   .sb-marca.fase-saliendo .sb-marca-saludo{animation:none; opacity:0; -webkit-mask-image:none; mask-image:none;}
   .sb-marca.fase-entrando .sb-marca-logo{animation:none; -webkit-mask-image:none; mask-image:none;}
 }
+
+/* ── Tipografía de títulos: Inter SemiBold ──────────────────────────────────
+   Se aplica solo a lo que tiene peso visual (títulos, menú, números grandes).
+   Tablas, formularios y texto chico siguen con la fuente del sistema.
+   Para volver atrás basta con borrar este bloque. */
+:root{ --fuente-titulos:'Inter Variable','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+.page-header h1,.card-title h3,.detail-head h3,.modal-header h3,.dialogo-texto h3,
+.login-panel h1,.login-form h2,.kpi-card .value,.sb-marca-saludo{
+  font-family:var(--fuente-titulos); font-weight:600; letter-spacing:-0.01em;
+}
+.sb-item,.sb-section-label{font-family:var(--fuente-titulos);}
