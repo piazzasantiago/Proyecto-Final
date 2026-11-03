@@ -143,11 +143,13 @@ function Produccion({ dias, hoy, enlazar }) {
         const columna = (
           <>
             <b>{entero(dia.huevos)}</b>
-            <div
-              className={`bar${esHoy ? " bar-hoy" : ""}`}
-              style={{ height: `${Math.max((dia.huevos / maximo) * 100, 2)}%` }}
-              title={`${entero(dia.huevos)} huevos`}
-            ></div>
+            <div className="bar-zona">
+              <div
+                className={`bar${esHoy ? " bar-hoy" : ""}`}
+                style={{ height: `${Math.max((dia.huevos / maximo) * 100, 2)}%` }}
+                title={`${entero(dia.huevos)} huevos`}
+              ></div>
+            </div>
             <span>{esHoy ? "Hoy" : diaCorto(dia.fecha)}</span>
           </>
         );
@@ -383,7 +385,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid-2">
-        <div className="card">
+        <div className="card card-produccion">
           <div className="card-title">
             <div>
               <h3>Producción — últimos 7 días</h3>
