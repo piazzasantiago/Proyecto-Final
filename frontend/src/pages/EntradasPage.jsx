@@ -9,6 +9,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
@@ -201,21 +202,21 @@ export default function EntradasPage() {
     <div className="page active" id="page-entradas">
       <div className="page-header">
         <div>
-          <h1>Entradas</h1>
+          <div className="page-titulo"><h1>Entradas</h1><AyudaSeccion seccion="entradas" /></div>
           <div className="desc">
             Materias primas que se retiran del stock y pasan a un galpón (por ejemplo, el
             balanceado que se carga en los comederos).
           </div>
         </div>
         {puedeEscribir && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nueva entrada
           </button>
         )}
       </div>
 
       {/* Filtros: fechas, galpón, materia prima y estado */}
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
           <span style={{ color: "var(--gray-500)" }}>Desde</span>
           <input
@@ -282,7 +283,7 @@ export default function EntradasPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ── Lista ─────────────────────────────────────────────────── */}
-          <div className="list-panel">
+          <div className="list-panel" data-tutorial="sec-lista">
             {entradas.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
                 {hayFiltros
@@ -308,6 +309,7 @@ export default function EntradasPage() {
                     const isSel = e.id_entrada === selectedId;
                     return (
                       <tr
+                        data-tutorial-fila=""
                         key={e.id_entrada}
                         onClick={() => setSelectedId(e.id_entrada)}
                         style={{
@@ -353,7 +355,7 @@ export default function EntradasPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel">
+            <div className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>Entrada · {formatGalpon(selected)}</h3>
@@ -438,7 +440,7 @@ export default function EntradasPage() {
               {/* Una entrada finalizada ya hizo efecto: queda de solo lectura y no
                   se puede eliminar. */}
               {selected.estado === ESTADO_PENDIENTE && puedeEscribir ? (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

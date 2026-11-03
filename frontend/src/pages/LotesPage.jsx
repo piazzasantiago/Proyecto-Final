@@ -9,6 +9,7 @@ import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTablero } from "../components/Esqueleto";
+import AyudaSeccion from "../components/AyudaSeccion";
 
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
@@ -201,6 +202,7 @@ export default function LotesPage() {
     const isSel = lote.id_lote === selectedId;
     return (
       <div
+        data-tutorial-fila=""
         key={lote.id_lote}
         className={`lote-card${isSel ? " card-selected" : ""}`}
         onClick={() => setSelectedId(lote.id_lote)}
@@ -322,7 +324,7 @@ export default function LotesPage() {
     <div className="page active" id="page-lotes">
       <div className="page-header">
         <div>
-          <h1>Lotes de gallinas</h1>
+          <div className="page-titulo"><h1>Lotes de gallinas</h1><AyudaSeccion seccion="lotes" /></div>
           <div className="desc">Seguimiento del ciclo de vida productivo de cada lote, desde su ingreso hasta el vaciado sanitario.</div>
         </div>
         {esAdministrador && (
@@ -351,6 +353,7 @@ export default function LotesPage() {
             )}
             <button
               className="btn btn-green"
+              data-tutorial="sec-nuevo"
               onClick={() => setModalMode("create")}
               disabled={lotesPendientes.length === 0}
               title={
@@ -366,7 +369,7 @@ export default function LotesPage() {
         )}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -430,7 +433,7 @@ export default function LotesPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ---- Kanban ---- */}
-          <div className="kanban-cols">
+          <div className="kanban-cols" data-tutorial="sec-lista">
             {[
               { key: ESTADO_TRANSICION, label: "Transición" },
               { key: ESTADO_PRODUCCION, label: "Producción" },
@@ -451,7 +454,7 @@ export default function LotesPage() {
 
           {/* ---- Panel de detalle ---- */}
           {selected ? (
-            <div className="detail-panel">
+            <div className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.codigo}</h3>
@@ -497,7 +500,7 @@ export default function LotesPage() {
               </div>
 
               {esAdministrador && (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

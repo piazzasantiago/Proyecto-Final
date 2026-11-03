@@ -94,8 +94,20 @@ export default function Tutorial({ pasos, onCerrar, abrirMenu }) {
     }
 
     const inicio = Date.now();
+    let abierto = false;
     const espera = setInterval(() => {
       const el = buscar(paso.objetivo);
+      if (!el && paso.abrir && !abierto) {
+        // El elemento aparece al elegir un registro: se toca el primero de la lista.
+        abierto = true;
+        const fila = document.querySelector("[data-tutorial-fila]");
+        if (fila) fila.click();
+        else {
+          clearInterval(espera);
+          ir(direccion.current); // lista vacía: no hay nada para mostrar
+        }
+        return;
+      }
       if (el) {
         clearInterval(espera);
         el.scrollIntoView({ block: "center", inline: "nearest", behavior: sinMovimiento() ? "auto" : "smooth" });

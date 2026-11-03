@@ -8,6 +8,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
@@ -191,21 +192,21 @@ export default function SalidasPage() {
     <div className="page active" id="page-salidas">
       <div className="page-header">
         <div>
-          <h1>Salidas</h1>
+          <div className="page-titulo"><h1>Salidas</h1><AyudaSeccion seccion="salidas" /></div>
           <div className="desc">
             Productos que salen de la granja (por ejemplo, el camión que se lleva los huevos
             destinados a la venta).
           </div>
         </div>
         {puedeEscribir && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nueva salida
           </button>
         )}
       </div>
 
       {/* Filtros: fechas, producto y estado */}
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
           <span style={{ color: "var(--gray-500)" }}>Desde</span>
           <input
@@ -261,7 +262,7 @@ export default function SalidasPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ── Lista ─────────────────────────────────────────────────── */}
-          <div className="list-panel">
+          <div className="list-panel" data-tutorial="sec-lista">
             {salidas.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
                 {hayFiltros
@@ -287,6 +288,7 @@ export default function SalidasPage() {
                     const isSel = s.id_salida === selectedId;
                     return (
                       <tr
+                        data-tutorial-fila=""
                         key={s.id_salida}
                         onClick={() => setSelectedId(s.id_salida)}
                         style={{
@@ -332,7 +334,7 @@ export default function SalidasPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel">
+            <div className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>Salida · {formatFecha(selected.fecha)}</h3>
@@ -417,7 +419,7 @@ export default function SalidasPage() {
               {/* Una salida finalizada ya hizo efecto: queda de solo lectura y no
                   se puede eliminar. */}
               {selected.estado === ESTADO_PENDIENTE && puedeEscribir ? (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

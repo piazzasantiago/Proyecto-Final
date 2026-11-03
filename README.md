@@ -189,6 +189,14 @@ frontend/src/
   Cada paso resalta el elemento que lleva `data-tutorial="<objetivo>"`: si se cambia o
   quita ese atributo de una pantalla, el paso se salta solo. "Ya lo vio" se guarda en
   el navegador, por usuario (`localStorage`, clave `avigest-tutorial-visto:<id>`).
+- **Tutorial de cada sección.** Las pantallas de registros tienen un botón "?" junto al
+  título (`components/AyudaSeccion.jsx`) que abre el tutorial de esa sección, con un
+  puntito hasta que se abre por primera vez. Los pasos y los textos por rol están en
+  `config/tutorialSecciones.js`. Cada pantalla marca lo que se resalta con
+  `data-tutorial="sec-nuevo|sec-filtros|sec-lista|sec-detalle|sec-acciones"`, y las filas
+  de la lista llevan `data-tutorial-fila` para que el paso del detalle pueda tocar la
+  primera. Para sumar una sección: agregar su lista de pasos en `SECCIONES`, poner esos
+  atributos en la pantalla y `<AyudaSeccion seccion="..." />` junto al título.
 - **Confirmaciones y avisos.** No se usan `confirm()` ni `alert()` del navegador:
   `components/Dialogo.jsx` ofrece `useDialogo()` con `confirmar({ titulo, mensaje, peligro })`
   y `avisar({ titulo, mensaje })`, que devuelven promesas.
