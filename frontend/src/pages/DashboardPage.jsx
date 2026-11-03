@@ -343,7 +343,7 @@ export default function DashboardPage() {
         <Kpi
           icono="fa-chart-line"
           fondo="var(--gold-100)"
-          color="#96721e"
+          color="var(--gold-texto)"
           valor={porcentaje(datos.postura_hoy)}
           etiqueta="Postura promedio de hoy"
           delta={deltaPostura(datos.variacion_postura)}

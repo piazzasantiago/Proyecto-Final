@@ -64,8 +64,8 @@ export default function GraficoIndicador({ serie, objetivo, unidad }) {
     >
       {marcasY.map((v) => (
         <g key={v}>
-          <line x1={M.izq} x2={W - M.der} y1={y(v)} y2={y(v)} stroke="#e4e9e6" strokeWidth="1" />
-          <text x={M.izq - 8} y={y(v) + 4} textAnchor="end" fontSize="12" fill="#6b7a72">
+          <line x1={M.izq} x2={W - M.der} y1={y(v)} y2={y(v)} stroke="var(--linea-grafico)" strokeWidth="1" />
+          <text x={M.izq - 8} y={y(v) + 4} textAnchor="end" fontSize="12" fill="var(--gray-500)">
             {nf.format(v)}
           </text>
         </g>
@@ -73,7 +73,7 @@ export default function GraficoIndicador({ serie, objetivo, unidad }) {
 
       {serie.map((p, i) =>
         (i % paso === 0 && serie.length - 1 - i >= paso / 2) || i === serie.length - 1 ? (
-          <text key={p.fecha} x={x(i)} y={H - 14} textAnchor="middle" fontSize="12" fill="#6b7a72">
+          <text key={p.fecha} x={x(i)} y={H - 14} textAnchor="middle" fontSize="12" fill="var(--gray-500)">
             {etiquetaFecha(p.fecha)}
           </text>
         ) : null
@@ -85,16 +85,16 @@ export default function GraficoIndicador({ serie, objetivo, unidad }) {
             x1={M.izq} x2={W - M.der} y1={y(objetivo)} y2={y(objetivo)}
             stroke="#c9962b" strokeWidth="2" strokeDasharray="7 5"
           />
-          <text x={W - M.der} y={y(objetivo) - 6} textAnchor="end" fontSize="12" fontWeight="700" fill="#96721e">
+          <text x={W - M.der} y={y(objetivo) - 6} textAnchor="end" fontSize="12" fontWeight="700" fill="var(--gold-texto)">
             Objetivo {nf.format(objetivo)}{unidad === "%" ? " %" : ""}
           </text>
         </g>
       )}
 
-      <path d={trazo} fill="none" stroke="#2e7d4f" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={trazo} fill="none" stroke="var(--serie-real)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
       {serie.map((p, i) =>
         p.valor === null ? null : (
-          <circle key={p.fecha} cx={x(i)} cy={y(p.valor)} r="3.5" fill="#2e7d4f">
+          <circle key={p.fecha} cx={x(i)} cy={y(p.valor)} r="3.5" fill="var(--serie-real)">
             <title>{`${etiquetaFecha(p.fecha)}: ${nf.format(p.valor)} ${unidad}`}</title>
           </circle>
         )

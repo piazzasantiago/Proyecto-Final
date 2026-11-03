@@ -335,9 +335,9 @@ export default function LotesPage() {
                   gap: 8,
                   padding: "8px 12px",
                   borderRadius: 8,
-                  background: "#fee2e2",
-                  border: "1px solid #fca5a5",
-                  color: "#b91c1c",
+                  background: "var(--red-100)",
+                  border: "1px solid var(--red-borde)",
+                  color: "var(--red-texto)",
                   fontSize: 13,
                   fontWeight: 600,
                 }}

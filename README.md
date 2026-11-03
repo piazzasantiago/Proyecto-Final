@@ -170,6 +170,15 @@ frontend/src/
   (función que pide cada página al servidor, para catálogos grandes). Es compatible
   con el `<select>`: `onChange` recibe `target.name` / `target.value` y mantiene la
   validación nativa (`required`, `onInvalid`).
+- **Modo claro y oscuro.** El botón está en el menú lateral, arriba de «Cerrar sesión».
+  Si el usuario nunca eligió, se sigue la preferencia del sistema operativo; la
+  elección se guarda en el navegador (`localStorage`). El tema es el atributo
+  `data-theme` de `<html>`: `index.html` lo pone antes de cargar la aplicación (así
+  no parpadea) y `components/useTema.js` lo cambia. En `index.css` todo color que
+  varía entre temas es una variable (`--surface`, `--gray-*`, `--gold-texto`, etc.)
+  y el tema oscuro las redefine en `:root[data-theme="dark"]`: **no se escriben
+  colores fijos en las pantallas**, se usan esas variables. La pantalla de login
+  conserva siempre sus colores claros.
 - **Confirmaciones y avisos.** No se usan `confirm()` ni `alert()` del navegador:
   `components/Dialogo.jsx` ofrece `useDialogo()` con `confirmar({ titulo, mensaje, peligro })`
   y `avisar({ titulo, mensaje })`, que devuelven promesas.
