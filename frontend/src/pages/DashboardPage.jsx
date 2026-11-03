@@ -235,6 +235,105 @@ const MODULOS_PENDIENTES = [
   { clave: "descartes", texto: "Descartes", ruta: "/app/descartes", icono: "fa-trash-can" },
 ];
 
+/** Un bloque gris con el brillo que se desliza (ver .esqueleto en index.css). */
+function Bloque({ ancho = "100%", alto = 14, radio, style }) {
+  return (
+    <div
+      className="esqueleto"
+      style={{ width: ancho, height: alto, borderRadius: radio, ...style }}
+    ></div>
+  );
+}
+
+/**
+ * Lo que se ve mientras llegan los datos: el panel con su misma estructura, en
+ * gris y con un brillo que lo recorre. Mantener acá la misma disposición que
+ * la pantalla real evita que el contenido «salte» al aparecer.
+ */
+function EsqueletoPanel({ conAcciones, conCompras }) {
+  const alturas = [88, 52, 64, 70, 58, 66, 40];
+  const modulos = conCompras ? 5 : 4;
+  return (
+    <div className="page active" id="page-dashboard" role="status" aria-busy="true">
+      <span className="sr-only">Cargando el panel...</span>
+
+      <div className="page-header">
+        <div>
+          <Bloque ancho={230} alto={28} />
+          <Bloque ancho={340} alto={14} style={{ marginTop: 10 }} />
+        </div>
+        {conAcciones && (
+          <div className="page-header-actions">
+            <Bloque ancho={150} alto={38} radio={9} />
+            <Bloque ancho={150} alto={38} radio={9} />
+          </div>
+        )}
+      </div>
+
+      <div className="kpi-grid">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="kpi-card" key={i}>
+            <div className="kpi-top">
+              <Bloque ancho={34} alto={34} radio={9} />
+              <Bloque ancho={64} alto={18} radio={20} />
+            </div>
+            <Bloque ancho={90} alto={28} style={{ marginTop: 6 }} />
+            <Bloque ancho="70%" alto={14} style={{ marginTop: 10 }} />
+            <Bloque ancho="40%" alto={12} style={{ marginTop: 10 }} />
+          </div>
+        ))}
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <Bloque ancho={220} alto={18} />
+          <Bloque ancho={180} alto={12} style={{ marginTop: 8 }} />
+          <div className="esqueleto-barras">
+            {alturas.map((alto, i) => (
+              <div className="esqueleto-barra-col" key={i}>
+                <Bloque ancho="100%" alto={`${alto}%`} radio="6px 6px 0 0" />
+                <Bloque ancho={28} alto={10} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <Bloque ancho={160} alto={18} />
+          {[0, 1, 2].map((i) => (
+            <div className="esqueleto-fila" key={i}>
+              <Bloque ancho={34} alto={34} radio="50%" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <Bloque ancho="60%" alto={14} />
+                <Bloque ancho="90%" alto={12} style={{ marginTop: 8 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <Bloque ancho={200} alto={18} />
+        <Bloque ancho={280} alto={12} style={{ marginTop: 8 }} />
+        <div className="pendientes-grid" style={{ marginTop: 16 }}>
+          {Array.from({ length: modulos }, (_, i) => (
+            <Bloque key={i} alto={76} radio={12} />
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <Bloque ancho={220} alto={18} />
+        <div className="stock-grid" style={{ marginTop: 16 }}>
+          {[0, 1, 2].map((i) => (
+            <Bloque key={i} alto={150} radio={12} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { esAdministrador, esOperario, esConsulta } = useAuth();
@@ -275,11 +374,7 @@ export default function DashboardPage() {
   const puedeVerProductos = esAdministrador || esConsulta;
 
   if (loading) {
-    return (
-      <div className="page active" id="page-dashboard">
-        <div className="banner banner-loading">Cargando el panel...</div>
-      </div>
-    );
+    return <EsqueletoPanel conAcciones={puedeCargarProduccion} conCompras={!esOperario} />;
   }
 
   if (error) {

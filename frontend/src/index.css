@@ -1109,3 +1109,24 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 .card-produccion{display:flex; flex-direction:column;}
 .card-produccion .bars{flex:1; min-height:220px; height:auto;}
 .bar-zona{flex:1; width:100%; min-height:0; display:flex; align-items:flex-end;}
+
+/* Esqueleto de carga: bloques grises con un brillo que los recorre. Los colores
+   salen de las variables, así que sirve igual en claro y en oscuro. */
+:root{--esqueleto-brillo:rgba(255,255,255,0.7);}
+:root[data-theme="dark"]{--esqueleto-brillo:rgba(255,255,255,0.08);}
+.esqueleto{position:relative; overflow:hidden; background:var(--gray-200); border-radius:8px;}
+.esqueleto::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, transparent, var(--esqueleto-brillo), transparent);
+  animation:esqueleto-brillo 1.5s ease-in-out infinite;
+}
+@keyframes esqueleto-brillo{100%{transform:translateX(100%);}}
+/* Quien pidió menos movimiento ve los bloques quietos. */
+@media (prefers-reduced-motion: reduce){.esqueleto::after{animation:none;}}
+.esqueleto-barras{display:flex; align-items:flex-end; gap:14px; height:220px; margin-top:22px;}
+.esqueleto-barra-col{flex:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:8px;}
+.esqueleto-fila{display:flex; align-items:center; gap:12px; margin-top:18px;}
+/* Texto solo para lectores de pantalla. */
+.sr-only{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+/* Fuera de las tarjetas (el encabezado) el fondo ya es gris: el bloque necesita un tono más marcado. */
+.page-header .esqueleto{background:var(--gray-300);}

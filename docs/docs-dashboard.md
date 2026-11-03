@@ -63,6 +63,11 @@ esta feature con modelos y migraciones propias.
 | Pendientes de finalizar | Recolecciones, entradas, salidas, compras y descartes que siguen en estado Pendiente. El Operario no ve compras |
 | Stock actual de productos | Una tarjeta por producto con su stock, la barra y el porcentaje del total; el total va en el encabezado |
 
+Mientras llegan los datos se muestra un **esqueleto** del panel (bloques grises con
+un brillo que los recorre) con la misma disposición que la pantalla real, para que
+el contenido no salte al aparecer. Respeta la preferencia del sistema de reducir
+el movimiento (`prefers-reduced-motion`: los bloques quedan quietos).
+
 Cuando todavía no hay datos, cada bloque lo dice en lugar de mostrar ceros
 sueltos ("Todavía no hay recolecciones finalizadas en los últimos siete días").
 
