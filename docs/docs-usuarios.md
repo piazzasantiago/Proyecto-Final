@@ -261,12 +261,13 @@ no la conoce. **Se propone incorporarlo al listado de casos de uso.**
 | Galpones | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
 | Lotes de Gallinas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
 | Recolección diaria | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Descartes | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
-| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
 | Compras | Sí (CRUD) | No | Sí (consulta) |
 | Proveedores | Sí (CRUD) | No | Sí (consulta) |
+| Productos | Sí (CRUD) | No | Sí (consulta) |
 | Informes | Sí | No | Sí |
 | Usuarios | Sí (CRUD) | No | No |
 
