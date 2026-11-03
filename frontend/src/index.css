@@ -1267,3 +1267,26 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 }
 @keyframes ayuda-late{0%,100%{transform:scale(1);} 50%{transform:scale(1.3);}}
 @media (prefers-reduced-motion: reduce){ .ayuda-nueva::after{animation:none;} }
+
+/* ── Refinamientos visuales (jerarquía de acciones, respuesta al toque, números) ──────────────
+   Bloque aparte para poder revisarlo o sacarlo sin tocar el resto de la hoja. */
+
+/* Respuesta inmediata al apretar: la tarjeta o el botón reaccionan al tocar, no al soltar. */
+.btn:not(:disabled):active,
+.galpon-card:active,.lote-card:active,.producto-card:active,.usuario-card:active,.mp-card:active,.prov-card:active,
+.tab-btn:active,.sb-item:active,.qa-btn:active{transform:scale(.97);}
+.btn,.galpon-card,.lote-card,.producto-card,.usuario-card,.mp-card,.prov-card,.tab-btn,.sb-item,.qa-btn{transition-property:transform,background,border-color,color,box-shadow,filter; transition-duration:.12s;}
+
+/* Jerarquía en las acciones del detalle: lo principal se destaca y lo destructivo queda discreto. */
+.detail-actions .btn-success-ghost{background:var(--green-100); border-color:transparent; color:var(--green-800);}
+.detail-actions .btn-success-ghost:hover{background:var(--green-100); border-color:var(--green-600); color:var(--green-800);}
+.detail-actions .btn-danger-ghost{flex:0 0 auto; background:transparent; border-color:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; padding-left:12px; padding-right:12px;}
+.detail-actions .btn-danger-ghost:hover{background:var(--red-100); border-color:transparent; color:var(--red-texto);}
+
+/* Números: dígitos del mismo ancho para que las columnas alineen; títulos grandes más juntos. */
+.kpi-card .value,.data-table td,.plan-table td,.bar-col b,.detail-row span,.paginacion,.kpi-delta{font-variant-numeric:tabular-nums;}
+.page-header h1,.login-panel h1,.kpi-card .value{letter-spacing:-0.02em;}
+
+/* El buscador usaba el fondo por defecto del navegador: en oscuro quedaba gris neutro. */
+.search-box input{background:var(--surface); color:var(--gray-900);}
+.search-box input::placeholder{color:var(--gray-500);}
