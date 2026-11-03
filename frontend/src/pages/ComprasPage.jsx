@@ -364,7 +364,7 @@ export default function ComprasPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>Compra {selected.nro_comprobante}</h3>

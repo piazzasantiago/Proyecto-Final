@@ -208,7 +208,7 @@ export default function ProveedoresPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.nombre}</h3>

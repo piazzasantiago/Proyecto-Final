@@ -262,7 +262,7 @@ export default function GalponesPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{formatCodigo(selected.id_galpon)} · {selected.galpon}</h3>

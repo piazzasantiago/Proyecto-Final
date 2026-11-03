@@ -355,7 +355,7 @@ export default function EntradasPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>Entrada · {formatGalpon(selected)}</h3>

@@ -1,6 +1,8 @@
 
   :root{
     --green-900:#1B4A34;
+    --barra:#C9CFCB;      /* barras de los gráficos: color liso, el día de hoy en el verde de la marca */
+    --barra-hoy:#2E8A5C;
     --green-800:#236B48;
     --green-700:#2E8A5C;
     --green-600:#3FA372;
@@ -56,8 +58,10 @@
     --green-50:#17261E;
     --gold-100:#3B3015;
     --red-100:#402321;
-    --green-700:#4DB383;
-    --green-800:#57BB89;
+    --green-500:#6FA489;
+    --green-600:#528E70;
+    --green-700:#6AA68A;
+    --green-800:#7FB398;
     --surface:#1A211E;
     --borde-card:rgba(255,255,255,0.08);
     --borde-card-fuerte:rgba(255,255,255,0.14);
@@ -71,7 +75,9 @@
     --red-alerta:#FF7B6E;
     --red-borde:#7A3A35;
     --warning-texto:#F0A25A;
-    --serie-real:#57BB89;
+    --serie-real:#7FB398;
+    --barra:#515C56;
+    --barra-hoy:#8DBBA2;
     --linea-grafico:#29332E;
   }
   /* El login tiene su propio fondo verde y una tarjeta de vidrio claro: se
@@ -85,6 +91,15 @@
     --green-100:#E4F2EA; --green-50:#F2F8F4; --green-700:#2E8A5C; --green-800:#236B48;
     --red-100:#FBE8E6; --red-texto:#8a2f27;
     --surface:#fff; --vidrio:rgba(255,255,255,0.6); --vidrio-fuerte:rgba(255,255,255,0.85);
+  }
+  /* Verdes del tema oscuro más apagados: el verde de la marca, pero sin el brillo de neón. El login
+     (que conserva el tema claro) se excluye con :not(). */
+  :root[data-theme="dark"] .btn-green:not(#screen-login *){background:rgba(70,118,94,0.94); border-color:rgba(255,255,255,0.14);}
+  :root[data-theme="dark"] .btn-green:not(#screen-login *):hover{background:rgba(58,100,79,0.96);}
+  :root[data-theme="dark"] .sidebar{
+    background:rgba(29,50,41,0.94);
+    -webkit-backdrop-filter:blur(30px) saturate(110%);
+    backdrop-filter:blur(30px) saturate(110%);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
@@ -335,7 +350,7 @@
   /* bar chart (css only) */
   .bars{display:flex; align-items:flex-end; gap:14px; height:170px; padding-top:10px;}
   .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;}
-  .bar{width:100%; border-radius:6px 6px 0 0; background:linear-gradient(180deg, var(--green-500), var(--green-700));}
+  .bar{width:100%; border-radius:6px 6px 0 0; background:var(--barra);}
   .bar-col span{font-size:12px; color:var(--gray-500);}
   .bar-col b{font-size:12px; color:var(--gray-700);}
 
@@ -1057,7 +1072,7 @@
 .card-title .card-sub{font-size:12.5px; color:var(--gray-500); font-weight:500; margin-top:3px;}
 .card-nota{font-size:12.5px; color:var(--gray-500); font-weight:600;}
 /* La barra de hoy se distingue de los días ya cerrados. */
-.bar-hoy{background:linear-gradient(180deg, var(--gold-500), #b3831f);}
+.bar-hoy{background:var(--barra-hoy);}
 /* Los accesos directos son botones de verdad, pero se ven como las tarjetas. */
 .qa-btn{font:inherit; color:inherit; text-align:left; align-items:flex-start;}
 /* Stock: cada producto toma el mismo tono en su tarjeta y en el anillo. */
@@ -1252,3 +1267,46 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 }
 @keyframes ayuda-late{0%,100%{transform:scale(1);} 50%{transform:scale(1.3);}}
 @media (prefers-reduced-motion: reduce){ .ayuda-nueva::after{animation:none;} }
+
+/* ── Refinamientos visuales (jerarquía de acciones, respuesta al toque, números) ──────────────
+   Bloque aparte para poder revisarlo o sacarlo sin tocar el resto de la hoja. */
+
+/* Respuesta inmediata al apretar: la tarjeta o el botón reaccionan al tocar, no al soltar. */
+.btn:not(:disabled):active,
+.galpon-card:active,.lote-card:active,.producto-card:active,.usuario-card:active,.mp-card:active,.prov-card:active,
+.tab-btn:active,.sb-item:active,.qa-btn:active{transform:scale(.97);}
+.btn,.galpon-card,.lote-card,.producto-card,.usuario-card,.mp-card,.prov-card,.tab-btn,.sb-item,.qa-btn{transition-property:transform,background,border-color,color,box-shadow,filter; transition-duration:.12s;}
+
+/* Jerarquía en las acciones del detalle: lo principal se destaca y lo destructivo queda discreto. */
+.detail-actions .btn-success-ghost{background:var(--green-100); border-color:transparent; color:var(--green-800);}
+.detail-actions .btn-success-ghost:hover{background:var(--green-100); border-color:var(--green-600); color:var(--green-800);}
+.detail-actions .btn-danger-ghost{flex:0 0 auto; background:transparent; border-color:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; padding-left:12px; padding-right:12px;}
+.detail-actions .btn-danger-ghost:hover{background:var(--red-100); border-color:transparent; color:var(--red-texto);}
+
+/* Números: dígitos del mismo ancho para que las columnas alineen; títulos grandes más juntos. */
+.kpi-card .value,.data-table td,.plan-table td,.bar-col b,.detail-row span,.paginacion,.kpi-delta{font-variant-numeric:tabular-nums;}
+.page-header h1,.login-panel h1,.kpi-card .value{letter-spacing:-0.02em;}
+
+/* El buscador usaba el fondo por defecto del navegador: en oscuro quedaba gris neutro. */
+.search-box input{background:var(--surface); color:var(--gray-900);}
+.search-box input::placeholder{color:var(--gray-500);}
+
+
+/* ── Movimiento con resorte ────────────────────────────────────────────────────────────────────
+   Entradas con la curva de un resorte críticamente amortiguado (amortiguación 1: llega y se
+   asienta sin rebote), generada con linear(). El panel de detalle entra por la derecha, que es de
+   donde viene; los diálogos nacen desde arriba, donde se abre el cuadro, y se materializan con
+   el velo que se desenfoca. Con movimiento reducido solo hay un fundido corto. */
+:root{ --resorte:cubic-bezier(.2,.9,.25,1); --resorte:linear(0, 0.036, 0.119, 0.223, 0.331, 0.435, 0.529, 0.612, 0.684, 0.744, 0.794, 0.835, 0.869, 0.896, 0.918, 0.935, 0.949, 0.96, 0.969, 0.976, 0.981, 0.985, 1); }
+@keyframes detalle-entra{from{opacity:0; transform:translateX(14px);} to{opacity:1; transform:none;}}
+@keyframes velo-entra{from{opacity:0; -webkit-backdrop-filter:blur(0); backdrop-filter:blur(0);} to{opacity:1;}}
+@keyframes cuadro-entra{from{opacity:0; transform:translateY(10px) scale(.965);} to{opacity:1; transform:none;}}
+@keyframes fundido{from{opacity:0;} to{opacity:1;}}
+.detail-panel{animation:detalle-entra .5s var(--resorte) backwards;}
+.modal-overlay.active{animation:velo-entra .3s ease-out backwards;}
+.modal-overlay.active > .modal-card{transform-origin:50% 0; animation:cuadro-entra .5s var(--resorte) backwards;}
+.dialogo-overlay > .modal-card{transform-origin:50% 40%;}
+@media (prefers-reduced-motion: reduce){
+  .detail-panel,.modal-overlay.active > .modal-card{animation:fundido .15s linear backwards;}
+  .modal-overlay.active{animation:fundido .15s linear backwards;}
+}

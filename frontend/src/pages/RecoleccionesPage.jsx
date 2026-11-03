@@ -380,7 +380,7 @@ export default function RecoleccionesPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{formatGalpon(selected)}</h3>
