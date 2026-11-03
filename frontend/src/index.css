@@ -1,6 +1,8 @@
 
   :root{
     --green-900:#1B4A34;
+    --barra:#C9CFCB;      /* barras de los gráficos: color liso, el día de hoy en el verde de la marca */
+    --barra-hoy:#2E8A5C;
     --green-800:#236B48;
     --green-700:#2E8A5C;
     --green-600:#3FA372;
@@ -56,8 +58,10 @@
     --green-50:#17261E;
     --gold-100:#3B3015;
     --red-100:#402321;
-    --green-700:#4DB383;
-    --green-800:#57BB89;
+    --green-500:#6FA489;
+    --green-600:#528E70;
+    --green-700:#6AA68A;
+    --green-800:#7FB398;
     --surface:#1A211E;
     --borde-card:rgba(255,255,255,0.08);
     --borde-card-fuerte:rgba(255,255,255,0.14);
@@ -71,7 +75,9 @@
     --red-alerta:#FF7B6E;
     --red-borde:#7A3A35;
     --warning-texto:#F0A25A;
-    --serie-real:#57BB89;
+    --serie-real:#7FB398;
+    --barra:#515C56;
+    --barra-hoy:#8DBBA2;
     --linea-grafico:#29332E;
   }
   /* El login tiene su propio fondo verde y una tarjeta de vidrio claro: se
@@ -85,6 +91,15 @@
     --green-100:#E4F2EA; --green-50:#F2F8F4; --green-700:#2E8A5C; --green-800:#236B48;
     --red-100:#FBE8E6; --red-texto:#8a2f27;
     --surface:#fff; --vidrio:rgba(255,255,255,0.6); --vidrio-fuerte:rgba(255,255,255,0.85);
+  }
+  /* Verdes del tema oscuro más apagados: el verde de la marca, pero sin el brillo de neón. El login
+     (que conserva el tema claro) se excluye con :not(). */
+  :root[data-theme="dark"] .btn-green:not(#screen-login *){background:rgba(70,118,94,0.94); border-color:rgba(255,255,255,0.14);}
+  :root[data-theme="dark"] .btn-green:not(#screen-login *):hover{background:rgba(58,100,79,0.96);}
+  :root[data-theme="dark"] .sidebar{
+    background:rgba(29,50,41,0.94);
+    -webkit-backdrop-filter:blur(30px) saturate(110%);
+    backdrop-filter:blur(30px) saturate(110%);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
@@ -335,7 +350,7 @@
   /* bar chart (css only) */
   .bars{display:flex; align-items:flex-end; gap:14px; height:170px; padding-top:10px;}
   .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;}
-  .bar{width:100%; border-radius:6px 6px 0 0; background:linear-gradient(180deg, var(--green-500), var(--green-700));}
+  .bar{width:100%; border-radius:6px 6px 0 0; background:var(--barra);}
   .bar-col span{font-size:12px; color:var(--gray-500);}
   .bar-col b{font-size:12px; color:var(--gray-700);}
 
@@ -1057,7 +1072,7 @@
 .card-title .card-sub{font-size:12.5px; color:var(--gray-500); font-weight:500; margin-top:3px;}
 .card-nota{font-size:12.5px; color:var(--gray-500); font-weight:600;}
 /* La barra de hoy se distingue de los días ya cerrados. */
-.bar-hoy{background:linear-gradient(180deg, var(--gold-500), #b3831f);}
+.bar-hoy{background:var(--barra-hoy);}
 /* Los accesos directos son botones de verdad, pero se ven como las tarjetas. */
 .qa-btn{font:inherit; color:inherit; text-align:left; align-items:flex-start;}
 /* Stock: cada producto toma el mismo tono en su tarjeta y en el anillo. */
