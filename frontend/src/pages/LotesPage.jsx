@@ -76,7 +76,14 @@ export default function LotesPage() {
   const [galponesLibres, setGalponesLibres] = useState([]);
   const [modalMode, setModalMode] = useState(null); // null | "create" | "edit"
   // Atajos del panel principal: abrir los lotes con el código de un lote buscado.
-  useAtajoAlta(null, { search: setSearch });
+  // Atajo desde una alerta del panel: además del código del lote, limpia el
+  // rango de fechas, porque un lote que entró hace más de un año queda fuera
+  // del rango por defecto y la búsqueda no encontraría nada.
+  useAtajoAlta(null, {
+    search: setSearch,
+    fechaDesde: setFechaDesde,
+    fechaHasta: setFechaHasta,
+  });
 
   async function fetchLotes() {
     setLoading(true);

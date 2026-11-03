@@ -14,8 +14,9 @@ Clases de tests:
     CapacidadGalponTests        (6)  F-07 – el galpón debe tener capacidad para el lote
     InicioProduccionTests       (6)  F-09 – fecha de inicio de producción
     PasoAutomaticoAProduccionTests (7)  la transición dura como máximo 4 semanas
+    BusquedaPorCodigoTests     (10)  el buscador entiende el código del lote (L-2026-029)
 
-Total: 80 tests
+Total: 90 tests
 """
 
 import datetime
@@ -823,3 +824,62 @@ class PasoAutomaticoAProduccionTests(TestCase):
         lote = self.lote_con_ingreso_hace(30)
         resp = self.client.post(f"/api/lotes/{lote.id_lote}/iniciar-produccion/")
         self.assertEqual(resp.status_code, 409)
+
+
+# ---------------------------------------------------------------------------
+# Búsqueda por código de lote
+# ---------------------------------------------------------------------------
+
+class BusquedaPorCodigoTests(TestCase):
+    """
+    El código del lote (L-2026-029) es lo que se ve en las tarjetas, en las
+    alertas y en los informes, así que el buscador tiene que entenderlo. No es
+    una columna de la base: se arma con el año de ingreso y el id.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        token_de(self.client, crear_usuario("admin_busqueda", rol=Usuario.ROL_ADMINISTRADOR))
+        self.galpon = crear_galpon()
+        self.lote = crear_lote(self.galpon, fecha_ingreso=datetime.date(2026, 10, 24))
+        self.viejo = crear_lote(self.galpon, fecha_ingreso=datetime.date(2024, 3, 10),
+                                estado=Lote.ESTADO_FINALIZADO)
+
+    def ids(self, texto):
+        resp = self.client.get("/api/lotes/", {"search": texto})
+        self.assertEqual(resp.status_code, 200)
+        return [fila["id_lote"] for fila in resp.data["results"]]
+
+    def test_encuentra_por_el_codigo_completo(self):
+        self.assertEqual(self.ids(self.lote.codigo), [self.lote.pk])
+
+    def test_el_codigo_lleva_el_ano_de_ingreso(self):
+        """Mismo número, otro año: no es ese lote."""
+        self.assertEqual(self.ids(f"L-2025-{self.lote.pk:03d}"), [])
+
+    def test_acepta_minusculas_y_espacios(self):
+        self.assertEqual(self.ids(f"  l 2026 {self.lote.pk:03d}  "), [self.lote.pk])
+
+    def test_acepta_el_ano_y_el_numero_sin_la_ele(self):
+        self.assertEqual(self.ids(f"2026-{self.lote.pk:03d}"), [self.lote.pk])
+
+    def test_acepta_la_ele_y_el_numero_sin_el_ano(self):
+        self.assertEqual(self.ids(f"L-{self.lote.pk}"), [self.lote.pk])
+
+    def test_acepta_el_numero_con_los_ceros_de_relleno(self):
+        self.assertEqual(self.ids(f"{self.lote.pk:03d}"), [self.lote.pk])
+
+    def test_el_numero_suelto_sigue_buscando_por_coincidencia(self):
+        self.assertIn(self.lote.pk, self.ids(str(self.lote.pk)))
+
+    def test_un_codigo_inexistente_no_devuelve_nada(self):
+        self.assertEqual(self.ids("L-2026-999"), [])
+
+    def test_un_texto_cualquiera_no_rompe_la_busqueda(self):
+        self.assertEqual(self.ids("no es un lote"), [])
+
+    def test_se_combina_con_los_demas_filtros(self):
+        resp = self.client.get("/api/lotes/", {"search": self.viejo.codigo, "estado": "T"})
+        self.assertEqual(resp.data["count"], 0)
+        resp = self.client.get("/api/lotes/", {"search": self.viejo.codigo, "estado": "F"})
+        self.assertEqual([f["id_lote"] for f in resp.data["results"]], [self.viejo.pk])

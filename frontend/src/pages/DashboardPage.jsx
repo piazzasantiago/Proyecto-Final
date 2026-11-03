@@ -203,7 +203,7 @@ function Alerta({ alerta, clave }) {
     <Link
       className={`alert-item alert-link ${severidad}`}
       to="/app/lotes"
-      state={{ filtros: { search: alerta.lote } }}
+      state={{ filtros: { search: alerta.lote, fechaDesde: "", fechaHasta: "" } }}
       title="Ver el lote"
     >
       <div className="alert-icon">
