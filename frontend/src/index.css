@@ -1290,3 +1290,23 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 /* El buscador usaba el fondo por defecto del navegador: en oscuro quedaba gris neutro. */
 .search-box input{background:var(--surface); color:var(--gray-900);}
 .search-box input::placeholder{color:var(--gray-500);}
+
+
+/* ── Movimiento con resorte ────────────────────────────────────────────────────────────────────
+   Entradas con la curva de un resorte críticamente amortiguado (amortiguación 1: llega y se
+   asienta sin rebote), generada con linear(). El panel de detalle entra por la derecha, que es de
+   donde viene; los diálogos nacen desde arriba, donde se abre el cuadro, y se materializan con
+   el velo que se desenfoca. Con movimiento reducido solo hay un fundido corto. */
+:root{ --resorte:cubic-bezier(.2,.9,.25,1); --resorte:linear(0, 0.036, 0.119, 0.223, 0.331, 0.435, 0.529, 0.612, 0.684, 0.744, 0.794, 0.835, 0.869, 0.896, 0.918, 0.935, 0.949, 0.96, 0.969, 0.976, 0.981, 0.985, 1); }
+@keyframes detalle-entra{from{opacity:0; transform:translateX(14px);} to{opacity:1; transform:none;}}
+@keyframes velo-entra{from{opacity:0; -webkit-backdrop-filter:blur(0); backdrop-filter:blur(0);} to{opacity:1;}}
+@keyframes cuadro-entra{from{opacity:0; transform:translateY(10px) scale(.965);} to{opacity:1; transform:none;}}
+@keyframes fundido{from{opacity:0;} to{opacity:1;}}
+.detail-panel{animation:detalle-entra .5s var(--resorte) backwards;}
+.modal-overlay.active{animation:velo-entra .3s ease-out backwards;}
+.modal-overlay.active > .modal-card{transform-origin:50% 0; animation:cuadro-entra .5s var(--resorte) backwards;}
+.dialogo-overlay > .modal-card{transform-origin:50% 40%;}
+@media (prefers-reduced-motion: reduce){
+  .detail-panel,.modal-overlay.active > .modal-card{animation:fundido .15s linear backwards;}
+  .modal-overlay.active{animation:fundido .15s linear backwards;}
+}

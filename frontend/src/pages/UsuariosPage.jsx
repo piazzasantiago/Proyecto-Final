@@ -240,7 +240,7 @@ export default function UsuariosPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div className="uc-head-user">
                   <div className="uc-avatar uc-avatar-sm">{iniciales(selected)}</div>

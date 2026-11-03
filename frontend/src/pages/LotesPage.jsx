@@ -454,7 +454,7 @@ export default function LotesPage() {
 
           {/* ---- Panel de detalle ---- */}
           {selected ? (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.codigo}</h3>

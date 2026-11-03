@@ -230,7 +230,7 @@ export default function MateriaPrimasPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel" data-tutorial="sec-detalle">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.materia_prima}</h3>
