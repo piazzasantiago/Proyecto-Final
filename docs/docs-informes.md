@@ -138,12 +138,15 @@ los endpoints son de solo lectura (un `POST` devuelve 405).
   ("El período no puede superar los 366 días (un año). Acortá el rango de fechas."),
   sin el nombre interno del campo; los botones de exportar quedan deshabilitados
   hasta corregir el rango. El backend mantiene la misma validación (400).
-- **Logo del sistema en las exportaciones.** El PDF lleva un encabezado verde con el
-  nombre del sistema, la fecha de generación y el logo a la derecha, un pie con el
-  título del informe y "Página X de Y", y el logo muy tenue como marca de agua de
-  fondo. El Excel muestra el logo en la esquina superior derecha de la hoja. El
-  archivo está en `backend/informes/recursos/logo.png`. Además, el Excel se imprime
-  en horizontal y ajustado al ancho de la hoja.
+- **Ícono del sistema en las exportaciones.** El PDF lleva un encabezado verde con el
+  nombre del sistema, la fecha de generación y el huevo dorado de la marca a la
+  derecha, un pie con el título del informe y "Página X de Y", y el mismo huevo muy
+  tenue (10 % de opacidad) como marca de agua de fondo. El Excel muestra el ícono de
+  la app (una baldosa verde con el huevo dorado) en la esquina superior derecha de la
+  hoja, porque tiene fondo blanco. Los archivos están en `backend/informes/recursos/`:
+  `logo-aro.png` (huevo dorado con fondo transparente, para el PDF) y `logo.png`
+  (baldosa, para el Excel). Además, el Excel se imprime en horizontal y ajustado al
+  ancho de la hoja.
 
 ---
 
@@ -203,7 +206,7 @@ por día), `promedio`, `unidad` y `resumen`.
 
 ```
 backend/informes/{calculos,exportacion,views,urls,apps,tests}.py
-backend/informes/recursos/logo.png
+backend/informes/recursos/{logo,logo-aro}.png
 backend/requirements.txt          (openpyxl y reportlab)
 backend/config/{settings,urls}.py
 frontend/src/{api/informes.js, components/GraficoIndicador.jsx, components/GraficosInforme.jsx,
