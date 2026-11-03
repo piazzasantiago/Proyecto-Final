@@ -1205,3 +1205,33 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   font-family:var(--fuente-titulos); font-weight:600; letter-spacing:-0.01em;
 }
 .sb-item,.sb-section-label{font-family:var(--fuente-titulos);}
+
+/* ── Tutorial guiado (components/Tutorial.jsx) ─────────────────────────────── */
+.tut-velo{position:fixed; inset:0; z-index:700; touch-action:none;}
+.tut-velo.sin-foco{background:rgba(10,24,17,.62); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); animation:tut-velo-entra .3s ease both;}
+/* El resaltado es un hueco: la sombra gigante oscurece todo lo demás, y se desliza de un paso al siguiente. */
+.tut-foco{
+  position:fixed; z-index:701; border-radius:16px; pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(10,24,17,.62), 0 0 0 2px rgba(224,179,64,.95);
+  transition:top .38s cubic-bezier(.2,.8,.2,1), left .38s cubic-bezier(.2,.8,.2,1), width .38s cubic-bezier(.2,.8,.2,1), height .38s cubic-bezier(.2,.8,.2,1);
+}
+.tut-card{
+  position:fixed; z-index:702; width:min(360px, calc(100vw - 24px)); box-sizing:border-box;
+  background:var(--surface); color:var(--gray-900); border:1px solid var(--borde-card); border-radius:18px;
+  padding:16px 18px 14px; box-shadow:0 18px 48px rgba(10,24,17,.38);
+  transition:top .38s cubic-bezier(.2,.8,.2,1), left .38s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+}
+.tut-barra{height:4px; border-radius:4px; background:var(--gray-200); overflow:hidden; margin-bottom:14px;}
+.tut-barra span{display:block; height:100%; border-radius:4px; background:var(--gold-500); transition:width .38s cubic-bezier(.2,.8,.2,1);}
+.tut-card h3{font-family:var(--fuente-titulos); font-size:18px; font-weight:600; letter-spacing:-0.01em; margin:0 0 6px;}
+.tut-card p{font-size:15px; line-height:1.55; color:var(--gray-700); margin:0 0 16px;}
+.tut-acciones{display:flex; align-items:center; gap:8px;}
+.tut-espacio{flex:1;}
+.tut-omitir{background:none; border:none; font:inherit; font-size:14.5px; color:var(--gray-500); cursor:pointer; padding:8px 6px; border-radius:8px;}
+.tut-omitir:hover{color:var(--gray-900);}
+.tut-omitir:focus-visible{outline:2px solid var(--gold-500); outline-offset:2px;}
+@keyframes tut-velo-entra{from{opacity:0;} to{opacity:1;}}
+@media (prefers-reduced-motion: reduce){
+  .tut-velo.sin-foco{animation:none;}
+  .tut-foco,.tut-card,.tut-barra span{transition:none;}
+}

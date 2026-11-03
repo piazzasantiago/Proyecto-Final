@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { MENU } from "../config/menu";
+import { marcarTutorialVisto, pasosParaRol, tutorialVisto } from "../config/tutorial";
 import MarcaSidebar from "../components/MarcaSidebar";
+import Tutorial from "../components/Tutorial";
 import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
 
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
+
+/** "Producción" -> "produccion": identifica cada grupo del menú para el tutorial. */
+const idGrupo = (nombre) => nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 /** Iniciales para el avatar: "Juan Pérez" -> "JP". */
 function iniciales(usuario) {
@@ -20,6 +25,21 @@ export default function AppLayout() {
   const { esOscuro, alternar } = useTema();
   // Controla el sidebar como panel deslizante en tablet/celular.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Tutorial guiado: arranca solo la primera vez que el usuario entra, y se repite con un botón del menú.
+  const [tutorialActivo, setTutorialActivo] = useState(false);
+  const [marcaLista, setMarcaLista] = useState(false);
+  const avisarMarcaLista = useCallback(() => setMarcaLista(true), []);
+
+  useEffect(() => {
+    if (!marcaLista || !usuario || tutorialVisto(usuario)) return undefined;
+    const t = setTimeout(() => setTutorialActivo(true), 400);
+    return () => clearTimeout(t);
+  }, [marcaLista, usuario]);
+
+  const cerrarTutorial = useCallback(() => {
+    marcarTutorialVisto(usuario);
+    setTutorialActivo(false);
+  }, [usuario]);
 
   async function handleLogout() {
     await cerrarSesion();
@@ -47,9 +67,9 @@ export default function AppLayout() {
         ></div>
       )}
 
-      <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
+      <div className={`sidebar${sidebarOpen ? " open" : ""}`} data-tutorial="menu">
         <div className="sb-brand">
-          <MarcaSidebar />
+          <MarcaSidebar onLista={avisarMarcaLista} />
           <button
             type="button"
             className="sidebar-close"
@@ -67,7 +87,7 @@ export default function AppLayout() {
             if (visibles.length === 0) return null;
 
             return (
-              <div key={grupo.grupo}>
+              <div key={grupo.grupo} data-tutorial={`menu-${idGrupo(grupo.grupo)}`}>
                 <div className="sb-section-label">{grupo.grupo}</div>
                 {visibles.map((item) => (
                   <NavLink key={item.to} to={item.to} className={navItemClass}>
@@ -90,6 +110,14 @@ export default function AppLayout() {
           <button
             type="button"
             className="sb-tema"
+            data-tutorial="btn-tutorial"
+            onClick={() => setTutorialActivo(true)}
+          >
+            <i className="fa-solid fa-circle-question"></i> Ver tutorial
+          </button>
+          <button
+            type="button"
+            className="sb-tema"
             onClick={alternar}
             aria-pressed={esOscuro}
             title={esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
@@ -106,6 +134,10 @@ export default function AppLayout() {
       <div className="main">
         <Outlet />
       </div>
+
+      {tutorialActivo && (
+        <Tutorial pasos={pasosParaRol(rol)} onCerrar={cerrarTutorial} abrirMenu={setSidebarOpen} />
+      )}
     </div>
   );
 }

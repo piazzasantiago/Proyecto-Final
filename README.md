@@ -182,6 +182,13 @@ frontend/src/
 - **Carga de datos.** Mientras llegan los datos se muestra el esqueleto de la pantalla
   (bloques grises con un brillo), no un cartel de texto: usar el componente que
   corresponda de `components/Esqueleto.jsx` en lugar de un `banner-loading`.
+- **Tutorial guiado.** La primera vez que un usuario entra (después del saludo de
+  bienvenida) se muestra un recorrido que resalta el menú y el dashboard; se omite con
+  el botón, con Esc, y se repite con "Ver tutorial" en el menú lateral. Los pasos y sus
+  textos por rol están en `config/tutorial.js`; `components/Tutorial.jsx` los muestra.
+  Cada paso resalta el elemento que lleva `data-tutorial="<objetivo>"`: si se cambia o
+  quita ese atributo de una pantalla, el paso se salta solo. "Ya lo vio" se guarda en
+  el navegador, por usuario (`localStorage`, clave `avigest-tutorial-visto:<id>`).
 - **Confirmaciones y avisos.** No se usan `confirm()` ni `alert()` del navegador:
   `components/Dialogo.jsx` ofrece `useDialogo()` con `confirmar({ titulo, mensaje, peligro })`
   y `avisar({ titulo, mensaje })`, que devuelven promesas.

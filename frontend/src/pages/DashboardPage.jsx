@@ -387,7 +387,7 @@ export default function DashboardPage() {
   return (
     <div className="page active" id="page-dashboard">
       <div className="page-header">
-        <div>
+        <div data-tutorial="dash-titulo">
           <h1>Panel principal</h1>
           <div className="desc">
             {fechaLarga(hoy)} ·{" "}
@@ -397,7 +397,7 @@ export default function DashboardPage() {
           </div>
         </div>
         {puedeCargarProduccion && (
-          <div className="page-header-actions">
+          <div className="page-header-actions" data-tutorial="dash-acciones">
             <button type="button" className="btn btn-green" onClick={() => irACargar("/app/recoleccion")}>
               <i className="fa-solid fa-egg"></i> Nueva recolección
             </button>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="kpi-grid">
+      <div className="kpi-grid" data-tutorial="dash-kpis">
         <Kpi
           icono="fa-egg"
           fondo="var(--green-100)"
@@ -471,7 +471,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid-2">
-        <div className="card card-produccion">
+        <div className="card card-produccion" data-tutorial="dash-produccion">
           <div className="card-title">
             <div>
               <h3>Producción — últimos 7 días</h3>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
           <Produccion dias={datos.produccion} hoy={hoy} enlazar={puedeVerInformes} />
         </div>
 
-        <div className="card" ref={alertasRef}>
+        <div className="card" ref={alertasRef} data-tutorial="dash-alertas">
           <div className="card-title">
             <h3>Alertas recientes</h3>
             {datos.alertas_pendientes > 0 && (
@@ -521,7 +521,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="card" style={{ marginTop: 18 }} data-tutorial="dash-pendientes">
         <div className="card-title">
           <div>
             <h3>Pendientes de finalizar</h3>
@@ -552,7 +552,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="card" style={{ marginTop: 18 }} data-tutorial="dash-stock">
         <div className="card-title">
           <h3>Stock actual de productos</h3>
           {stock.items.length > 0 && (
