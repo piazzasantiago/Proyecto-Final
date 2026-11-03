@@ -105,16 +105,23 @@
   .login-bg{
     position:absolute; inset:-12%; z-index:0; overflow:hidden;
     background:linear-gradient(160deg, #142e21, #1b4a34 55%, #142e21);
-    filter:blur(70px) saturate(150%);
+    filter:saturate(150%);
     transform:scale(1.05);
   }
-  .bg-circle{position:absolute; border-radius:50%;}
-  .bg-c1{width:34%; aspect-ratio:1; left:-6%; top:-8%; background:var(--green-500); opacity:.6;}
-  .bg-c2{width:26%; aspect-ratio:1; right:6%; top:-6%; background:var(--gold-500); opacity:.55;}
-  .bg-c3{width:32%; aspect-ratio:1; left:10%; bottom:-12%; background:var(--green-700); opacity:.55;}
-  .bg-c4{width:30%; aspect-ratio:1; right:-8%; bottom:0%; background:var(--green-900); opacity:.7;}
-  .bg-c5{width:24%; aspect-ratio:1; left:20%; top:32%; background:var(--gold-500); opacity:.4;}
-  .bg-c6{width:20%; aspect-ratio:1; left:38%; top:12%; background:var(--green-500); opacity:.35;}
+  /* El desenfoque va en cada círculo (no en el contenedor): así se calcula una vez y el movimiento
+     lo resuelve la placa de video, sin redibujar el desenfoque en cada cuadro. */
+  .bg-circle{position:absolute; border-radius:50%; filter:blur(70px); will-change:transform; animation:bg-flota var(--bg-dur,12s) ease-in-out var(--bg-delay,0s) infinite alternate;}
+  .bg-c1{--bg-dur:11s; --bg-delay:0s; --bg-dx:25%; --bg-dy:18%; width:34%; aspect-ratio:1; left:-6%; top:-8%; background:var(--green-500); opacity:.6;}
+  .bg-c2{--bg-dur:14s; --bg-delay:-6s; --bg-dx:-21%; --bg-dy:25%; width:26%; aspect-ratio:1; right:6%; top:-6%; background:var(--gold-500); opacity:.55;}
+  .bg-c3{--bg-dur:13s; --bg-delay:-12s; --bg-dx:18%; --bg-dy:-21%; width:32%; aspect-ratio:1; left:10%; bottom:-12%; background:var(--green-700); opacity:.55;}
+  .bg-c4{--bg-dur:15s; --bg-delay:-4s; --bg-dx:-25%; --bg-dy:-14%; width:30%; aspect-ratio:1; right:-8%; bottom:0%; background:var(--green-900); opacity:.7;}
+  .bg-c5{--bg-dur:10s; --bg-delay:-9s; --bg-dx:32%; --bg-dy:21%; width:24%; aspect-ratio:1; left:20%; top:32%; background:var(--gold-500); opacity:.4;}
+  .bg-c6{--bg-dur:12s; --bg-delay:-15s; --bg-dx:-18%; --bg-dy:28%; width:20%; aspect-ratio:1; left:38%; top:12%; background:var(--green-500); opacity:.35;}
+  @keyframes bg-flota{
+    from{transform:translate3d(0,0,0) scale(1);}
+    to{transform:translate3d(var(--bg-dx),var(--bg-dy),0) scale(1.25);}
+  }
+  @media (prefers-reduced-motion: reduce){ .bg-circle{animation:none;} }
   .login-panel{
     background:linear-gradient(160deg, rgba(20,60,42,0.45), rgba(12,31,22,0.6));
     -webkit-backdrop-filter:blur(8px);
