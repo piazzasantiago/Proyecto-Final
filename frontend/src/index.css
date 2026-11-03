@@ -79,6 +79,7 @@
      oscuro. El botón de tema vive dentro de la aplicación. */
   :root[data-theme="dark"] #screen-login{
     color-scheme:light;
+    color:#1E2422;  /* el texto hereda el color del body, que en oscuro es claro */
     --gray-900:#1E2422; --gray-700:#4A544F; --gray-500:#7C8781;
     --gray-300:#D8DFDA; --gray-200:#E9EEEA; --gray-100:#F5F7F5;
     --green-100:#E4F2EA; --green-50:#F2F8F4; --green-700:#2E8A5C; --green-800:#236B48;
