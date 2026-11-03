@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -292,7 +293,7 @@ export default function RecoleccionesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando recolecciones...</div>}
+      {loading && <EsqueletoTabla texto="Cargando recolecciones..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

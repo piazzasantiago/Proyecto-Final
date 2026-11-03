@@ -15,6 +15,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADO = "F";
@@ -313,7 +314,7 @@ export default function DescartesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando descartes...</div>}
+      {loading && <EsqueletoTabla texto="Cargando descartes..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

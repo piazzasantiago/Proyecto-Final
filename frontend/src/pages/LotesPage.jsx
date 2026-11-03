@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTablero } from "../components/Esqueleto";
 
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
@@ -424,7 +425,7 @@ export default function LotesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando lotes...</div>}
+      {loading && <EsqueletoTablero texto="Cargando lotes..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

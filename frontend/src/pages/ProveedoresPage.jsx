@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 export default function ProveedoresPage() {
   const { confirmar, avisar } = useDialogo();
@@ -155,7 +156,7 @@ export default function ProveedoresPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando proveedores...</div>}
+      {loading && <EsqueletoTarjetas texto="Cargando proveedores..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

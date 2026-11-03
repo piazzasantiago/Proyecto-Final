@@ -179,6 +179,9 @@ frontend/src/
   y el tema oscuro las redefine en `:root[data-theme="dark"]`: **no se escriben
   colores fijos en las pantallas**, se usan esas variables. La pantalla de login
   conserva siempre sus colores claros.
+- **Carga de datos.** Mientras llegan los datos se muestra el esqueleto de la pantalla
+  (bloques grises con un brillo), no un cartel de texto: usar el componente que
+  corresponda de `components/Esqueleto.jsx` en lugar de un `banner-loading`.
 - **Confirmaciones y avisos.** No se usan `confirm()` ni `alert()` del navegador:
   `components/Dialogo.jsx` ofrece `useDialogo()` con `confirmar({ titulo, mensaje, peligro })`
   y `avisar({ titulo, mensaje })`, que devuelven promesas.

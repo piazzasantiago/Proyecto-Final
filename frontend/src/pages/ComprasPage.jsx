@@ -9,6 +9,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
@@ -281,7 +282,7 @@ export default function ComprasPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando compras...</div>}
+      {loading && <EsqueletoTabla texto="Cargando compras..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

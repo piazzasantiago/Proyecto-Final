@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { getResumenDashboard } from "../api/dashboard";
 import { useAuth } from "../context/AuthContext";
+import { Bloque } from "../components/Esqueleto";
 
 // Ícono de cada tipo de alerta. La clave la define el backend (TiposAlerta);
 // el dibujo es cosa de la pantalla, por eso el mapa vive acá.
@@ -234,16 +235,6 @@ const MODULOS_PENDIENTES = [
   { clave: "compras", texto: "Compras", ruta: "/app/compras", icono: "fa-cart-shopping" },
   { clave: "descartes", texto: "Descartes", ruta: "/app/descartes", icono: "fa-trash-can" },
 ];
-
-/** Un bloque gris con el brillo que se desliza (ver .esqueleto en index.css). */
-function Bloque({ ancho = "100%", alto = 14, radio, style }) {
-  return (
-    <div
-      className="esqueleto"
-      style={{ width: ancho, height: alto, borderRadius: radio, ...style }}
-    ></div>
-  );
-}
 
 /**
  * Lo que se ve mientras llegan los datos: el panel con su misma estructura, en

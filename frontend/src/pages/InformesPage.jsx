@@ -4,6 +4,7 @@ import { listGalpones } from "../api/galpones";
 import { listMateriasPrimas } from "../api/materias-primas";
 import GraficoIndicador from "../components/GraficoIndicador";
 import { BarrasHorizontales, COLORES, Dona } from "../components/GraficosInforme";
+import { EsqueletoInforme } from "../components/Esqueleto";
 
 const TABS = [
   { id: "produccion", ruta: "produccion", texto: "Producción", icono: "fa-egg", cu: "CU85" },
@@ -431,7 +432,7 @@ export default function InformesPage() {
         </div>
       )}
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Generando informe...</div>}
+      {loading && <EsqueletoInforme texto="Generando informe..." />}
       {faltaFiltro && (
         <div className="empty-state" style={{ padding: 28 }}>
           Elegí una materia prima para ver su consumo en el período.

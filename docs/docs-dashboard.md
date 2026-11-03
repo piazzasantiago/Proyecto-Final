@@ -68,6 +68,13 @@ un brillo que los recorre) con la misma disposición que la pantalla real, para 
 el contenido no salte al aparecer. Respeta la preferencia del sistema de reducir
 el movimiento (`prefers-reduced-motion`: los bloques quedan quietos).
 
+El mismo recurso se usa en todas las pantallas del sistema: `components/Esqueleto.jsx`
+tiene un esqueleto por disposición (`EsqueletoTabla` para las listas con detalle,
+`EsqueletoTarjetas` para las secciones de tarjetas, `EsqueletoTablero` para Lotes y
+`EsqueletoInforme`). El encabezado y los filtros de cada pantalla quedan visibles y el
+esqueleto reemplaza solo el contenido. Si una pantalla cambia su disposición, hay
+que ajustar el esqueleto que le corresponde.
+
 Cuando todavía no hay datos, cada bloque lo dice en lugar de mostrar ceros
 sueltos ("Todavía no hay recolecciones finalizadas en los últimos siete días").
 

@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 export default function MateriaPrimasPage() {
   const { confirmar, avisar } = useDialogo();
@@ -168,7 +169,7 @@ export default function MateriaPrimasPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando materias primas...</div>}
+      {loading && <EsqueletoTarjetas texto="Cargando materias primas..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

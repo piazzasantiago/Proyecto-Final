@@ -12,6 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 export default function ProductosPage() {
   const { confirmar, avisar } = useDialogo();
@@ -166,7 +167,7 @@ export default function ProductosPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando productos...</div>}
+      {loading && <EsqueletoTarjetas texto="Cargando productos..." productos />}
 
       {!loading && !error && (
         <div className="page-body-split">

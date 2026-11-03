@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
 const BADGE_ROL = { A: "badge-gold", O: "badge-green", C: "badge-gray" };
@@ -195,7 +196,7 @@ export default function UsuariosPage() {
 
       {error && <div className="banner banner-error">{error}</div>}
       {aviso && <div className="banner banner-ok">{aviso}</div>}
-      {loading && <div className="banner banner-loading">Cargando usuarios...</div>}
+      {loading && <EsqueletoTarjetas texto="Cargando usuarios..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

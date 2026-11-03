@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
+import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
@@ -202,7 +203,7 @@ export default function GalponesPage() {
       </div>
 
       {error && <div className="banner banner-error">{error}</div>}
-      {loading && <div className="banner banner-loading">Cargando galpones...</div>}
+      {loading && <EsqueletoTarjetas texto="Cargando galpones..." />}
 
       {!loading && !error && (
         <div className="page-body-split">

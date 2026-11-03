@@ -1130,3 +1130,16 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 .sr-only{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
 /* Fuera de las tarjetas (el encabezado) el fondo ya es gris: el bloque necesita un tono más marcado. */
 .page-header .esqueleto{background:var(--gray-300);}
+
+/* Esqueletos de las pantallas (ver components/Esqueleto.jsx). */
+.esqueleto-tabla-cabecera, .esqueleto-tabla-fila{display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:14px; align-items:center; padding:12px 14px;}
+.esqueleto-tabla-cabecera{background:var(--gray-100); border-bottom:1px solid var(--gray-200);}
+.esqueleto-tabla-fila{padding:15px 14px; border-bottom:1px solid var(--gray-200);}
+.esqueleto-tabla-fila:last-child{border-bottom:none;}
+.esqueleto-tarjeta{background:var(--surface); border:1px solid var(--borde-card); border-radius:16px; padding:16px; min-height:150px;}
+.esqueleto-kanban-cabecera{background:var(--gray-100);}
+.esqueleto-detalle{position:static;}
+.esqueleto-detalle-cabecera{display:flex; align-items:flex-start; gap:12px; padding:18px 20px; border-bottom:1px solid var(--gray-200);}
+.esqueleto-detalle-cuerpo{padding:14px 20px 20px;}
+.esqueleto-detalle-fila{display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px dashed var(--gray-200);}
+/* En el panel del detalle el fondo es la superficie: los bloques de las tarjetas ya contrastan. */
