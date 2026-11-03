@@ -78,7 +78,10 @@ su umbral están en `docs/docs-dashboard.md`.
 
 ### Acceso por rol
 
-El sistema define tres roles con distintos niveles de acceso:
+El sistema define tres roles con distintos niveles de acceso. Las secciones se
+listan en el mismo orden en que aparecen en el menú lateral, que va de lo que
+más se usa a lo que menos: primero la producción del día a día, después los
+insumos y por último la gestión del sistema.
 
 | Sección | Administrador | Operario | Consulta |
 |---|:---:|:---:|:---:|
@@ -86,13 +89,13 @@ El sistema define tres roles con distintos niveles de acceso:
 | Galpones | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
 | Lotes de Gallinas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
 | Recolección diaria | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
+| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Descartes | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Salidas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
-| Entradas | Sí (CRUD) | Sí (CRUD) | Sí (consulta) |
 | Materias Primas | Sí (CRUD) | Sí (consulta) | Sí (consulta) |
-| Productos | Sí (CRUD) | No | Sí (consulta) |
 | Compras | Sí (CRUD) | No | Sí (consulta) |
 | Proveedores | Sí (CRUD) | No | Sí (consulta) |
+| Productos | Sí (CRUD) | No | Sí (consulta) |
 | Informes | Sí | No | Sí |
 | Usuarios | Sí (CRUD) | No | No |
 
@@ -138,6 +141,7 @@ backend/
 ├── alertas/         alertas de los lotes: reglas y generación automática
 ├── dashboard/       resumen del panel principal (sin modelos propios)
 ├── poblar_datos.py  script que carga datos de ejemplo para probar el sistema
+├── poblar_datos_v2.py  el mismo script, con mucho más volumen y variedad
 └── manage.py
 ```
 
@@ -275,6 +279,24 @@ cantidades se simulan día por día, así que el stock nunca queda negativo y se
 respetan las reglas del sistema. También deja algunos registros pendientes, una
 compra de lotes sin asignar y materias primas bajo el stock mínimo, para probar
 los estados y las alertas.
+
+#### Juego de datos grande
+
+`backend/poblar_datos_v2.py` hace lo mismo pero con mucho más volumen, para ver
+el sistema como se va a usar: un año de historial, 12 galpones, 16 lotes a lo
+largo de dos años, 22 materias primas, 30 proveedores y más de 2.000
+recolecciones. Los mismos parámetros:
+
+```bash
+python poblar_datos_v2.py --limpiar --si   # por defecto, 365 días de historial
+python poblar_datos_v2.py --dias 180       # historial más corto (de 60 a 500)
+```
+
+Además deja preparadas las cuatro alertas del panel (postura baja, mortandad
+alta, transición por vencer y un galpón sin recolecciones recientes) y algunas
+alertas ya resueltas, como si el sistema hubiera estado corriendo todo el año.
+Los dos scripts cargan los mismos usuarios de prueba; el segundo agrega cuatro
+operarios más, un segundo usuario de consulta y un operario dado de baja.
 
 Usuarios de prueba (todos con la clave `AviGest2026!`):
 
