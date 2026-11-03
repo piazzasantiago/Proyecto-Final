@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDialogo } from "../components/Dialogo";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
@@ -204,7 +205,7 @@ export default function RecoleccionesPage() {
     <div className="page active" id="page-recoleccion">
       <div className="page-header">
         <div>
-          <h1>Recolección diaria</h1>
+          <div className="page-titulo"><h1>Recolección diaria</h1><AyudaSeccion seccion="recoleccion" /></div>
           <div className="desc">
             Registro de huevos recolectados por galpón y producto.
           </div>
@@ -212,6 +213,7 @@ export default function RecoleccionesPage() {
         {puedeEscribir && (
           <button
             className="btn btn-green"
+            data-tutorial="sec-nuevo"
             onClick={() => setModalMode("create")}
           >
             <i className="fa-solid fa-plus"></i> Nueva recolección
@@ -220,7 +222,7 @@ export default function RecoleccionesPage() {
       </div>
 
       {/* Filtros: fechas, galpón, lote y estado */}
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
           <span style={{ color: "var(--gray-500)" }}>Desde</span>
           <input
@@ -298,7 +300,7 @@ export default function RecoleccionesPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ── Lista ─────────────────────────────────────────────────── */}
-          <div className="list-panel">
+          <div className="list-panel" data-tutorial="sec-lista">
             {recolecciones.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
                 {fechaDesde || fechaHasta || galponFilter || loteFilter || estadoFilter
@@ -326,6 +328,7 @@ export default function RecoleccionesPage() {
                     const isSel = rec.id_recoleccion === selectedId;
                     return (
                       <tr
+                        data-tutorial-fila=""
                         key={rec.id_recoleccion}
                         onClick={() => setSelectedId(rec.id_recoleccion)}
                         style={{
@@ -377,7 +380,7 @@ export default function RecoleccionesPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{formatGalpon(selected)}</h3>
@@ -468,7 +471,7 @@ export default function RecoleccionesPage() {
 
               {/* Acciones */}
               {selected.estado === ESTADO_PENDIENTE && puedeEscribir ? (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button
                     className="btn btn-outline"
                     onClick={() => setModalMode("edit")}

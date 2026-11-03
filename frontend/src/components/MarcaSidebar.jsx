@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import LogoAvigest from "./LogoAvigest";
 
@@ -24,7 +24,7 @@ function corresponde() {
  * el logo aparece de derecha a izquierda (nunca se ven los dos a la vez). Ambas
  * capas ocupan el mismo espacio, así que el menú no se mueve.
  */
-export default function MarcaSidebar() {
+export default function MarcaSidebar({ onLista }) {
   // Una fase a la vez, sin que se superpongan: saludo -> saliendo -> entrando -> fin
   const [fase, setFase] = useState(() => (corresponde() ? "saludo" : "fin"));
 
@@ -33,6 +33,13 @@ export default function MarcaSidebar() {
     if (!siguiente) return undefined;
     const t = setTimeout(() => setFase(siguiente[0]), siguiente[1]);
     return () => clearTimeout(t);
+  }, [fase]);
+
+  // Avisa cuando el saludo ya terminó (o no hubo), para que el tutorial no se pise con él.
+  const avisar = useRef(onLista);
+  avisar.current = onLista;
+  useEffect(() => {
+    if (fase === "fin") avisar.current?.();
   }, [fase]);
 
   return (

@@ -28,8 +28,14 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 PDF = "application/pdf"
 
-# Logo del sistema que se muestra en el margen superior derecho de cada informe.
-LOGO = Path(__file__).resolve().parent / "recursos" / "logo.png"
+# Íconos del sistema (el huevo dorado de la marca). Hay dos versiones:
+#   - LOGO: el ícono de la app, una baldosa verde con el huevo dorado. Va en el Excel,
+#     que tiene fondo blanco.
+#   - LOGO_ARO: solo el huevo dorado, con fondo transparente. Va en el PDF, sobre la
+#     banda verde del encabezado y como marca de agua.
+RECURSOS = Path(__file__).resolve().parent / "recursos"
+LOGO = RECURSOS / "logo.png"
+LOGO_ARO = RECURSOS / "logo-aro.png"
 
 
 def _fecha_es(texto):
@@ -239,12 +245,21 @@ GRIS = colors.HexColor("#6B7280")
 ALTO_ENCABEZADO = 2.1 * cm
 
 
-def _marca_de_agua():
-    """El logo muy tenue (5,5 % de opacidad) para usarlo de fondo."""
+def _medidas_aro(alto):
+    """Ancho y alto con que se dibuja el huevo para un alto dado, sin deformarlo."""
     from PIL import Image
 
-    imagen = Image.open(LOGO).convert("RGBA")
-    alfa = imagen.getchannel("A").point(lambda v: int(v * 0.055))
+    with Image.open(LOGO_ARO) as imagen:
+        ancho_px, alto_px = imagen.size
+    return alto * ancho_px / alto_px, alto
+
+
+def _marca_de_agua():
+    """El huevo dorado muy tenue (10 % de opacidad) para usarlo de fondo."""
+    from PIL import Image
+
+    imagen = Image.open(LOGO_ARO).convert("RGBA")
+    alfa = imagen.getchannel("A").point(lambda v: int(v * 0.10))
     imagen.putalpha(alfa)
     memoria = BytesIO()
     imagen.save(memoria, format="PNG")
@@ -260,12 +275,12 @@ def _decorar_pdf(informe):
         ancho, alto = doc.pagesize
         lienzo.saveState()
 
-        # Marca de agua: el logo grande y casi transparente, centrado.
-        if LOGO.exists():
-            lado = 11 * cm
+        # Marca de agua: el huevo grande y casi transparente, centrado.
+        if LOGO_ARO.exists():
+            ancho_marca, alto_marca = _medidas_aro(12 * cm)
             lienzo.drawImage(
-                _marca_de_agua(), (ancho - lado) / 2, (alto - lado) / 2 - 0.5 * cm,
-                width=lado, height=lado, mask="auto",
+                _marca_de_agua(), (ancho - ancho_marca) / 2, (alto - alto_marca) / 2 - 0.5 * cm,
+                width=ancho_marca, height=alto_marca, mask="auto",
             )
 
         # Encabezado: banda verde con la marca a la izquierda y el logo a la derecha.
@@ -281,13 +296,15 @@ def _decorar_pdf(informe):
         lienzo.drawString(doc.leftMargin, alto - 1.7 * cm, "Gestión de granja avícola")
         lienzo.setFillColor(colors.white)
         lienzo.setFont("Helvetica", 9)
-        margen_logo = 1.5 * cm
-        lienzo.drawRightString(ancho - doc.rightMargin - margen_logo - 0.4 * cm, alto - 1.2 * cm, generado)
-        if LOGO.exists():
+        if LOGO_ARO.exists():
+            ancho_logo, alto_logo = _medidas_aro(1.5 * cm)
             lienzo.drawImage(
-                str(LOGO), ancho - doc.rightMargin - margen_logo, alto - ALTO_ENCABEZADO + 0.3 * cm,
-                width=margen_logo, height=margen_logo, mask="auto",
+                str(LOGO_ARO), ancho - doc.rightMargin - ancho_logo, alto - ALTO_ENCABEZADO + 0.3 * cm,
+                width=ancho_logo, height=alto_logo, mask="auto",
             )
+        else:
+            ancho_logo = 0
+        lienzo.drawRightString(ancho - doc.rightMargin - ancho_logo - 0.4 * cm, alto - 1.2 * cm, generado)
 
         # Pie: línea fina y título del informe (el número de página lo agrega el lienzo).
         lienzo.setStrokeColor(colors.HexColor("#D1D5DB"))

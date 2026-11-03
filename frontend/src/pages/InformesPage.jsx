@@ -6,6 +6,7 @@ import GraficoIndicador from "../components/GraficoIndicador";
 import { BarrasHorizontales, COLORES, Dona } from "../components/GraficosInforme";
 import { EsqueletoInforme } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 const TABS = [
   { id: "produccion", ruta: "produccion", texto: "Producción", icono: "fa-egg", cu: "CU85" },
   { id: "lotes", ruta: "lotes", texto: "Lotes", icono: "fa-kiwi-bird", cu: "CU86" },
@@ -337,10 +338,10 @@ export default function InformesPage() {
     <div className="page active" id="page-informes">
       <div className="page-header">
         <div>
-          <h1>Informes</h1>
+          <div className="page-titulo"><h1>Informes</h1><AyudaSeccion seccion="informes" /></div>
           <div className="desc">Indicadores productivos y reportes de producción, lotes, materias primas y descartes.</div>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} data-tutorial="inf-exportar">
           <button className="btn btn-outline" disabled={!puedeExportar || descargando} onClick={() => exportar("pdf")}>
             <i className="fa-solid fa-file-pdf"></i> {descargando === "pdf" ? "Generando..." : "Exportar a PDF"}
           </button>
@@ -350,7 +351,7 @@ export default function InformesPage() {
         </div>
       </div>
 
-      <div className="tabs" role="tablist">
+      <div className="tabs" role="tablist" data-tutorial="inf-tabs">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -364,7 +365,7 @@ export default function InformesPage() {
         ))}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         {usaPeriodo && (
           <>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>

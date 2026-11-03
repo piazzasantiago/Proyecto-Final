@@ -15,6 +15,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import { traerTodas } from "../api/paginado";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
+import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
 const ESTADO_PENDIENTE = "P";
@@ -253,21 +254,21 @@ export default function DescartesPage() {
     <div className="page active" id="page-descartes">
       <div className="page-header">
         <div>
-          <h1>Descartes</h1>
+          <div className="page-titulo"><h1>Descartes</h1><AyudaSeccion seccion="descartes" /></div>
           <div className="desc">
             Bajas ocurridas en un galpón (con fines estadísticos) y bajas del stock de productos y
             materias primas.
           </div>
         </div>
         {puedeEscribir && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nuevo descarte
           </button>
         )}
       </div>
 
       {/* Filtros: fechas, categoría y estado */}
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
           <span style={{ color: "var(--gray-500)" }}>Desde</span>
           <input
@@ -319,7 +320,7 @@ export default function DescartesPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ── Lista ─────────────────────────────────────────────────── */}
-          <div className="list-panel">
+          <div className="list-panel" data-tutorial="sec-lista">
             {descartes.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
                 {hayFiltros
@@ -347,6 +348,7 @@ export default function DescartesPage() {
                     const cat = categoriaDe(d.categoria);
                     return (
                       <tr
+                        data-tutorial-fila=""
                         key={d.id_descarte}
                         onClick={() => setSelectedId(d.id_descarte)}
                         style={{
@@ -395,7 +397,7 @@ export default function DescartesPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>
@@ -492,7 +494,7 @@ export default function DescartesPage() {
               {/* Acciones: un descarte finalizado ya hizo efecto, por eso queda de
                   solo lectura y no se puede eliminar. */}
               {selected.estado === ESTADO_PENDIENTE && puedeEscribir ? (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

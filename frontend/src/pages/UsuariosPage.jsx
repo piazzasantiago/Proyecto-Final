@@ -17,6 +17,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
 const BADGE_ROL = { A: "badge-gold", O: "badge-green", C: "badge-gray" };
 
@@ -163,15 +164,15 @@ export default function UsuariosPage() {
     <div className="page active" id="page-usuarios">
       <div className="page-header">
         <div>
-          <h1>Usuarios</h1>
+          <div className="page-titulo"><h1>Usuarios</h1><AyudaSeccion seccion="usuarios" /></div>
           <div className="desc">Administración de usuarios y permisos de acceso al sistema.</div>
         </div>
-        <button className="btn btn-green" onClick={() => setModalMode("create")}>
+        <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
           <i className="fa-solid fa-plus"></i> Nuevo usuario
         </button>
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -201,7 +202,7 @@ export default function UsuariosPage() {
       {!loading && !error && (
         <div className="page-body-split">
           <div className="card-column">
-            <div className="card-grid">
+            <div className="card-grid" data-tutorial="sec-lista">
               {usuarios.length === 0 && (
                 <div className="empty-state">
                   No hay usuarios que coincidan con la búsqueda.
@@ -210,6 +211,7 @@ export default function UsuariosPage() {
               {usuarios.map((u) => (
                 <div
                   key={u.id_usuario}
+                  data-tutorial-fila=""
                   className={`usuario-card ${u.id_usuario === selectedId ? "card-selected" : ""}`}
                   onClick={() => { setSelectedId(u.id_usuario); setActionError(null); }}
                 >
@@ -238,7 +240,7 @@ export default function UsuariosPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div className="uc-head-user">
                   <div className="uc-avatar uc-avatar-sm">{iniciales(selected)}</div>
@@ -272,7 +274,7 @@ export default function UsuariosPage() {
                   {actionError}
                 </div>
               )}
-              <div className="detail-actions">
+              <div className="detail-actions" data-tutorial="sec-acciones">
                 <button className="btn btn-outline" disabled={trabajando} onClick={() => setModalMode("edit")}>
                   <i className="fa-solid fa-pen"></i> Editar
                 </button>
@@ -295,7 +297,7 @@ export default function UsuariosPage() {
                 )}
               </div>
 
-              <div className="detail-actions detail-actions-sec">
+              <div className="detail-actions detail-actions-sec" data-tutorial="sec-acciones2">
                 <button
                   className="btn btn-outline"
                   disabled={trabajando}

@@ -11,6 +11,7 @@ import AuditoriaBoton from "../components/AuditoriaBoton";
 import useAtajoAlta from "../components/useAtajoAlta";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
 const CATEGORIA_LOTES = "L";
@@ -202,19 +203,19 @@ export default function ComprasPage() {
     <div className="page active" id="page-compras">
       <div className="page-header">
         <div>
-          <h1>Compras</h1>
+          <div className="page-titulo"><h1>Compras</h1><AyudaSeccion seccion="compras" /></div>
           <div className="desc">
             Registro de compras de materias primas y de lotes de gallinas a proveedores.
           </div>
         </div>
         {esAdministrador && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nueva compra
           </button>
         )}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -287,7 +288,7 @@ export default function ComprasPage() {
       {!loading && !error && (
         <div className="page-body-split">
           {/* ── Lista ─────────────────────────────────────────────────── */}
-          <div className="list-panel">
+          <div className="list-panel" data-tutorial="sec-lista">
             {compras.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
                 {hayFiltros
@@ -315,6 +316,7 @@ export default function ComprasPage() {
                     const isSel = c.id_compra === selectedId;
                     return (
                       <tr
+                        data-tutorial-fila=""
                         key={c.id_compra}
                         onClick={() => setSelectedId(c.id_compra)}
                         style={{
@@ -362,7 +364,7 @@ export default function ComprasPage() {
 
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
-            <div className="detail-panel">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>Compra {selected.nro_comprobante}</h3>
@@ -495,7 +497,7 @@ export default function ComprasPage() {
               {/* Una compra finalizada ya hizo efecto: queda de solo lectura y no
                   se puede eliminar. */}
               {selected.estado === ESTADO_PENDIENTE && esAdministrador ? (
-                <div className="detail-actions" style={{ flexWrap: "wrap" }}>
+                <div className="detail-actions" style={{ flexWrap: "wrap" }} data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

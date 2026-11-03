@@ -15,6 +15,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 export default function ProveedoresPage() {
   const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
@@ -128,17 +129,17 @@ export default function ProveedoresPage() {
     <div className="page active" id="page-proveedores">
       <div className="page-header">
         <div>
-          <h1>Proveedores</h1>
+          <div className="page-titulo"><h1>Proveedores</h1><AyudaSeccion seccion="proveedores" /></div>
           <div className="desc">Proveedores de materias primas y lotes de gallinas.</div>
         </div>
         {esAdministrador && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nuevo proveedor
           </button>
         )}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -161,7 +162,7 @@ export default function ProveedoresPage() {
       {!loading && !error && (
         <div className="page-body-split">
           <div className="card-column">
-            <div className="card-grid">
+            <div className="card-grid" data-tutorial="sec-lista">
               {proveedores.length === 0 && (
                 <div className="empty-state">
                   {esAdministrador
@@ -172,6 +173,7 @@ export default function ProveedoresPage() {
               {proveedores.map((p) => (
                 <div
                   key={p.id_proveedor}
+                  data-tutorial-fila=""
                   className={`galpon-card ${p.id_proveedor === selectedId ? "card-selected" : ""}`}
                   onClick={() => { setSelectedId(p.id_proveedor); setActionError(null); }}
                 >
@@ -206,7 +208,7 @@ export default function ProveedoresPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel">
+            <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.nombre}</h3>
@@ -244,7 +246,7 @@ export default function ProveedoresPage() {
                 </div>
               )}
               {esAdministrador && (
-                <div className="detail-actions">
+                <div className="detail-actions" data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>
