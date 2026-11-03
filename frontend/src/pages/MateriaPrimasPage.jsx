@@ -15,6 +15,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 export default function MateriaPrimasPage() {
   const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esConsulta } = useAuth();
@@ -139,19 +140,19 @@ export default function MateriaPrimasPage() {
     <div className="page active" id="page-materias-primas">
       <div className="page-header">
         <div>
-          <h1>Materias Primas</h1>
+          <div className="page-titulo"><h1>Materias Primas</h1><AyudaSeccion seccion="materias" /></div>
           <div className="desc">
             Administrá el catálogo de materias primas (insumos y consumibles) utilizadas en los galpones.
           </div>
         </div>
         {esAdministrador && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nueva materia prima
           </button>
         )}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -174,7 +175,7 @@ export default function MateriaPrimasPage() {
       {!loading && !error && (
         <div className="page-body-split">
           <div className="card-column">
-            <div className="card-grid">
+            <div className="card-grid" data-tutorial="sec-lista">
               {materias.length === 0 && (
                 <div className="empty-state">
                   {esAdministrador
@@ -187,6 +188,7 @@ export default function MateriaPrimasPage() {
                 return (
                   <div
                     key={m.id_materia_prima}
+                    data-tutorial-fila=""
                     className={`galpon-card ${m.id_materia_prima === selectedId ? "card-selected" : ""}`}
                     onClick={() => { setSelectedId(m.id_materia_prima); setActionError(null); }}
                   >
@@ -228,7 +230,7 @@ export default function MateriaPrimasPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel">
+            <div className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.materia_prima}</h3>
@@ -302,7 +304,7 @@ export default function MateriaPrimasPage() {
                 </div>
               )}
               {esAdministrador && (
-                <div className="detail-actions">
+                <div className="detail-actions" data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>

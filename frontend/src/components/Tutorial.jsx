@@ -95,11 +95,20 @@ export default function Tutorial({ pasos, onCerrar, abrirMenu }) {
 
     const inicio = Date.now();
     let abierto = false;
+    let abiertoEn = 0;
     const espera = setInterval(() => {
       const el = buscar(paso.objetivo);
+      if (!el && paso.abrir && abierto && Date.now() - abiertoEn > 1200) {
+        // Se tocó el primer registro y el elemento no apareció (p. ej. una compra ya finalizada no tiene
+        // acciones): se salta el paso sin esperar el tiempo máximo.
+        clearInterval(espera);
+        ir(direccion.current);
+        return;
+      }
       if (!el && paso.abrir && !abierto) {
         // El elemento aparece al elegir un registro: se toca el primero de la lista.
         abierto = true;
+        abiertoEn = Date.now();
         const fila = document.querySelector("[data-tutorial-fila]");
         if (fila) fila.click();
         else {

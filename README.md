@@ -189,7 +189,7 @@ frontend/src/
   Cada paso resalta el elemento que lleva `data-tutorial="<objetivo>"`: si se cambia o
   quita ese atributo de una pantalla, el paso se salta solo. "Ya lo vio" se guarda en
   el navegador, por usuario (`localStorage`, clave `avigest-tutorial-visto:<id>`).
-- **Tutorial de cada sección.** Las pantallas de registros tienen un botón "?" junto al
+- **Tutorial de cada sección.** Todas las pantallas (menos el Dashboard, que tiene el suyo) tienen un botón "?" junto al
   título (`components/AyudaSeccion.jsx`) que abre el tutorial de esa sección, con un
   puntito hasta que se abre por primera vez. Los pasos y los textos por rol están en
   `config/tutorialSecciones.js`. Cada pantalla marca lo que se resalta con

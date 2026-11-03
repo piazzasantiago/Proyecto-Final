@@ -146,6 +146,103 @@ export const SECCIONES = {
       texto: "Un lote empieza en Transición, pasa a Producción cuando se inicia y termina en Finalizado con el vaciado sanitario.",
     },
   ],
+  materias: [
+    {
+      id: "intro",
+      titulo: "Materias primas",
+      texto: {
+        A: "El catálogo de insumos y consumibles que se usan en los galpones, con su stock. Acá lo administrás.",
+        O: "El catálogo de insumos y consumibles que se usan en los galpones, con su stock. Acá lo consultás.",
+        C: "El catálogo de insumos y consumibles que se usan en los galpones, con su stock. Acá lo consultás.",
+      },
+    },
+    { id: "nuevo", objetivo: "sec-nuevo", roles: ["A"], titulo: "Crear una materia prima", texto: "Tocá este botón para dar de alta una materia prima, con su unidad y su stock mínimo." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "Buscar y filtrar", texto: "Buscá por nombre o descripción y filtrá por estado (activo o inactivo)." },
+    { id: "lista", objetivo: "sec-lista", titulo: "Las tarjetas", texto: "Cada tarjeta es una materia prima, con su stock actual. Tocá una para ver el detalle." },
+    { id: "detalle", objetivo: "sec-detalle", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "El detalle", texto: "Los datos de la materia prima, su stock actual frente al mínimo y los movimientos que lo componen." },
+    { id: "acciones", objetivo: "sec-acciones", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], roles: ["A"], titulo: "Qué podés hacer", texto: "Podés editarla, darla de baja (o activarla de nuevo) y eliminarla." },
+  ],
+
+  compras: [
+    {
+      id: "intro",
+      titulo: "Compras",
+      texto: {
+        A: "El registro de las compras de materias primas y de lotes de gallinas a tus proveedores.",
+        C: "El registro de las compras de materias primas y de lotes de gallinas a los proveedores. Acá las consultás.",
+      },
+    },
+    { id: "nuevo", objetivo: "sec-nuevo", roles: ["A"], titulo: "Registrar una compra", texto: "Cargá una compra nueva: elegís el proveedor, si es de materias primas o de lotes, y el detalle de lo comprado." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "Filtros", texto: "Buscá por número de comprobante y filtrá por proveedor, categoría, estado y fechas." },
+    { id: "lista", objetivo: "sec-lista", titulo: "El listado", texto: "Cada fila es una compra, con su comprobante, proveedor, fecha y estado. Tocá una para ver el detalle." },
+    { id: "detalle", objetivo: "sec-detalle", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "El detalle", texto: "Lo que se compró, en qué cantidades y a qué precio." },
+    { id: "acciones", objetivo: "sec-acciones", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], roles: ["A"], titulo: "Qué podés hacer con una compra", texto: "Mientras está pendiente podés editarla, finalizarla o eliminarla." },
+    {
+      id: "ciclo",
+      titulo: "Pendiente y finalizada",
+      texto: {
+        A: "Una compra nace Pendiente y se puede corregir. Al finalizarla, las materias primas suman al stock y los lotes quedan disponibles para asignar a un galpón. Una compra finalizada ya no se puede editar ni eliminar.",
+        C: "Una compra puede estar Pendiente (todavía se puede corregir) o Finalizada. Solo las finalizadas suman stock o dejan lotes disponibles.",
+      },
+    },
+  ],
+
+  proveedores: [
+    {
+      id: "intro",
+      titulo: "Proveedores",
+      texto: {
+        A: "Los proveedores de materias primas y de lotes de gallinas. Acá los administrás.",
+        C: "Los proveedores de materias primas y de lotes de gallinas. Acá los consultás.",
+      },
+    },
+    { id: "nuevo", objetivo: "sec-nuevo", roles: ["A"], titulo: "Crear un proveedor", texto: "Tocá este botón para dar de alta un proveedor, con su CUIT y sus datos de contacto." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "Buscar y filtrar", texto: "Buscá por nombre, CUIT, email, teléfono o dirección y filtrá por estado." },
+    { id: "lista", objetivo: "sec-lista", titulo: "Las tarjetas", texto: "Cada tarjeta es un proveedor. Tocá una para ver el detalle." },
+    { id: "detalle", objetivo: "sec-detalle", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "El detalle", texto: "Sus datos de contacto y las compras que le hiciste." },
+    { id: "acciones", objetivo: "sec-acciones", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], roles: ["A"], titulo: "Qué podés hacer", texto: "Podés editarlo, darlo de baja (o activarlo de nuevo) y eliminarlo." },
+  ],
+
+  productos: [
+    {
+      id: "intro",
+      titulo: "Productos",
+      texto: {
+        A: "El catálogo de productos, o sea los huevos clasificados por tamaño, que se registran en la recolección. Acá lo administrás.",
+        C: "El catálogo de productos, o sea los huevos clasificados por tamaño, que se registran en la recolección. Acá lo consultás.",
+      },
+    },
+    { id: "nuevo", objetivo: "sec-nuevo", roles: ["A"], titulo: "Crear un producto", texto: "Tocá este botón para dar de alta un producto nuevo." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "Buscar y filtrar", texto: "Buscá por nombre o descripción y filtrá por estado (activo o inactivo)." },
+    { id: "lista", objetivo: "sec-lista", titulo: "Las tarjetas", texto: "Cada tarjeta es un producto. Tocá una para ver el detalle." },
+    { id: "detalle", objetivo: "sec-detalle", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "El detalle", texto: "Los datos del producto y su estado." },
+    { id: "acciones", objetivo: "sec-acciones", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], roles: ["A"], titulo: "Qué podés hacer", texto: "Podés editarlo, darlo de baja (o activarlo de nuevo) y eliminarlo." },
+  ],
+
+  informes: [
+    {
+      id: "intro",
+      titulo: "Informes",
+      texto: "Reportes de producción, lotes, materias primas y descartes, más los indicadores productivos. Elegís qué ver, el período y lo exportás.",
+    },
+    { id: "tabs", objetivo: "inf-tabs", titulo: "Los tipos de informe", texto: "Cada pestaña es un informe distinto: Producción, Lotes, Materias primas, Descartes e Indicadores." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "El período y los filtros", texto: "Elegí desde y hasta qué fecha mirar y, según el informe, filtrá por galpón, etapa del lote, tipo de descarte o materia prima. El informe se actualiza solo." },
+    { id: "exportar", objetivo: "inf-exportar", titulo: "Exportar", texto: "Cuando hay un informe en pantalla, lo descargás en PDF o en Excel con lo que estás viendo. Los botones se habilitan recién entonces." },
+  ],
+
+  usuarios: [
+    {
+      id: "intro",
+      titulo: "Usuarios",
+      texto: "Quién puede entrar al sistema y qué puede hacer. Hay tres roles: Administrador, Operario y Consulta.",
+    },
+    { id: "nuevo", objetivo: "sec-nuevo", titulo: "Crear un usuario", texto: "Tocá este botón para dar de alta un usuario, con su rol y su contraseña inicial." },
+    { id: "filtros", objetivo: "sec-filtros", titulo: "Buscar y filtrar", texto: "Buscá por nombre, usuario o email y filtrá por rol y estado." },
+    { id: "lista", objetivo: "sec-lista", titulo: "Las tarjetas", texto: "Cada tarjeta es un usuario, con su rol y su estado. Tocá una para ver el detalle." },
+    { id: "detalle", objetivo: "sec-detalle", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "El detalle", texto: "Los datos del usuario, su rol y su estado." },
+    { id: "acciones", objetivo: "sec-acciones", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "Editar y dar de baja", texto: "Podés editar sus datos, darlo de baja para que no pueda entrar (o darlo de alta de nuevo). No podés darte de baja a vos mismo." },
+    { id: "acciones2", objetivo: "sec-acciones2", abrir: "sec-fila", lado: ["izquierda", "abajo", "arriba"], titulo: "Contraseña y eliminar", texto: "Podés restablecer su contraseña si la olvidó y eliminar el usuario. Tampoco podés eliminarte a vos mismo." },
+  ],
 };
 
 /** Los pasos de una sección para un rol, con el texto ya elegido. */

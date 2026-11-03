@@ -14,6 +14,7 @@ import Paginacion, { useTamanoPagina } from "../components/Paginacion";
 import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
+import AyudaSeccion from "../components/AyudaSeccion";
 export default function ProductosPage() {
   const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
@@ -139,17 +140,17 @@ export default function ProductosPage() {
     <div className="page active" id="page-productos">
       <div className="page-header">
         <div>
-          <h1>Productos</h1>
+          <div className="page-titulo"><h1>Productos</h1><AyudaSeccion seccion="productos" /></div>
           <div className="desc">Administrá el catálogo de productos (huevos clasificados por tamaño) que se registran en cada recolección.</div>
         </div>
         {esAdministrador && (
-          <button className="btn btn-green" onClick={() => setModalMode("create")}>
+          <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
             <i className="fa-solid fa-plus"></i> Nuevo producto
           </button>
         )}
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar" data-tutorial="sec-filtros">
         <div className="search-box">
           <i className="fa-solid fa-magnifying-glass"></i>
           <input
@@ -172,7 +173,7 @@ export default function ProductosPage() {
       {!loading && !error && (
         <div className="page-body-split">
           <div className="card-column">
-            <div className="producto-grid">
+            <div className="producto-grid" data-tutorial="sec-lista">
               {productos.length === 0 && (
                 <div className="empty-state">
                   {esAdministrador
@@ -183,6 +184,7 @@ export default function ProductosPage() {
               {productos.map((p) => (
                 <div
                   key={p.id_producto}
+                  data-tutorial-fila=""
                   className={`producto-card ${p.id_producto === selectedId ? "card-selected" : ""}`}
                   onClick={() => { setSelectedId(p.id_producto); setActionError(null); }}
                 >
@@ -216,7 +218,7 @@ export default function ProductosPage() {
           </div>
 
           {selected && (
-            <div className="detail-panel">
+            <div className="detail-panel" data-tutorial="sec-detalle">
               <div className="detail-head">
                 <div>
                   <h3>{selected.producto}</h3>
@@ -251,7 +253,7 @@ export default function ProductosPage() {
                 </div>
               )}
               {esAdministrador && (
-                <div className="detail-actions">
+                <div className="detail-actions" data-tutorial="sec-acciones">
                   <button className="btn btn-outline" onClick={() => setModalMode("edit")}>
                     <i className="fa-solid fa-pen"></i> Editar
                   </button>
