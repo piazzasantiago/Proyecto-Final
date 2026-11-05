@@ -94,6 +94,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+# Donde collectstatic junta los estáticos del admin; en producción los sirve nginx.
+STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -123,3 +125,13 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:5173,http://127.0.0.1:5173",
     cast=Csv(),
 )
+
+# Orígenes de confianza para los formularios con CSRF (el admin de Django).
+# Sin esto, el login del admin falla con 403 cuando el sitio corre en HTTPS.
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+
+if not DEBUG:
+    # nginx termina el HTTPS y le avisa a Django que el pedido vino cifrado.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
