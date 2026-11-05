@@ -1,6 +1,6 @@
 import request, { getToken } from "./client";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 function query(params = {}) {
   const limpios = Object.fromEntries(
