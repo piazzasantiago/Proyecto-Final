@@ -1,0 +1,62 @@
+# AviGest en producción: 3 capas en contenedores detrás de nginx.
+#   docker compose -f docker-compose.prod.yml up -d --build
+name: avigest
+
+services:
+  # Capa de datos
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: America/Argentina/Tucuman
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Capa de lógica
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static-files:/app/staticfiles
+
+  # Capa de presentación + proxy inverso (único servicio con puertos públicos)
+  nginx:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      - ./deploy/nginx/avigest.conf:/etc/nginx/conf.d/default.conf:ro
+      - static-files:/var/www/static:ro
+      - ./deploy/certbot/www:/var/www/certbot:ro
+      - ./deploy/certbot/conf:/etc/letsencrypt:ro
+
+  # Certificados HTTPS. No queda corriendo: se usa con `docker compose run`.
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["herramientas"]
+    volumes:
+      - ./deploy/certbot/www:/var/www/certbot
+      - ./deploy/certbot/conf:/etc/letsencrypt
+
+volumes:
+  postgres-data:
+  static-files:
