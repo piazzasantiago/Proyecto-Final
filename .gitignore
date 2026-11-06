@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Por si algo se corre desde la raíz
+.env
+*.log
+
+# Mensajes para corregir commits
+msg.txt
+
+# Script para poblar la bd
+seed_materias_primas.py
+seed.py
+# Despliegue: certificados y backups solo existen en el servidor
+deploy/certbot/
+backups/

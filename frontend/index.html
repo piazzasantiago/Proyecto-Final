@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+      // Tema claro/oscuro antes del primer dibujo (ver src/components/useTema.js).
+      (function () {
+        var tema = null;
+        try { tema = localStorage.getItem("avigest-tema"); } catch (e) {}
+        if (tema !== "dark" && tema !== "light") {
+          tema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-theme", tema);
+      })();
+    </script>
+    <title>AvíGest · Gestión Avícola</title>
+    <meta name="description" content="Sistema web de gestión para una granja avícola productora de huevos." />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

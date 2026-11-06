@@ -1,0 +1,163 @@
+import re
+
+from django.db import transaction
+from django.db.models import CharField
+from django.db.models.functions import Cast
+from django_filters import rest_framework as django_filters
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from usuarios.permissions import LecturaAdministradorYConsulta_EscrituraAdministrador
+
+from config.pagination import PaginacionListado
+from .models import Compra
+from .serializers import CompraSerializer, LotePendienteSerializer
+from .stock import lotes_pendientes_de_asignar
+from config.auditoria import AuditoriaMixin
+
+
+class CompraFilter(django_filters.FilterSet):
+    """
+    Filtros del listado:
+        ?fecha_desde=AAAA-MM-DD   compras desde ese día (inclusive)
+        ?fecha_hasta=AAAA-MM-DD   compras hasta ese día (inclusive)
+        ?estado=P|F               Pendiente o Finalizada
+        ?categoria=M|L            Materias primas o Lotes
+        ?id_proveedor=N           de ese proveedor
+        ?id_materia_prima=N       que incluyan esa materia prima en alguna línea
+        ?search=...               por número de comprobante (12 o 00000012)
+    """
+
+    search = django_filters.CharFilter(method="filtrar_por_comprobante")
+
+    fecha_desde = django_filters.DateFilter(field_name="fecha", lookup_expr="gte")
+    fecha_hasta = django_filters.DateFilter(field_name="fecha", lookup_expr="lte")
+    # Compras recientes en el detalle de una materia prima. distinct: una compra
+    # con dos líneas de la misma materia prima no debe aparecer repetida.
+    id_materia_prima = django_filters.NumberFilter(
+        field_name="lineas__id_materia_prima", distinct=True
+    )
+
+    class Meta:
+        model = Compra
+        fields = ["estado", "categoria", "id_proveedor"]
+
+    def filtrar_por_comprobante(self, queryset, name, value):
+        """El comprobante es el id con ceros a la izquierda: se busca por sus dígitos."""
+        digitos = re.sub(r"\D", "", value or "")
+        if not digitos:
+            return queryset.none()
+        numero = str(int(digitos))
+        return queryset.annotate(_id_texto=Cast("id_compra", CharField())).filter(
+            _id_texto__contains=numero
+        )
+
+
+class CompraViewSet(AuditoriaMixin, viewsets.ModelViewSet):
+    """
+    CRUD de compras a proveedores + acción /finalizar/.
+
+    Buscar compras     → GET    /api/compras/
+    Nueva compra       → POST   /api/compras/
+    Modificar compra   → PATCH  /api/compras/{id}/
+    Borrar compra      → DELETE /api/compras/{id}/
+    Finalizar compra   → POST   /api/compras/{id}/finalizar/
+    Lotes a asignar    → GET    /api/compras/lotes-pendientes/
+    Próx. comprobante  → GET    /api/compras/proximo-comprobante/
+    Líneas             → van anidadas en `lineas` de la compra.
+
+    El alta y la edición guardan la cabecera y sus líneas en una sola
+    transacción (ver CompraSerializer.create / update).
+
+    Permisos:
+        - Administrador: CRUD + finalizar.
+        - Consulta: solo lectura.
+        - Operario: sin acceso a la sección. Única excepción: la lista de lotes
+          a asignar, que ven todos los usuarios autenticados porque la pantalla
+          de Lotes (visible para todos) avisa cuando hay uno esperando.
+        - Sin token: 401.
+    """
+
+    queryset = (
+        Compra.objects.select_related("id_proveedor", "id_usuario")
+        .prefetch_related("lineas__id_materia_prima", "lineas__id_lote")
+        .all()
+    )
+    serializer_class = CompraSerializer
+    permission_classes = [LecturaAdministradorYConsulta_EscrituraAdministrador]
+    pagination_class = PaginacionListado
+    filter_backends = [
+        django_filters.DjangoFilterBackend,
+        filters.OrderingFilter,
+    ]
+    filterset_class = CompraFilter
+    ordering_fields = ["fecha", "id_compra"]
+
+    def get_permissions(self):
+        if self.action == "lotes_pendientes":
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        """El usuario autenticado queda como responsable de la carga."""
+        serializer.save(id_usuario=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Una compra finalizada ya sumó stock o dejó lotes esperando un galpón;
+        borrarla dejaría ese efecto sin el registro que lo respalda. Solo se
+        eliminan las pendientes.
+        """
+        compra = self.get_object()
+        if compra.estado == Compra.ESTADO_FINALIZADA:
+            return Response(
+                {"detail": "No se puede eliminar una compra finalizada."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=["post"], url_path="finalizar")
+    def finalizar(self, request, pk=None):
+        """
+        Finaliza una compra pendiente.
+
+        · Materias primas: el stock de cada materia prima se recalcula solo al
+          quedar Finalizada (suma lo comprado).
+        · Lotes: cada línea queda como lote a asignar a un galpón.
+
+        Todo ocurre en una transacción, con la fila bloqueada: dos
+        finalizaciones simultáneas no cuentan dos veces.
+        """
+        with transaction.atomic():
+            compra = Compra.objects.select_for_update().get(pk=self.get_object().pk)
+
+            if compra.estado == Compra.ESTADO_FINALIZADA:
+                return Response(
+                    {"detail": "La compra ya está finalizada."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            compra.estado = Compra.ESTADO_FINALIZADA
+            compra.save(update_fields=["estado"])
+
+        return Response(self.get_serializer(compra).data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="proximo-comprobante")
+    def proximo_comprobante(self, request):
+        """
+        Número de comprobante con el que se guardaría la próxima compra. El
+        formulario de alta lo muestra de antemano; es una estimación (si otra
+        persona guarda una compra antes, el número cambia).
+        """
+        return Response({"nro_comprobante": Compra.proximo_nro_comprobante()})
+
+    @action(detail=False, methods=["get"], url_path="lotes-pendientes")
+    def lotes_pendientes(self, request):
+        """
+        Lotes comprados (compras finalizadas) que todavía no se asignaron a un
+        galpón. Alimenta el cartel y el combo "Lotes a asignar" de Lotes.
+        """
+        datos = LotePendienteSerializer(lotes_pendientes_de_asignar(), many=True).data
+        return Response(datos)

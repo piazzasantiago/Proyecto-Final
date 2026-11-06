@@ -1,0 +1,143 @@
+<div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h1>Panel principal</h1>
+          <div class="desc">Domingo, 9 de agosto de 2026 · Resumen general de la granja</div>
+        </div>
+        <button class="btn btn-green"><i class="fa-solid fa-plus"></i> Registrar recolección</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon" style="background:var(--green-100); color:var(--green-700);"><i class="fa-solid fa-egg"></i></div>
+            <span class="kpi-delta delta-up">+4.2%</span>
+          </div>
+          <div class="value">1.842</div>
+          <div class="label">Huevos recolectados hoy</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon" style="background:var(--gold-100); color:#96721e;"><i class="fa-solid fa-chart-line"></i></div>
+            <span class="kpi-delta delta-neutral">Estable</span>
+          </div>
+          <div class="value">87%</div>
+          <div class="label">Postura promedio</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon" style="background:var(--green-100); color:var(--green-700);"><i class="fa-solid fa-warehouse"></i></div>
+            <span class="kpi-delta delta-neutral">6 / 8</span>
+          </div>
+          <div class="value">6</div>
+          <div class="label">Galpones en producción</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div class="kpi-icon" style="background:var(--red-100); color:var(--red-500);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <span class="kpi-delta delta-down">3 activas</span>
+          </div>
+          <div class="value">3</div>
+          <div class="label">Alertas activas</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <h3>Producción — últimos 7 días</h3>
+            <a class="link" href="#">Ver informe completo</a>
+          </div>
+          <div class="bars">
+            <div class="bar-col"><b>1.7k</b><div class="bar" style="height:68%;"></div><span>Lun</span></div>
+            <div class="bar-col"><b>1.6k</b><div class="bar" style="height:62%;"></div><span>Mar</span></div>
+            <div class="bar-col"><b>1.8k</b><div class="bar" style="height:74%;"></div><span>Mié</span></div>
+            <div class="bar-col"><b>1.75k</b><div class="bar" style="height:70%;"></div><span>Jue</span></div>
+            <div class="bar-col"><b>1.9k</b><div class="bar" style="height:80%;"></div><span>Vie</span></div>
+            <div class="bar-col"><b>1.65k</b><div class="bar" style="height:64%;"></div><span>Sáb</span></div>
+            <div class="bar-col"><b>1.84k</b><div class="bar" style="height:76%; background:linear-gradient(180deg, var(--gold-500), #b3831f);"></div><span>Hoy</span></div>
+          </div>
+
+          <div class="quick-actions">
+            <div class="qa-btn"><i class="fa-solid fa-egg"></i><span>Nueva recolección</span></div>
+            <div class="qa-btn"><i class="fa-solid fa-trash-can"></i><span>Registrar descarte</span></div>
+            <div class="qa-btn"><i class="fa-solid fa-cart-plus"></i><span>Nueva compra</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h3>Alertas recientes</h3>
+            <a class="link" href="#">Ver todas</a>
+          </div>
+          <div class="alert-item sev-red">
+            <div class="alert-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+            <div class="alert-text">
+              <div class="alert-top"><b>Postura baja</b><span class="status-tag tag-pendiente">Pendiente</span></div>
+              <div class="alert-sub">Lote L-2026-005 · Galpón G-03 — 68% de postura.</div>
+            </div>
+          </div>
+          <div class="alert-item sev-gold">
+            <div class="alert-icon"><i class="fa-solid fa-clock"></i></div>
+            <div class="alert-text">
+              <div class="alert-top"><b>Plan de transición por vencer</b><span class="status-tag tag-pendiente">Pendiente</span></div>
+              <div class="alert-sub">Lote L-2026-014 — finaliza en 2 días.</div>
+            </div>
+          </div>
+          <div class="alert-item sev-red">
+            <div class="alert-icon"><i class="fa-solid fa-box-open"></i></div>
+            <div class="alert-text">
+              <div class="alert-top"><b>Descarte elevado</b><span class="status-tag tag-pendiente">Pendiente</span></div>
+              <div class="alert-sub">Lote L-2026-010 · Galpón G-05.</div>
+            </div>
+          </div>
+          <div class="alert-item sev-green">
+            <div class="alert-icon"><i class="fa-solid fa-check"></i></div>
+            <div class="alert-text">
+              <div class="alert-top"><b>Postura recuperada</b><span class="status-tag tag-resuelta">Resuelta</span></div>
+              <div class="alert-sub">Lote L-2026-009 · Galpón G-02.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <div class="card-title">
+          <h3>Stock actual de huevos</h3>
+          <span style="font-size:12.5px; color:var(--gray-500);">Sube con recolecciones, baja con salidas</span>
+        </div>
+        <div class="stock-donut-row">
+          <div class="stock-grid">
+            <div class="stock-item">
+              <div class="stock-icon stock-icon-lg"><i class="fa-solid fa-egg"></i></div>
+              <div class="stock-value">3.240</div>
+              <div class="stock-label">Huevo Nº1</div>
+              <span class="stock-size-tag" style="background:var(--green-100); color:var(--green-700);">Grande</span>
+            </div>
+            <div class="stock-item">
+              <div class="stock-icon stock-icon-md"><i class="fa-solid fa-egg"></i></div>
+              <div class="stock-value">5.680</div>
+              <div class="stock-label">Huevo Nº2</div>
+              <span class="stock-size-tag" style="background:var(--gold-100); color:#96721e;">Mediano</span>
+            </div>
+            <div class="stock-item">
+              <div class="stock-icon stock-icon-sm"><i class="fa-solid fa-egg"></i></div>
+              <div class="stock-value">1.910</div>
+              <div class="stock-label">Huevo Nº3</div>
+              <span class="stock-size-tag" style="background:var(--gray-200); color:var(--gray-700);">Pequeño</span>
+            </div>
+          </div>
+
+          <div class="donut-wrap" style="justify-content:center;">
+            <div class="donut" style="background:conic-gradient(var(--green-600) 0deg 108deg, var(--gold-500) 108deg 295.2deg, var(--gray-500) 295.2deg 360deg);">
+              <div class="donut-center"><b>10.830</b><span>Stock total</span></div>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--green-600);"></span> Nº1 Grande <b>30%</b></div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--gold-500);"></span> Nº2 Mediano <b>52%</b></div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--gray-500);"></span> Nº3 Pequeño <b>18%</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

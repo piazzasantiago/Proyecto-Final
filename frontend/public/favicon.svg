@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="aro" x1="12%" y1="0%" x2="88%" y2="100%">
+      <stop offset="0" stop-color="#F7D982"/>
+      <stop offset="0.5" stop-color="#E2B340"/>
+      <stop offset="1" stop-color="#B98320"/>
+    </linearGradient>
+  </defs>
+  <path transform="translate(8.5 2.7) scale(.47)"
+        d="M50 6 C70 6 88 46 88 78 C88 102 71 118 50 118 C29 118 12 102 12 78 C12 46 30 6 50 6 Z"
+        fill="none" stroke="url(#aro)" stroke-width="16" stroke-linejoin="round"/>
+</svg>
