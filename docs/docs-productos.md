@@ -231,6 +231,10 @@ terminar.
 | `StockActualProductoTests` | 5 | `stock_inicial` al crear y vía `PATCH`, rechazo de negativos, aislamiento de otros campos, `stock_actual` de solo lectura |
 | **Total** | **45** | |
 
+Además, `backend/productos/tests_stock.py` (6 tests) verifica la fórmula del
+stock (`anotar_stock()`): solo cuentan los registros finalizados, cada producto
+suma solo lo suyo y el queryset no usa `GROUP BY`.
+
 ### Cómo correrlos
 
 ```bash
@@ -256,13 +260,15 @@ backend/
     ├── models.py         Producto
     ├── serializers.py    ProductoSerializer (estado read-only, stock_actual editable)
     ├── views.py          ProductoViewSet con activar/desactivar
+    ├── stock.py          anotar_stock() y stock_actual(): la fórmula del stock
     ├── urls.py           router DefaultRouter
     ├── admin.py          ProductoAdmin
     ├── migrations/
     │   ├── 0001_initial.py
     │   ├── 0002_producto_stock_actual.py
     │   └── 0003_rename_stock_actual_producto_stock_inicial.py
-    └── tests.py          45 tests en 8 clases
+    ├── tests.py          45 tests en 8 clases
+    └── tests_stock.py    6 tests de la fórmula del stock
 ```
 
 ### Frontend
@@ -322,8 +328,15 @@ Salidas se restan en el mismo cálculo. Las recolecciones pendientes no
 suman: solo la finalización confirma que los huevos están contados. Del mismo
 modo, solo los descartes de **stock** finalizados restan.
 
-Los descartes se suman con una subconsulta (`descartes/stock.py`) y no con un
-segundo `JOIN`, para no multiplicar las filas del `Sum` de recolecciones.
+Lo recolectado, lo descartado y lo egresado se suman con subconsultas
+correlacionadas (una por producto): `anotar_stock()` en `productos/stock.py`,
+`descartes/stock.py` y `salidas/stock.py`. No se usa un `JOIN` con `GROUP BY`
+porque el `GROUP BY` arrastra las otras subconsultas y PostgreSQL las ejecuta
+una vez por cada línea de recolección en lugar de una vez por producto: con un
+año de historial (unas 10.000 líneas) el listado de productos tardaba unos 3 s y
+el panel casi 2 s, aunque hubiera solo 5 productos. Con las tres sumas como
+subconsultas bajó a unos 10 ms y 50 ms, con los mismos resultados. Un test
+(`test_el_queryset_no_agrupa`) evita volver al `JOIN`.
 
 Dependencia entre apps: `productos` no importa `recolecciones` a nivel de
 módulo (es `recolecciones` la que depende de `productos`); el cálculo usa
