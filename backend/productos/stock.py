@@ -15,7 +15,7 @@ Este módulo deja la fórmula en un solo lugar: la usan el listado de productos
 (ProductoViewSet) y el dashboard.
 """
 
-from django.db.models import Q, Sum
+from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 
 from .models import Producto
@@ -25,26 +25,36 @@ def anotar_stock(queryset=None):
     """
     Anota `stock_recolectado`, `stock_descartado` y `stock_salidas` en un
     queryset de Producto, con una sola consulta para todo el listado.
+
+    Las tres sumas son subconsultas correlacionadas (una por producto) y no un
+    JOIN con GROUP BY. Con el JOIN, el GROUP BY arrastraba también las
+    subconsultas de descartes y salidas, y PostgreSQL las ejecutaba una vez por
+    cada línea de recolección en lugar de una vez por producto: el costo crecía
+    con todo el historial y hacía lento el listado de productos y el panel.
     """
     # Imports diferidos: recolecciones, descartes y salidas dependen de
     # productos, no al revés.
     from descartes.stock import anotar_descartado
-    from recolecciones.models import Recoleccion
+    from recolecciones.models import LineaRecoleccion, Recoleccion
     from salidas.stock import anotar_egresado
 
+    recolectado = (
+        LineaRecoleccion.objects.filter(
+            id_producto=OuterRef("pk"),
+            id_recoleccion__estado=Recoleccion.ESTADO_FINALIZADA,
+        )
+        .order_by()
+        .values("id_producto")
+        .annotate(total=Sum("cantidad"))
+        .values("total")
+    )
     productos = (Producto.objects.all() if queryset is None else queryset).annotate(
         stock_recolectado=Coalesce(
-            Sum(
-                "lineas_recoleccion__cantidad",
-                filter=Q(
-                    lineas_recoleccion__id_recoleccion__estado=Recoleccion.ESTADO_FINALIZADA
-                ),
-            ),
-            0,
+            Subquery(recolectado, output_field=IntegerField()),
+            Value(0),
+            output_field=IntegerField(),
         )
     )
-    # Descartes y salidas se suman con subconsultas (no con otro JOIN) para no
-    # multiplicar las filas del Sum de recolecciones.
     productos = anotar_descartado(productos, "id_producto")
     return anotar_egresado(productos)
 
