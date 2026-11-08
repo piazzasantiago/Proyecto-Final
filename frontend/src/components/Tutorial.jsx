@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const MARGEN = 8; // aire alrededor del elemento resaltado
@@ -49,9 +49,13 @@ function ubicar(rect, ancho, alto, lados) {
  *
  *   pasos      lista de pasos (config/tutorial.js)
  *   onCerrar   se llama al terminar o al omitir
- *   abrirMenu  abre o cierra el menú lateral (en celular el menú es un panel que se desliza)
+ *   abrirMenu  abre o cierra el menú lateral (en tablet el menú es un panel que se desliza)
+ *   abrirHoja  abre la hoja «Más» o «Mi cuenta» del celular ("mas", "cuenta") o la cierra (null)
+ *
+ * En celular (hasta 700 px) no hay menú lateral: cada paso puede traer `movil` con otro objetivo,
+ * otra hoja abierta y otro texto (ver config/tutorial.js).
  */
-export default function Tutorial({ pasos, onCerrar, abrirMenu }) {
+export default function Tutorial({ pasos: todos, onCerrar, abrirMenu, abrirHoja = () => {} }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [indice, setIndice] = useState(0);
@@ -61,13 +65,22 @@ export default function Tutorial({ pasos, onCerrar, abrirMenu }) {
   const tarjetaRef = useRef(null);
   const siguienteRef = useRef(null);
   const direccion = useRef(1); // hacia dónde se iba al llegar al paso: si hay que saltarlo, sigue igual
-  const paso = pasos[indice];
+  const chico = window.matchMedia(PANTALLA_CHICA).matches;
+  // Los pasos "soloMovil" (botón Más, perfil) no existen en pantallas grandes.
+  const pasos = useMemo(() => todos.filter((p) => !p.soloMovil || chico), [todos, chico]);
+  const base = pasos[indice];
+  // Misma referencia mientras no cambie el paso: otros efectos dependen de ella.
+  const paso = useMemo(
+    () => (chico && base.movil ? { ...base, ...base.movil, texto: base.movil.texto || base.texto } : base),
+    [chico, base],
+  );
   const esUltimo = indice === pasos.length - 1;
 
   const cerrar = useCallback(() => {
     abrirMenu(false);
+    abrirHoja(null);
     onCerrar();
-  }, [abrirMenu, onCerrar]);
+  }, [abrirMenu, abrirHoja, onCerrar]);
 
   const ir = useCallback(
     (delta) => {
@@ -87,7 +100,9 @@ export default function Tutorial({ pasos, onCerrar, abrirMenu }) {
   // Al entrar a un paso: ir a su pantalla, abrir o cerrar el menú y esperar el elemento.
   useEffect(() => {
     if (paso.ruta && pathname !== paso.ruta) navigate(paso.ruta);
-    abrirMenu(Boolean(paso.menu) && window.matchMedia(CELULAR).matches);
+    const enCelular = window.matchMedia(PANTALLA_CHICA).matches;
+    abrirMenu(Boolean(paso.menu) && !enCelular && window.matchMedia(CELULAR).matches);
+    abrirHoja(enCelular ? paso.hoja ?? null : null);
     if (!paso.objetivo) {
       setRect(null);
       return undefined;

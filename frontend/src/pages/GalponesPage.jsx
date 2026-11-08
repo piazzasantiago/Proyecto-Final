@@ -29,6 +29,9 @@ function formatFechaCorta(iso) {
   });
 }
 
+// Cuántas materias primas se ven antes de tocar "Ver más".
+const MATERIAS_VISIBLES = 4;
+
 export default function GalponesPage() {
   const { confirmar, avisar } = useDialogo();
   const { esAdministrador, esOperario } = useAuth();
@@ -49,6 +52,8 @@ export default function GalponesPage() {
   // Existencia estimada de materias primas del galpón seleccionado (null = cargando).
   const [existencias, setExistencias] = useState(null);
   const [existenciasError, setExistenciasError] = useState(false);
+  // La lista de materias primas puede ser larga: se muestran las primeras y el resto con "Ver más".
+  const [verTodasMaterias, setVerTodasMaterias] = useState(false);
 
   async function fetchGalpones() {
     setLoading(true);
@@ -90,6 +95,7 @@ export default function GalponesPage() {
     let cancelado = false;
     setExistencias(null);
     setExistenciasError(false);
+    setVerTodasMaterias(false);
     getExistenciasGalpon(selectedId)
       .then((d) => {
         if (!cancelado) setExistencias(d);
@@ -317,7 +323,7 @@ export default function GalponesPage() {
                 ) : (
                   <>
                     <div>
-                      {existencias.map((e) => (
+                      {(verTodasMaterias ? existencias : existencias.slice(0, MATERIAS_VISIBLES)).map((e) => (
                         <div
                           key={e.id_materia_prima}
                           style={{ padding: "8px 0", borderBottom: "1px dashed var(--gray-200)" }}
@@ -346,6 +352,19 @@ export default function GalponesPage() {
                         </div>
                       ))}
                     </div>
+                    {existencias.length > MATERIAS_VISIBLES && (
+                      <button
+                        type="button"
+                        className="ver-mas"
+                        aria-expanded={verTodasMaterias}
+                        onClick={() => setVerTodasMaterias((v) => !v)}
+                      >
+                        {verTodasMaterias
+                          ? "Ver menos"
+                          : `Ver más (${existencias.length - MATERIAS_VISIBLES})`}
+                        <i className={`fa-solid ${verTodasMaterias ? "fa-chevron-up" : "fa-chevron-down"}`}></i>
+                      </button>
+                    )}
                     <div className="form-hint" style={{ marginTop: 6 }}>
                       <i className="fa-solid fa-circle-info"></i> Estimada, como máximo: último
                       ingreso finalizado menos los descartes del galpón posteriores. Supone que la

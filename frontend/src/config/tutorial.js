@@ -7,7 +7,10 @@
  *
  *   objetivo  nombre del atributo data-tutorial del elemento a resaltar
  *   ruta      pantalla donde está ese elemento; el tutorial navega hasta ahí
- *   menu      true si el elemento vive en el menú lateral (en celular se abre solo)
+ *   menu      true si el elemento vive en el menú lateral (en tablet se abre solo)
+ *   movil     cambios para el celular (hasta 700 px), donde no hay menú lateral sino la barra de abajo
+ *             y la hoja «Más»: { objetivo, hoja: "mas" | "cuenta", lado, texto }
+ *   soloMovil true si el paso solo existe en celular (hasta 700 px)
  *   roles     roles que ven el paso; sin esta clave, lo ven todos
  *   texto     un texto, o uno por rol: { A: "...", O: "...", C: "..." }
  *
@@ -26,6 +29,15 @@ export const PASOS = [
     objetivo: "menu",
     menu: true,
     lado: ["derecha"],
+    movil: {
+      objetivo: "barra-inferior",
+      lado: ["arriba"],
+      texto: {
+        A: "Abajo tenés las secciones de uso diario. Como administrador las ves todas y podés crear, editar y eliminar en cada una.",
+        O: "Abajo tenés las secciones que más usás en tu trabajo diario.",
+        C: "Abajo tenés las secciones de uso diario. Con tu rol podés ver toda la información, pero no modificarla.",
+      },
+    },
     titulo: "El menú",
     texto: {
       A: "Desde acá entrás a cada sección del sistema. Como administrador las ves todas y podés crear, editar y eliminar en cada una.",
@@ -34,10 +46,27 @@ export const PASOS = [
     },
   },
   {
+    id: "mas",
+    objetivo: "boton-mas",
+    soloMovil: true,
+    lado: ["arriba"],
+    titulo: "Más secciones",
+    texto: "Tocá «Más» para abrir el resto de las secciones del sistema. Las vas a ver agrupadas en Producción, Insumos y Gestión.",
+  },
+  {
     id: "produccion",
     objetivo: "menu-produccion",
     menu: true,
     lado: ["derecha"],
+    movil: {
+      objetivo: "hoja-produccion",
+      hoja: "mas",
+      texto: {
+        A: "Acá están las Entradas de alimento, los Descartes y las Salidas. Galpones, Lotes y la Recolección diaria están en la barra de abajo.",
+        O: "Cargás las Entradas, los Descartes y las Salidas. La Recolección diaria está en la barra de abajo.",
+        C: "Consultás las Entradas, los Descartes y las Salidas. Galpones, Lotes y la Recolección diaria están en la barra de abajo.",
+      },
+    },
     titulo: "Producción",
     texto: {
       A: "Acá se maneja el día a día: Galpones y Lotes (dónde y con qué se produce) y lo que se carga cada día: Recolección, Entradas de alimento, Descartes y Salidas.",
@@ -50,6 +79,7 @@ export const PASOS = [
     objetivo: "menu-insumos",
     menu: true,
     lado: ["derecha"],
+    movil: { objetivo: "hoja-insumos", hoja: "mas" },
     titulo: "Insumos",
     texto: {
       A: "Lo necesario para alimentar a las gallinas: Materias Primas, Compras y Proveedores.",
@@ -62,12 +92,21 @@ export const PASOS = [
     objetivo: "menu-gestion",
     menu: true,
     lado: ["derecha"],
+    movil: { objetivo: "hoja-gestion", hoja: "mas" },
     roles: ["A", "C"],
     titulo: "Gestión",
     texto: {
       A: "El catálogo de Productos, los Informes para analizar la producción y los Usuarios que acceden al sistema.",
       C: "Consultá el catálogo de Productos y analizá la producción con los Informes.",
     },
+  },
+  {
+    id: "perfil",
+    objetivo: "boton-perfil",
+    soloMovil: true,
+    lado: ["abajo"],
+    titulo: "Tu perfil",
+    texto: "Tocá tu avatar, arriba a la izquierda, para ver tu cuenta, cambiar entre modo claro y oscuro, volver a ver este tutorial o cerrar sesión.",
   },
   {
     id: "panel",
@@ -142,6 +181,11 @@ export const PASOS = [
     objetivo: "btn-tutorial",
     menu: true,
     lado: ["derecha"],
+    movil: {
+      objetivo: "hoja-tutorial",
+      hoja: "cuenta",
+      texto: "Cuando quieras, este botón repite la guía. Acá también podés cambiar entre modo claro y oscuro.",
+    },
     titulo: "¿Querés volver a verlo?",
     texto:
       "Cuando quieras, este botón repite la guía. Acá abajo también podés cambiar entre modo claro y oscuro.",
@@ -150,9 +194,11 @@ export const PASOS = [
 
 /** Los pasos que corresponden a un rol, con el texto ya elegido para ese rol. */
 export function pasosParaRol(rol) {
+  const elegir = (t) => (typeof t === "string" ? t : t?.[rol] ?? "");
   return PASOS.filter((p) => !p.roles || p.roles.includes(rol)).map((p) => ({
     ...p,
-    texto: typeof p.texto === "string" ? p.texto : p.texto?.[rol] ?? "",
+    texto: elegir(p.texto),
+    movil: p.movil && { ...p.movil, texto: p.movil.texto === undefined ? undefined : elegir(p.movil.texto) },
   }));
 }
 
