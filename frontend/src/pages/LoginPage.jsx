@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [verRecupero, setVerRecupero] = useState(false);
 
   // A dónde ir después de entrar: si venía de una ruta protegida, vuelve ahí.
-  const destino = location.state?.from?.pathname || "/app/galpones";
+  const destino = location.state?.from?.pathname || "/app/dashboard";
 
   if (cargando) {
     return (

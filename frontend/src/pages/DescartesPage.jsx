@@ -18,6 +18,7 @@ import useAtajoAlta from "../components/useAtajoAlta";
 import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
+import CerrarDetalle from "../components/CerrarDetalle";
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADO = "F";
 
@@ -398,6 +399,7 @@ export default function DescartesPage() {
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>

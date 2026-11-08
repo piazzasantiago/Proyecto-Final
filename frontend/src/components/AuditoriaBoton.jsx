@@ -124,7 +124,7 @@ export default function AuditoriaBoton({ auditoria, conFinalizacion = false }) {
           </div>,
           document.body
         )}
-      {abierto && (
+      {abierto && createPortal(
         <div
           className="modal-overlay active"
           onClick={(e) => e.target === e.currentTarget && setAbierto(false)}
@@ -145,7 +145,8 @@ export default function AuditoriaBoton({ auditoria, conFinalizacion = false }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

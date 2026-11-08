@@ -136,6 +136,9 @@ export default function Paginacion({ page, count, pageSize, onChange, onPageSize
             )
           )}
         </nav>
+        <span className="paginacion-pagina">
+          {page} / {totalPaginas}
+        </span>
         <button
           className="btn btn-outline"
           onClick={() => onChange(page + 1)}

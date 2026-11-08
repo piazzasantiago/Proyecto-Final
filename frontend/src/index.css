@@ -1310,3 +1310,434 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   .detail-panel,.modal-overlay.active > .modal-card{animation:fundido .15s linear backwards;}
   .modal-overlay.active{animation:fundido .15s linear backwards;}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   Pantallas chicas (celular y tablet)
+   Todo lo que cambia en celular está acá, en media queries: en pantalla ancha no se altera nada.
+   El detalle como hoja desde abajo se activa con utils/movil.js (data-detalle en <html>).
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Elementos propios del celular: ocultos en pantalla ancha. */
+.detalle-cerrar,.detalle-velo,.paginacion-pagina,.aviso-informes{display:none;}
+
+@media (max-width:1100px){
+  /* Las columnas de las grillas se pueden achicar: sin esto un gráfico o una tabla ancha estiraba
+     toda la página y había que deslizar de costado. */
+  .grid-2,.page-body-split{grid-template-columns:minmax(0,1fr);}
+  .grid-2 > *,.kpi-grid > *,.page-body-split > *,.card-column{min-width:0;}
+  .main{min-width:0;}
+
+  /* Detalle: hoja que sube desde abajo (se abre al tocar una tarjeta o fila). */
+  .page-body-split > .detail-panel{
+    display:none; position:fixed; left:0; right:0; bottom:0; top:auto; z-index:260;
+    max-height:88vh; max-height:88dvh; overflow-y:auto; overscroll-behavior:contain;
+    border-radius:22px 22px 0 0; border-bottom:none;
+    box-shadow:0 -14px 44px rgba(18,52,36,0.28);
+    animation:none;
+  }
+  /* El backdrop-filter del panel lo vuelve contenedor de los elementos fixed: se lo quita mientras la hoja está abierta */
+  html[data-detalle="abierto"] .main{-webkit-backdrop-filter:none; backdrop-filter:none;}
+  html[data-detalle="abierto"] .page-body-split > .detail-panel{display:block; animation:hoja-sube .45s var(--resorte) backwards;}
+  html[data-detalle="abierto"] body{overflow:hidden;}
+  .detalle-velo{z-index:255; position:fixed; inset:0; background:rgba(18,52,36,0.42); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);}
+  html[data-detalle="abierto"] .detalle-velo{display:block; animation:fundido .25s ease-out backwards;}
+  .detalle-cerrar{
+    display:flex; align-items:center; justify-content:center; position:sticky; top:0; z-index:3;
+    height:34px; background:var(--surface);
+  }
+  .detalle-asa{width:42px; height:5px; border-radius:3px; background:var(--gray-300);}
+  .detalle-x{
+    position:absolute; right:10px; top:4px; width:30px; height:30px; border-radius:50%; border:none;
+    background:var(--gray-100); color:var(--gray-700); font-size:14px; display:flex; align-items:center;
+    justify-content:center; cursor:pointer;
+  }
+  .detalle-x:active{transform:scale(.92);}
+}
+@keyframes hoja-sube{from{transform:translateY(100%);} to{transform:none;}}
+@media (prefers-reduced-motion: reduce){
+  html[data-detalle="abierto"] .page-body-split > .detail-panel{animation:fundido .15s linear backwards;}
+}
+
+@media (max-width:700px){
+  /* Marco de la pantalla: menos margen para aprovechar el ancho. */
+  #screen-app.active{padding:8px 8px 14px; padding-top:64px;}
+  .main{padding:16px 14px 18px; border-radius:18px;}
+  .page-header{margin-bottom:14px; gap:10px;}
+  .page-header h1{font-size:22px;}
+  .page-header .desc{font-size:13.5px; margin-top:3px;}
+  .page-header > .btn{width:100%; justify-content:center;}
+  .btn{min-height:40px; font-size:14.5px;}
+  .card{padding:14px;}
+  .card-title{flex-wrap:wrap; gap:4px 10px; margin-bottom:12px;}
+  .card-title h3{font-size:15.5px;}
+
+  /* Buscador y filtros: compactos, en dos columnas. */
+  .toolbar{padding:10px; gap:8px; margin-bottom:12px;}
+  .toolbar > *{flex:1 1 calc(50% - 8px); min-width:0;}
+  .toolbar > .search-box{flex:1 1 100%;}
+  .search-box{min-width:0;}
+  .search-box input{padding:7px 10px 7px 32px; font-size:14px;}
+  .search-box i{left:10px; font-size:13px;}
+  .select-filter,.filter-date{width:100%; min-width:0; padding:7px 8px; font-size:14px;}
+  .toolbar label{flex-direction:column; align-items:stretch !important; gap:2px !important; font-size:12px !important;}
+  .toolbar label > span{font-size:11.5px;}
+  .toolbar .btn{justify-content:center; min-height:36px;}
+
+  /* Tarjetas: compactas, sin el alto cuadrado que dejaba espacio vacío. */
+  .card-grid,.card-grid-wide,.card-grid-narrow{grid-template-columns:minmax(0,1fr); gap:10px;}
+  .galpon-card,.mp-card{aspect-ratio:auto; padding:12px 14px; gap:8px; justify-content:flex-start;}
+  .gc-stats{flex-direction:row; flex-wrap:wrap; gap:4px 14px;}
+  .gc-stat{font-size:12.5px;}
+  .gc-code{font-size:16px;}
+  .producto-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+  .producto-card{padding:12px; gap:8px;}
+  .prov-card{padding:12px 14px; gap:8px;}
+  .prov-rows{gap:4px;}
+  .lote-card{padding:11px 13px; gap:7px;}
+  .kanban-cols{gap:10px;}
+  .usuario-card{padding:12px 8px; gap:4px;}
+  .card-grid:has(> .usuario-card){grid-template-columns:repeat(2,minmax(0,1fr));}
+  .uc-avatar{width:44px; height:44px; font-size:16px;}
+
+  /* Dashboard */
+  .page-header-actions{align-items:stretch; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:8px; width:100%;}
+  .page-header-actions .btn{flex-direction:column; justify-content:center; gap:3px; padding:9px 4px; min-height:0; font-size:12.5px; line-height:1.2; text-align:center;}
+  .page-header-actions .btn i{font-size:16px;}
+  .kpi-grid{gap:10px; margin-bottom:14px;}
+  .kpi-card{padding:12px;}
+  .kpi-top{flex-wrap:wrap; gap:6px; margin-bottom:6px;}
+  .kpi-icon{width:30px; height:30px; font-size:14px;}
+  .kpi-card .value{font-size:24px;}
+  .kpi-card .label{font-size:13px;}
+  .kpi-delta{font-size:11.5px; padding:2px 6px;}
+  .kpi-sub{font-size:11.5px; margin-top:3px;}
+  .grid-2{gap:12px;}
+  .bars{gap:5px; height:150px;}
+  .card-produccion .bars{min-height:170px;}
+  .bar-col{gap:5px; min-width:0;}
+  .bar-col b{font-size:10px; letter-spacing:-.2px;}
+  .bar-col span{font-size:11px;}
+  .card-produccion .link,.bar-col-link{pointer-events:none;}
+  .card-produccion .link{display:none;}
+  .alert-item{align-items:flex-start; padding:10px 0;}
+  .alert-text{min-width:0; flex:1;}
+  .alert-top b{font-size:14px;}
+  .alert-sub{font-size:13px; overflow-wrap:anywhere;}
+  .pendientes-grid{grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;}
+  .pendiente-item{padding:10px 6px;}
+  .stock-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+  .stock-item{padding:12px 8px;}
+  .stock-value{font-size:19px;}
+
+  /* Tablas de registros: cada fila es una tarjeta compacta (el título de cada dato sale de
+     data-label, ver utils/movil.js). */
+  .page-body-split > .list-panel{overflow:hidden;}
+  .data-table,.data-table tbody{display:block; width:100%;}
+  .data-table thead{display:none;}
+  .data-table tbody tr{display:flex; flex-wrap:wrap; align-items:center; gap:3px 12px; padding:11px 14px; border-bottom:1px solid var(--gray-200);}
+  .data-table tbody tr:last-child{border-bottom:none;}
+  .data-table tbody td,.page-body-split > .list-panel tbody td{display:block; padding:0; border:none; font-size:13px; color:var(--gray-700); flex:0 0 auto; max-width:100%; order:2;}
+  .data-table tbody td[data-label]::before{content:attr(data-label) ": "; color:var(--gray-500); font-size:12px;}
+  .data-table tbody td:first-child{order:0; flex:1 1 calc(100% - 118px); min-width:0; font-size:15px; font-weight:700; color:var(--gray-900); overflow-wrap:anywhere;}
+  .data-table tbody td:first-child::before{content:none;}
+  .data-table tbody td:first-child[data-label="Ítems"]::before{content:"Ítems: "; font-weight:400; font-size:12px; color:var(--gray-500);}
+  .data-table tbody td.col-opcional,.data-table tbody td.col-opcional-2,.page-body-split > .list-panel tbody td.col-opcional,.page-body-split > .list-panel tbody td.col-opcional-2{display:none;}
+  .data-table tbody td:has(.badge){order:1; flex:0 0 auto; margin-left:auto;}
+  .data-table tbody td:has(.badge)::before{content:none;}
+  .data-table tbody td.col-auditoria{order:3; margin-left:auto;}
+  .data-table tbody td.col-auditoria::before{content:none;}
+
+  /* Paginación: "Anterior  1 / 98  Siguiente" en una sola línea. */
+  .paginacion{flex-direction:column; align-items:stretch; gap:10px; padding:12px 0 2px;}
+  .card-column .paginacion{margin-top:10px;}
+  .page-body-split > .list-panel .paginacion{padding:12px 14px;}
+  .paginacion-info{text-align:center; font-size:13px;}
+  .paginacion-controles{display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center;}
+  .paginacion-tamano{grid-column:1 / -1; justify-content:center; font-size:13px;}
+  .paginacion-numeros{display:none;}
+  .paginacion-pagina{display:block; text-align:center; padding:0 6px; font-size:14px;}
+  .paginacion .btn{justify-content:center; padding:8px 10px;}
+
+  /* Informes: en celular se avisa y se oculta el resto (las tablas y gráficos no entran). */
+  #page-informes > :not(.page-header):not(.aviso-informes){display:none;}
+  #page-informes .page-header > div:last-child{display:none;}
+  .aviso-informes{display:flex; gap:12px; align-items:flex-start; padding:14px; border-radius:14px; background:var(--gold-100); color:var(--gold-texto);}
+  .aviso-informes > i{font-size:20px; margin-top:2px;}
+  .aviso-informes b{display:block; font-size:15px; color:var(--gray-900); margin-bottom:3px;}
+  .aviso-informes p{font-size:13.5px; line-height:1.45; color:var(--gray-700); margin:0;}
+
+  /* Detalle: un poco más compacto dentro de la hoja. */
+  .detail-head{padding:10px 16px 14px;}
+  .detail-actions{padding:12px 16px;}
+}
+
+/* Celular: se esconden las leyendas explicativas (subtítulos de página y de tarjetas) para ganar espacio */
+@media (max-width:700px){
+  .page-header .desc,.card-title .card-sub{display:none;}
+  .page-header{margin-bottom:12px;}
+}
+
+/* ===== Barra superior de vidrio (celular y tablet): logo + efecto "Liquid Glass" al desplazar ===== */
+.topbar-vidrio{display:none;}
+@media (max-width:1100px){
+  .topbar-vidrio{
+    display:flex; align-items:center; position:fixed; top:0; left:0; right:0; z-index:210;
+    height:calc(68px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 18px 0 62px; justify-content:flex-end;
+    color:var(--green-900); pointer-events:none;
+  }
+  :root[data-theme="dark"] .topbar-vidrio{color:#fff;}
+  /* El material: desenfoque + saturación, con borde inferior que se desvanece (sin línea dura). */
+  .topbar-vidrio::before{
+    content:""; position:absolute; inset:0; z-index:-1; opacity:0;
+    background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.06));
+    -webkit-backdrop-filter:blur(9px) saturate(185%) brightness(1.05); backdrop-filter:blur(9px) saturate(185%) brightness(1.05);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.75), inset 0 -1px 0 rgba(255,255,255,.35), 0 6px 18px rgba(18,52,36,.07);
+    transform:translateY(-6px); transition:opacity .35s ease, transform .45s var(--resorte);
+  }
+  :root[data-theme="dark"] .topbar-vidrio::before{
+    background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(255,255,255,.08), 0 6px 18px rgba(0,0,0,.25);
+  }
+  html[data-scroll="1"] .topbar-vidrio::before{opacity:1; transform:none;}
+  .topbar-vidrio .logo-marca.compacto{font-size:22px; height:40px;}
+  .topbar-vidrio .logo-nombre{color:var(--green-900); filter:drop-shadow(0 0 .25em rgba(255,255,255,.85));}
+  :root[data-theme="dark"] .topbar-vidrio .logo-nombre{color:#fff; filter:drop-shadow(0 0 .25em rgba(0,0,0,.6));}
+  /* El logo aparece suavemente junto con el vidrio, sin saltos */
+  .mobile-topbar-toggle{background:rgba(24,74,52,.92); -webkit-backdrop-filter:blur(12px) saturate(180%); backdrop-filter:blur(12px) saturate(180%); box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 6px 16px rgba(18,52,36,.22);}
+}
+@media (prefers-reduced-transparency: reduce){
+  .topbar-vidrio::before{-webkit-backdrop-filter:none; backdrop-filter:none; background:var(--main-bg,#eef4f0);}
+}
+@media (prefers-reduced-motion: reduce){ .topbar-vidrio::before{transition:opacity .2s linear; transform:none;} }
+
+/* Celular: si hay una ventana emergente abierta, el panel deja de ser su contenedor (por el backdrop-filter),
+   así la ventana se centra en la pantalla visible y no al principio de la página. */
+@media (max-width:1100px){
+  .main:has(.modal-overlay.active){-webkit-backdrop-filter:none; backdrop-filter:none;}
+}
+
+/* Celular: formularios de las ventanas en una sola columna, sin cortarse a la derecha */
+@media (max-width:700px){
+  .modal-overlay{padding:12px;}
+  .modal-card{max-height:calc(100dvh - 24px);}
+  .modal-header{padding:16px 18px;}
+  .modal-body{padding:16px 18px;}
+  .modal-footer{padding:12px 18px;}
+  .form-row{grid-template-columns:minmax(0,1fr);gap:0;}
+  .form-group,.form-row > *{min-width:0;}
+  .modal-body input,.modal-body select,.modal-body textarea{max-width:100%;}
+}
+
+/* ===== Celular: barra inferior, botón flotante y título que sube ===== */
+.barra-inferior{display:none;}
+.topbar-titulo{display:none;}
+@media (max-width:700px){
+  #screen-app.active{padding-bottom:calc(84px + env(safe-area-inset-bottom));}
+  .mobile-topbar-toggle{display:none;}
+  .topbar-vidrio{padding-left:18px; padding-right:18px;}
+  .topbar-titulo{
+    display:block; flex:1; min-width:0; margin-right:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-family:var(--fuente-titulos); font-weight:650; font-size:18px; letter-spacing:-0.01em; color:var(--text, inherit);
+    opacity:0; transform:translateY(6px); transition:opacity .25s ease, transform .45s var(--resorte);
+  }
+  html[data-titulo="1"] .topbar-titulo{opacity:1; transform:none;}
+  /* Con el título visible, la barra siempre lleva el vidrio */
+  html[data-titulo="1"] .topbar-vidrio::before{opacity:1; transform:none;}
+
+  .barra-inferior{
+    display:flex; position:fixed; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:215;
+    height:62px; padding:6px; gap:2px; border-radius:24px;
+    background:linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.38));
+    -webkit-backdrop-filter:blur(20px) saturate(190%); backdrop-filter:blur(20px) saturate(190%);
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 10px 30px rgba(18,52,36,.16);
+  }
+  :root[data-theme="dark"] .barra-inferior{
+    background:linear-gradient(180deg, rgba(60,84,74,.55), rgba(30,46,40,.5));
+    border-color:rgba(255,255,255,.14);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16), 0 10px 30px rgba(0,0,0,.4);
+  }
+  .bi-item{
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    border:none; background:none; border-radius:18px; color:var(--gray-700); text-decoration:none; cursor:pointer;
+    font:inherit; font-size:11px; font-weight:600; -webkit-tap-highlight-color:transparent;
+    transition:background .25s ease, color .25s ease, transform .15s ease-out;
+  }
+  .bi-item i{font-size:19px;}
+  .bi-item:active{transform:scale(.92);}
+  .bi-item.activo{color:var(--green-700); background:rgba(46,138,92,.16);}
+  :root[data-theme="dark"] .bi-item.activo{color:#9fd8b8; background:rgba(120,190,150,.18);}
+
+  /* Botón principal de cada pantalla ("Nuevo …"): flotante, solo ícono, a la altura del pulgar */
+  .page-header > .btn-green{
+    position:fixed; right:18px; bottom:calc(86px + env(safe-area-inset-bottom)); z-index:214;
+    width:56px; height:56px; min-height:56px; padding:0; border-radius:50%; font-size:0; gap:0;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px rgba(18,52,36,.32), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .page-header > .btn-green i{font-size:22px; margin:0;}
+  html[data-detalle="abierto"] .page-header > .btn-green,
+  html:has(.modal-overlay.active) .page-header > .btn-green{display:none;}
+  html:has(.modal-overlay.active) .barra-inferior{display:none;}
+  html[data-detalle="abierto"] .barra-inferior{visibility:hidden;}
+}
+@media (prefers-reduced-transparency: reduce){
+  .barra-inferior{-webkit-backdrop-filter:none; backdrop-filter:none; background:var(--main-bg,#eef4f0);}
+}
+
+/* Celular: el panel principal no usa backdrop-filter (con él, los elementos fixed de adentro, como el
+   botón flotante, se posicionarían respecto del panel y no de la pantalla). Ya es casi opaco. */
+@media (max-width:700px){
+  .main{-webkit-backdrop-filter:none; backdrop-filter:none;}
+}
+
+/* ===== Celular: filtros colapsados ===== */
+.filtros-btn{display:none;}
+@media (max-width:700px){
+  .toolbar{align-items:flex-end;}
+  .toolbar > .search-box{flex:1 1 calc(100% - 118px); min-width:0;}
+  .filtros-btn{
+    display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; height:40px; padding:0 14px;
+    border:1.5px solid var(--gray-300); border-radius:10px; background:var(--surface); color:var(--gray-700);
+    font:inherit; font-size:14px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    transition:background .2s, border-color .2s, transform .15s ease-out;
+  }
+  .filtros-btn:active{transform:scale(.96);}
+  .filtros-btn[aria-expanded="true"],.filtros-btn[data-con="1"]{border-color:var(--green-600); color:var(--green-700); background:rgba(46,138,92,.08);}
+  .filtros-n{display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--green-600); color:#fff; font-size:12px;}
+  .filtros-n:empty{display:none;}
+  /* Si el filtro es la única fila (pantallas sin buscador), ocupa todo el ancho */
+  .toolbar > .filtros-btn:first-child{flex:1 1 100%; justify-content:center;}
+  .toolbar:not([data-filtros="abierto"]) > :not(.search-box):not(.filtros-btn){display:none !important;}
+  .toolbar[data-filtros="abierto"] > :not(.search-box):not(.filtros-btn){animation:fundido .25s ease-out backwards;}
+}
+
+/* La hoja se arrastra desde el asa: el gesto es propio, no debe desplazar la página */
+@media (max-width:1100px){
+  .detalle-cerrar{touch-action:none; cursor:grab;}
+}
+
+/* ===== Celular: dashboard por prioridad, alertas recortadas, estado como punto, detalles de oficio ===== */
+.alertas-ver-todas{display:none;}
+@media (max-width:700px){
+  /* Las alertas, si hay, van primero; si no hay, quedan después del gráfico */
+  #page-dashboard{display:flex; flex-direction:column;}
+  #page-dashboard > .grid-2{display:contents;}
+  #page-dashboard > .page-header{order:0;}
+  #page-dashboard [data-tutorial="dash-alertas"]{order:1;}
+  #page-dashboard [data-tutorial="dash-alertas"]:has(.empty-state){order:4;}
+  #page-dashboard > .kpi-grid{order:2;}
+  #page-dashboard [data-tutorial="dash-produccion"]{order:3;}
+  #page-dashboard [data-tutorial="dash-pendientes"]{order:5;}
+  #page-dashboard [data-tutorial="dash-stock"]{order:6;}
+  #page-dashboard > *{min-width:0;}
+
+  .alertas-ver-todas{
+    display:block; width:100%; margin-top:10px; padding:11px; border:none; border-radius:12px; cursor:pointer;
+    background:rgba(46,138,92,.10); color:var(--green-700); font:inherit; font-size:14px; font-weight:700;
+    -webkit-tap-highlight-color:transparent; transition:transform .15s ease-out, background .2s;
+  }
+  .alertas-ver-todas:active{transform:scale(.98);}
+  .card:not(.alertas-todas) .alerta-extra{display:none;}
+
+  /* Estado como punto de color + texto (en lugar de pastilla): se lee más rápido y ocupa menos */
+  .page-body-split > :not(.detail-panel) .badge{background:none; padding:0; gap:6px; font-size:12.5px;}
+  .page-body-split > :not(.detail-panel) .badge::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor; flex:none;}
+  .page-body-split .data-table tbody .badge{background:none;}
+}
+
+@media (max-width:700px){
+  #page-dashboard{gap:12px;}
+  #page-dashboard > .card{margin-top:0 !important;}
+  #page-dashboard > .kpi-grid{margin-bottom:0;}
+
+  /* Tamaño táctil: 44 px mínimo, y 16 px en los campos (con menos, iOS hace zoom al tocarlos) */
+  .btn,.filtros-btn,.alertas-ver-todas{min-height:44px;}
+  .filtros-btn{height:44px;}
+  .modal-close,.detalle-x{min-width:40px; min-height:40px;}
+  input,select,textarea,.search-box input{font-size:16px !important;}
+  .search-box input{padding-top:10px; padding-bottom:10px;}
+
+  /* Pantalla vacía: un recuadro suave con el mensaje, no un texto suelto */
+  .empty-state{
+    margin:8px 0; padding:28px 20px; border:1.5px dashed var(--gray-300); border-radius:16px;
+    background:rgba(255,255,255,.35); font-size:14.5px; line-height:1.5;
+  }
+  :root[data-theme="dark"] .empty-state{background:rgba(255,255,255,.03);}
+}
+
+/* Celular: el gráfico necesita una altura definida (las barras miden un porcentaje de ella) */
+@media (max-width:700px){
+  .card-produccion .bars{flex:none; height:170px; min-height:0;}
+  /* El botón principal también puede venir dentro de un contenedor (p. ej. en Lotes, junto a un aviso) */
+  .page-header .btn-green:not(.page-header-actions .btn-green){
+    position:fixed; right:18px; bottom:calc(86px + env(safe-area-inset-bottom)); z-index:214;
+    width:56px; height:56px; min-height:56px; padding:0; border-radius:50%; font-size:0; gap:0;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px rgba(18,52,36,.32), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .page-header .btn-green:not(.page-header-actions .btn-green) i{font-size:22px; margin:0;}
+  html[data-detalle="abierto"] .page-header .btn-green:not(.page-header-actions .btn-green),
+  html:has(.modal-overlay.active) .page-header .btn-green:not(.page-header-actions .btn-green){display:none;}
+  /* Barra inferior en tema oscuro: transparente, como vidrio */
+  :root[data-theme="dark"] .barra-inferior{
+    background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    border-color:rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+
+/* ===== Celular: avatar arriba a la izquierda y hoja de menú ("Más" / "Mi cuenta") ===== */
+.topbar-avatar,.hoja-menu,.hoja-menu-velo{display:none;}
+@media (max-width:700px){
+  .topbar-avatar{
+    display:flex; align-items:center; justify-content:center; position:fixed; top:14px; left:14px; z-index:220;
+    width:42px; height:42px; border-radius:50%; border:1px solid rgba(255,255,255,.55);
+    background:linear-gradient(160deg, var(--green-600), var(--green-900)); color:#fff; font:inherit; font-size:15px; font-weight:700; letter-spacing:.02em;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 6px 16px rgba(18,52,36,.25); cursor:pointer;
+    -webkit-tap-highlight-color:transparent; transition:transform .15s ease-out;
+  }
+  .topbar-avatar:active{transform:scale(.92);}
+  .topbar-vidrio{padding-left:68px;}
+
+  .hoja-menu-velo{display:block; position:fixed; inset:0; z-index:270; background:rgba(18,52,36,.42); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); animation:fundido .25s ease-out backwards;}
+  .hoja-menu{
+    display:block; position:fixed; left:0; right:0; bottom:0; z-index:275; max-height:82dvh; overflow-y:auto; overscroll-behavior:contain;
+    padding:0 18px calc(22px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0;
+    background:var(--surface); border:1px solid var(--borde-card); border-bottom:none;
+    box-shadow:0 -14px 40px rgba(18,52,36,.28); animation:hoja-sube .45s var(--resorte) backwards;
+  }
+  .hoja-menu-asa{position:sticky; top:0; z-index:1; display:flex; justify-content:center; padding:10px 0 12px; touch-action:none; cursor:grab; background:var(--surface);}
+  .hoja-menu-asa span{width:38px; height:5px; border-radius:3px; background:var(--gray-300);}
+  .hoja-menu-cuerpo section + section{margin-top:18px;}
+  .hoja-menu-cuerpo h4{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-500); margin:0 2px 8px;}
+  .hoja-grilla{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
+  .hoja-tile{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:84px; padding:12px 6px;
+    border-radius:16px; background:var(--gray-100, rgba(0,0,0,.04)); color:var(--gray-800, inherit); text-decoration:none; text-align:center;
+    font-size:12.5px; font-weight:600; line-height:1.2; -webkit-tap-highlight-color:transparent; transition:transform .15s ease-out, background .2s;
+  }
+  .hoja-tile i{font-size:22px; color:var(--green-600);}
+  .hoja-tile:active{transform:scale(.95);}
+  .hoja-tile.active{background:rgba(46,138,92,.16); color:var(--green-700);}
+  .hoja-cuenta{display:flex; align-items:center; gap:14px; padding:6px 2px 16px;}
+  .hoja-cuenta b{display:block; font-size:17px;}
+  .hoja-cuenta span{font-size:13.5px; color:var(--gray-500);}
+  .hoja-cuenta .sb-avatar{width:52px; height:52px; font-size:18px; flex:none;}
+  .hoja-acciones{display:flex; flex-direction:column; gap:8px;}
+  .hoja-acciones button{
+    display:flex; align-items:center; gap:12px; min-height:52px; padding:0 16px; border:none; border-radius:14px; cursor:pointer;
+    background:var(--gray-100, rgba(0,0,0,.04)); color:var(--gray-800, inherit); font:inherit; font-size:15.5px; font-weight:600; text-align:left;
+    -webkit-tap-highlight-color:transparent; transition:transform .15s ease-out;
+  }
+  .hoja-acciones button:active{transform:scale(.98);}
+  .hoja-acciones button i{width:22px; text-align:center; color:var(--green-600);}
+  .hoja-acciones .peligro{color:var(--red-500);}
+  .hoja-acciones .peligro i{color:var(--red-500);}
+  :root[data-theme="dark"] .hoja-menu{background:rgba(30,40,35,.96); box-shadow:0 -14px 40px rgba(0,0,0,.5);}
+  :root[data-theme="dark"] .hoja-menu-asa{background:transparent;}
+  :root[data-theme="dark"] .hoja-tile,:root[data-theme="dark"] .hoja-acciones button{background:rgba(255,255,255,.06);}
+  html:has(.hoja-menu) .barra-inferior{visibility:hidden;}
+  html:has(.hoja-menu) body{overflow:hidden;}
+}

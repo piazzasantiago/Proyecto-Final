@@ -351,6 +351,15 @@ export default function InformesPage() {
         </div>
       </div>
 
+      {/* En celular los informes (tablas anchas y gráficos) no se leen bien: se avisa y se oculta el resto. */}
+      <div className="aviso-informes">
+        <i className="fa-solid fa-display"></i>
+        <div>
+          <b>Mejor en una pantalla más grande</b>
+          <p>Los informes tienen tablas y gráficos que necesitan más espacio. Abrí AviGest desde una computadora o una tablet para verlos y exportarlos.</p>
+        </div>
+      </div>
+
       <div className="tabs" role="tablist" data-tutorial="inf-tabs">
         {TABS.map((t) => (
           <button
