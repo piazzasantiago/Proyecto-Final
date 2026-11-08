@@ -313,10 +313,8 @@ export default function EntradasPage() {
                         data-tutorial-fila=""
                         key={e.id_entrada}
                         onClick={() => setSelectedId(e.id_entrada)}
-                        style={{
-                          cursor: "pointer",
-                          background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
-                        }}
+                        className={isSel ? "row-selected" : undefined}
+                        style={{ cursor: "pointer" }}
                       >
                         <td>{formatGalpon(e)}</td>
                         <td>{e.items_count ?? (e.lineas ?? []).length}</td>

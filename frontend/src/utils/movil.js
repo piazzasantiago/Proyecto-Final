@@ -28,8 +28,29 @@ export function cerrarDetalleMovil() {
   });
 }
 
+/** Marca las columnas cuyos valores son todos números (para alinearlas a la derecha en escritorio). */
+const ES_NUMERO = /^-?[\d.,]+\s?(%|kg|L|hs|aves|m²|huevos)?$/;
+function marcarNumericas(tabla) {
+  const filas = [...tabla.querySelectorAll("tbody tr")];
+  const ths = [...tabla.querySelectorAll("thead th")];
+  ths.forEach((th, i) => {
+    const celdas = filas.map((f) => f.children[i]).filter((c) => c && c.textContent.trim() && c.textContent.trim() !== "—");
+    // Los códigos con ceros a la izquierda (Nº de comprobante, etc.) son identificadores, no cifras.
+    const numerica = celdas.length > 0 && celdas.every((c) => ES_NUMERO.test(c.textContent.trim()) && !/^0\d/.test(c.textContent.trim()));
+    const valor = numerica ? "1" : "";
+    if ((th.dataset.num || "") !== valor) {
+      if (valor) th.dataset.num = valor; else delete th.dataset.num;
+    }
+    filas.forEach((f) => {
+      const c = f.children[i];
+      if (c && (c.dataset.num || "") !== valor) { if (valor) c.dataset.num = valor; else delete c.dataset.num; }
+    });
+  });
+}
+
 function etiquetarTablas() {
   document.querySelectorAll("table.data-table").forEach((tabla) => {
+    marcarNumericas(tabla);
     const titulos = [...tabla.querySelectorAll("thead th")].map((th) => th.textContent.trim());
     tabla.querySelectorAll("tbody tr").forEach((fila) => {
       [...fila.children].forEach((celda, i) => {
@@ -178,6 +199,29 @@ export function activarMovil() {
     // Los botones y enlaces internos (p. ej. el "ojito" de auditoría) no abren el detalle.
     if (fila && !e.target.closest("button, a, .col-auditoria")) abrirDetalleMovil();
   };
+  // Atajos de teclado en escritorio: ↑/↓ recorren la lista, «/» enfoca el buscador, «N» crea uno nuevo.
+  const atajos = (e) => {
+    if (esPantallaChica() || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+    const t = e.target;
+    if (t.closest?.("input, select, textarea, [contenteditable], button, a")) return;
+    if (document.querySelector(".modal-overlay.active, .tut-velo")) return;
+    if (e.key === "/") {
+      const campo = document.querySelector(".search-box input");
+      if (campo) { e.preventDefault(); campo.focus(); campo.select(); }
+    } else if (e.key === "n" || e.key === "N") {
+      const nuevo = document.querySelector(".page-header .btn-green:not([disabled])");
+      if (nuevo) { e.preventDefault(); nuevo.click(); }
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const filas = [...document.querySelectorAll("[data-tutorial-fila]")].filter((f) => f.offsetParent !== null);
+      if (filas.length === 0) return;
+      const i = filas.findIndex((f) => f.classList.contains("card-selected") || f.classList.contains("row-selected"));
+      const sig = e.key === "ArrowDown" ? Math.min(i + 1, filas.length - 1) : Math.max(i - 1, 0);
+      if (sig === i) return;
+      e.preventDefault();
+      filas[sig].click();
+      filas[sig].scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  };
   const alTeclear = (e) => {
     if (e.key === "Escape" && document.documentElement.dataset.detalle) cerrarDetalleMovil();
   };
@@ -187,6 +231,7 @@ export function activarMovil() {
     cancelAnimationFrame(pendiente);
     pendiente = requestAnimationFrame(() => {
       etiquetarTablas();
+      observarEncabezado();
       actualizarTitulo();
       prepararFiltros();
       // El botón principal pasa a ser un botón flotante (solo ícono): necesita un nombre accesible.
@@ -198,6 +243,36 @@ export function activarMovil() {
         cerrarDetalleMovil();
       }
     });
+  };
+  // Altura del encabezado fijo (escritorio): la usan el encabezado de la tabla y el panel de detalle para pegarse debajo.
+  let encabezadoObservado = null;
+  const vidrio = document.createElement("div");
+  vidrio.className = "encabezado-vidrio";
+  vidrio.setAttribute("aria-hidden", "true");
+  document.body.appendChild(vidrio);
+  const ubicarVidrio = () => {
+    const main = document.querySelector(".main");
+    const h = encabezadoObservado ? Math.round(encabezadoObservado.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty("--alto-enc", `${h}px`);
+    if (!main || !h) return;
+    const r = main.getBoundingClientRect();
+    vidrio.style.left = `${Math.round(r.left) + 1}px`;
+    vidrio.style.width = `${Math.round(r.width) - 2}px`;
+    // El desenfoque necesita una capa más alta que la visible: se recorta al alto real del encabezado.
+    vidrio.style.height = `${h + 200}px`;
+    vidrio.style.clipPath = `inset(0 0 200px 0)`;
+  };
+  window.addEventListener("resize", ubicarVidrio);
+  const medidor = typeof ResizeObserver !== "undefined" ? new ResizeObserver(ubicarVidrio) : null;
+  const observarEncabezado = () => {
+    if (!medidor) return;
+    const ph = document.querySelector(".main .page-header");
+    if (ph === encabezadoObservado) return;
+    medidor.disconnect();
+    encabezadoObservado = ph;
+    if (ph) medidor.observe(ph);
+    else document.documentElement.style.setProperty("--alto-enc", "0px");
+    ubicarVidrio();
   };
   const observador = new MutationObserver(alCambiar);
   observador.observe(document.body, { childList: true, subtree: true });
@@ -226,6 +301,19 @@ export function activarMovil() {
       if (sobre) document.documentElement.dataset.scroll = "1";
       else delete document.documentElement.dataset.scroll;
     }
+    marcarTitulosFijos();
+  };
+
+  // Fila de títulos de la tabla: cuando se queda fija (ya no está en su lugar natural) pasa a tener
+  // las esquinas rectas; con las redondeadas se vería pasar el contenido por las puntas.
+  const marcarTitulosFijos = () => {
+    const th = document.querySelector(".data-table thead th");
+    const tabla = th?.closest("table");
+    const fijo = Boolean(th && tabla && th.getBoundingClientRect().top - tabla.getBoundingClientRect().top > 0.5);
+    if (fijo !== (document.documentElement.dataset.titulosFijos === "1")) {
+      if (fijo) document.documentElement.dataset.titulosFijos = "1";
+      else delete document.documentElement.dataset.titulosFijos;
+    }
   };
 
   // En una ventana emergente, el campo que se toca se lleva al centro para que el teclado no lo tape.
@@ -241,6 +329,7 @@ export function activarMovil() {
   const quitarGestos = gestosHoja();
   document.addEventListener("click", alTocar, true);
   document.addEventListener("keydown", alTeclear);
+  document.addEventListener("keydown", atajos);
   document.addEventListener("scroll", alDesplazar, { capture: true, passive: true });
   return () => {
     quitarGestos();
@@ -249,10 +338,15 @@ export function activarMovil() {
     document.removeEventListener("change", alCambiarCampo, true);
     delete document.documentElement.dataset.scroll;
     delete document.documentElement.dataset.titulo;
+    delete document.documentElement.dataset.titulosFijos;
     cancelAnimationFrame(pendiente);
     observador.disconnect();
+    medidor?.disconnect();
+    window.removeEventListener("resize", ubicarVidrio);
+    vidrio.remove();
     document.removeEventListener("click", alTocar, true);
     document.removeEventListener("keydown", alTeclear);
+    document.removeEventListener("keydown", atajos);
     cerrarDetalleMovil();
   };
 }
