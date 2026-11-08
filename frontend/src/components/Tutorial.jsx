@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalleMovil, cerrarDetalleMovil } from "../utils/movil";
 
 const MARGEN = 8; // aire alrededor del elemento resaltado
 const ESPACIO = 14; // separación entre el elemento y la tarjeta
@@ -79,6 +80,7 @@ export default function Tutorial({ pasos: todos, onCerrar, abrirMenu, abrirHoja 
   const cerrar = useCallback(() => {
     abrirMenu(false);
     abrirHoja(null);
+    cerrarDetalleMovil();
     onCerrar();
   }, [abrirMenu, abrirHoja, onCerrar]);
 
@@ -103,6 +105,8 @@ export default function Tutorial({ pasos: todos, onCerrar, abrirMenu, abrirHoja 
     const enCelular = window.matchMedia(PANTALLA_CHICA).matches;
     abrirMenu(Boolean(paso.menu) && !enCelular && window.matchMedia(CELULAR).matches);
     abrirHoja(enCelular ? paso.hoja ?? null : null);
+    // La hoja de detalle (celular y tablet) solo está abierta en los pasos que la muestran.
+    if (!paso.abrir) cerrarDetalleMovil();
     if (!paso.objetivo) {
       setRect(null);
       return undefined;
@@ -112,7 +116,13 @@ export default function Tutorial({ pasos: todos, onCerrar, abrirMenu, abrirHoja 
     let abierto = false;
     let abiertoEn = 0;
     const espera = setInterval(() => {
-      const el = buscar(paso.objetivo);
+      let el = buscar(paso.objetivo);
+      if (el && paso.abrir && el.getClientRects().length === 0) {
+        // El elemento existe pero está oculto: en celular y tablet el detalle es una hoja que
+        // solo se ve al abrirla. Se la abre y se espera a que aparezca.
+        if (!abierto) { abierto = true; abiertoEn = Date.now(); abrirDetalleMovil(); }
+        el = null;
+      }
       if (!el && paso.abrir && abierto && Date.now() - abiertoEn > 1200) {
         // Se tocó el primer registro y el elemento no apareció (p. ej. una compra ya finalizada no tiene
         // acciones): se salta el paso sin esperar el tiempo máximo.
