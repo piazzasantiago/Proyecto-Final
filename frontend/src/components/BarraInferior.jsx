@@ -16,14 +16,14 @@ export default function BarraInferior({ rol, onMas }) {
   const enFijos = items.some((i) => pathname.startsWith(i.to));
 
   return (
-    <nav className="barra-inferior" aria-label="Navegación principal">
+    <nav className="barra-inferior" aria-label="Navegación principal" data-tutorial="barra-inferior">
       {items.map((item) => (
         <NavLink key={item.to} to={item.to} className={({ isActive }) => `bi-item${isActive ? " activo" : ""}`}>
           <i className={`fa-solid ${item.icono}`}></i>
           <span>{NOMBRES[item.to]}</span>
         </NavLink>
       ))}
-      <button type="button" className={`bi-item${enFijos ? "" : " activo"}`} onClick={onMas}>
+      <button type="button" className={`bi-item${enFijos ? "" : " activo"}`} onClick={onMas} data-tutorial="boton-mas">
         <i className="fa-solid fa-ellipsis"></i>
         <span>Más</span>
       </button>

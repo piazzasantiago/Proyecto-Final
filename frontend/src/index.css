@@ -1309,7 +1309,7 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
    ═══════════════════════════════════════════════════════════════════════════════════════════ */
 
 /* Elementos propios del celular: ocultos en pantalla ancha. */
-.detalle-cerrar,.detalle-velo,.paginacion-pagina,.aviso-informes{display:none;}
+.detalle-cerrar,.detalle-velo,.paginacion-pagina{display:none;}
 
 @media (max-width:1100px){
   /* Las columnas de las grillas se pueden achicar: sin esto un gráfico o una tabla ancha estiraba
@@ -1448,14 +1448,6 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   .paginacion-numeros{display:none;}
   .paginacion-pagina{display:block; text-align:center; padding:0 6px; font-size:14px;}
   .paginacion .btn{justify-content:center; padding:8px 10px;}
-
-  /* Informes: en celular se avisa y se oculta el resto (las tablas y gráficos no entran). */
-  #page-informes > :not(.page-header):not(.aviso-informes){display:none;}
-  #page-informes .page-header > div:last-child{display:none;}
-  .aviso-informes{display:flex; gap:12px; align-items:flex-start; padding:14px; border-radius:14px; background:var(--gold-100); color:var(--gold-texto);}
-  .aviso-informes > i{font-size:20px; margin-top:2px;}
-  .aviso-informes b{display:block; font-size:15px; color:var(--gray-900); margin-bottom:3px;}
-  .aviso-informes p{font-size:13.5px; line-height:1.45; color:var(--gray-700); margin:0;}
 
   /* Detalle: un poco más compacto dentro de la hoja. */
   .detail-head{padding:10px 16px 14px;}
@@ -1790,25 +1782,6 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   .page-header h1{font-size:28px; font-weight:700; letter-spacing:-0.03em; line-height:1.15;}
   .page-header .desc{font-size:14.5px; color:var(--gray-500); margin-top:5px; max-width:62ch;}
 
-  /* Menú de acciones («Exportar») */
-  .menu-acciones{position:relative;}
-  .menu-acciones-flecha{font-size:11px; margin-left:2px; opacity:.85;}
-  .menu-pop{
-    position:absolute; right:0; top:calc(100% + 8px); z-index:60; min-width:210px; padding:6px;
-    background:var(--vidrio-fuerte); -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
-    border:1px solid var(--borde-card-fuerte); border-radius:14px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 14px 36px rgba(18,52,36,.18);
-    transform-origin:100% 0; animation:menu-pop-entra .35s var(--resorte) backwards;
-  }
-  .menu-pop button{
-    display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border:none; border-radius:9px; background:none;
-    font:inherit; font-size:14.5px; font-weight:600; color:var(--gray-800); cursor:pointer; text-align:left; transition:background .12s;
-  }
-  .menu-pop button:hover{background:rgba(46,138,92,.10); color:var(--green-700);}
-  .menu-pop button i{width:18px; text-align:center; color:var(--green-600);}
-  :root[data-theme="dark"] .menu-pop{background:rgba(34,46,40,.92); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 14px 36px rgba(0,0,0,.45);}
-  :root[data-theme="dark"] .menu-pop button{color:#e8f0eb;}
-  :root[data-theme="dark"] .menu-pop button:hover{background:rgba(120,190,150,.16); color:#bfe8d1;}
 
   /* Tablas: encabezado fijo y translúcido, filas que reaccionan al cursor, cifras a la derecha */
   .data-table thead th{
@@ -2369,9 +2342,19 @@ a.alert-link.sev-green:hover{background:#cdf5cf;}
   .login-bg::after{background:radial-gradient(ellipse 70% 70% at 25% 56%, rgba(5,18,12,.8), transparent 80%);}
 }
 
-/* Login: la marca a la izquierda con más aire respecto del borde, para equilibrar la tarjeta de la derecha. */
+/* Login (escritorio): marca y tarjeta juntas, como un solo conjunto centrado en la pantalla, en lugar
+   de una en cada mitad. */
 @media(min-width:901px){
-  .login-panel{padding-left:clamp(60px, 9vw, 150px);}
+  #screen-login.active{
+    grid-template-columns:auto auto; justify-content:center;
+    column-gap:clamp(48px, 6vw, 104px);
+  }
+  .login-panel{width:min(460px, 44vw); padding:60px 0;}
+  .login-form-wrap{padding:40px 0;}
+  .login-bg::after{background:radial-gradient(ellipse 46% 58% at 34% 56%, rgba(5,18,12,.55), transparent 72%);}
+}
+@media(min-width:901px) and (prefers-contrast: more){
+  .login-bg::after{background:radial-gradient(ellipse 60% 70% at 34% 56%, rgba(5,18,12,.8), transparent 80%);}
 }
 
 /* Login: versión y créditos al pie de la pantalla (fuera de la tarjeta), en una línea discreta. */
@@ -2391,3 +2374,115 @@ a.alert-link.sev-green:hover{background:#cdf5cf;}
   .login-pie{flex-direction:column; gap:2px;}
   .login-pie span + span::before{content:none;}
 }
+
+
+/* Informes: "Exportar" es un botón normal en el encabezado, no el botón flotante de "nuevo". */
+@media (max-width:700px){
+  #page-informes .page-header .btn-green{
+    position:static; width:auto; height:auto; min-height:40px; padding:0 14px; border-radius:11px;
+    font-size:14px; gap:8px; box-shadow:none; z-index:auto;
+  }
+  #page-informes .page-header .btn-green i{font-size:14px;}
+  #page-informes .page-header{align-items:flex-start; gap:12px;}
+  #page-informes .menu-pop{right:0; left:auto;}
+}
+
+/* "Ver más / Ver menos" de listas largas dentro del detalle (materias primas del galpón). */
+.ver-mas{
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  margin-top:8px; padding:9px 12px; border:none; border-radius:10px; cursor:pointer;
+  background:rgba(46,138,92,.08); color:var(--green-700);
+  font:inherit; font-size:14px; font-weight:600;
+  transition:background .15s ease, transform .1s ease-out;
+}
+.ver-mas:hover{background:rgba(46,138,92,.14);}
+.ver-mas:active{transform:scale(.98);}
+.ver-mas i{font-size:11px;}
+:root[data-theme="dark"] .ver-mas{background:rgba(255,255,255,.07); color:#bfe8d1;}
+:root[data-theme="dark"] .ver-mas:hover{background:rgba(255,255,255,.11);}
+
+/* Escritorio: si el panel de detalle es más alto que la pantalla, se queda fijo recién cuando su parte
+   de abajo ya se alcanzó (top negativo): al desplazar la página se llega a todo el contenido, sin
+   barras de desplazamiento dentro del panel. utils/detalle.js mide la altura (--alto-detalle). */
+@media (min-width:1101px){
+  .page-body-split > .detail-panel{
+    top:min(calc(var(--alto-enc, 0px) + 14px), calc(100vh - var(--alto-detalle, 0px) - 14px));
+  }
+}
+
+
+/* ═══ Informes en celular: tarjetas compactas + hoja con el detalle (components/InformeCompacto.jsx) ═══ */
+.inf-lista{display:none;}
+@media (max-width:700px){
+  /* Pestañas: se acomodan en varias filas, sin deslizar de costado. */
+  #page-informes .tabs{flex-wrap:wrap; gap:6px; border-bottom:none; margin-bottom:12px;}
+  #page-informes .tab-btn{
+    flex:0 0 auto; padding:7px 11px; font-size:13.5px; border-radius:999px; gap:0;
+    background:var(--surface); border:1px solid var(--borde-card); border-bottom-width:1px; color:var(--gray-700);
+  }
+  #page-informes .tab-btn.tab-active{background:rgba(46,138,92,.14); border-color:rgba(46,138,92,.45); color:var(--green-700);}
+  #page-informes .grid-2{grid-template-columns:1fr !important;}
+  #page-informes .hbar-label{width:92px !important;}
+
+  .inf-lista{display:flex; flex-direction:column; gap:8px;}
+  .inf-resumen{padding:12px 14px; border-radius:14px; background:var(--gray-100); margin-bottom:2px;}
+  .inf-resumen > b{display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-500); margin-bottom:8px;}
+  .inf-resumen > div{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 14px;}
+  .inf-resumen span{display:block; font-size:16px; font-weight:700; color:var(--gray-900); font-variant-numeric:tabular-nums;}
+  .inf-resumen small{display:block; font-size:11.5px; font-weight:400; color:var(--gray-500); margin-bottom:1px;}
+
+  .inf-fila{
+    display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; font:inherit; cursor:pointer;
+    padding:12px 14px; border-radius:14px; border:1px solid var(--borde-card); background:var(--surface); color:inherit;
+    transition:transform .1s ease-out, background .15s ease;
+  }
+  .inf-fila:active{transform:scale(.985); background:rgba(46,138,92,.08);}
+  .inf-fila-arriba{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
+  .inf-fila-arriba > b{font-size:15.5px; font-weight:700; color:var(--gray-900); min-width:0; overflow-wrap:anywhere;}
+  .inf-fila-valor{font-size:15px; font-weight:700; color:var(--gray-900); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .inf-fila-valor.alerta{color:var(--red-alerta);}
+  .inf-fila-sub{font-size:13.5px; color:var(--gray-700);}
+  .inf-fila-extra{font-size:12.5px; color:var(--gray-500);}
+  .inf-fila-barra{display:block; height:5px; border-radius:3px; background:var(--gray-200); margin-top:5px; overflow:hidden;}
+  .inf-fila-barra i{display:block; height:100%; border-radius:3px; background:var(--green-600);}
+
+  /* Hoja con todas las columnas de la fila (igual que el detalle del resto de las secciones). */
+  .inf-hoja-velo{position:fixed; inset:0; z-index:270; background:rgba(18,52,36,.42); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); animation:fundido .25s ease-out backwards;}
+  .inf-hoja{
+    position:fixed; left:0; right:0; bottom:0; z-index:275; max-height:82dvh; overflow-y:auto; overscroll-behavior:contain;
+    padding:0 18px calc(22px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0;
+    background:var(--surface); border:1px solid var(--borde-card); border-bottom:none;
+    box-shadow:0 -14px 40px rgba(18,52,36,.28); animation:hoja-sube .45s var(--resorte) backwards;
+  }
+  .inf-hoja-asa{position:sticky; top:0; z-index:1; display:flex; justify-content:center; padding:10px 0 12px; touch-action:none; cursor:grab; background:var(--surface);}
+  .inf-hoja-asa span{width:38px; height:5px; border-radius:3px; background:var(--gray-300);}
+  .inf-hoja-cabeza{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding-bottom:10px;}
+  .inf-hoja-cabeza h3{font-size:18.5px; font-weight:700; overflow-wrap:anywhere;}
+  .inf-hoja-cabeza .sub{font-size:14px; color:var(--gray-500); margin-top:3px;}
+  .inf-hoja-cerrar{flex:0 0 auto; width:34px; height:34px; border:none; border-radius:50%; background:var(--gray-100); color:var(--gray-700); cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  :root[data-theme="dark"] .inf-hoja{background:rgba(30,40,35,.96); box-shadow:0 -14px 40px rgba(0,0,0,.5);}
+  :root[data-theme="dark"] .inf-hoja-asa{background:transparent;}
+  html:has(.inf-hoja) .barra-inferior{visibility:hidden;}
+}
+
+/* ===== Menú de acciones («Exportar»): todas las pantallas ===== */
+.menu-acciones{position:relative;}
+.menu-acciones-flecha{font-size:11px; margin-left:2px; opacity:.85;}
+.menu-pop{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:60; min-width:210px; padding:6px;
+  background:var(--vidrio-fuerte); -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid var(--borde-card-fuerte); border-radius:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 14px 36px rgba(18,52,36,.18);
+  transform-origin:100% 0; animation:menu-pop-entra .35s var(--resorte) backwards;
+}
+.menu-pop button{
+  display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border:none; border-radius:9px; background:none;
+  font:inherit; font-size:14.5px; font-weight:600; color:var(--gray-800); cursor:pointer; text-align:left; transition:background .12s;
+}
+.menu-pop button:hover{background:rgba(46,138,92,.10); color:var(--green-700);}
+.menu-pop button i{width:18px; text-align:center; color:var(--green-600);}
+:root[data-theme="dark"] .menu-pop{background:rgba(34,46,40,.92); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 14px 36px rgba(0,0,0,.45);}
+:root[data-theme="dark"] .menu-pop button{color:#e8f0eb;}
+:root[data-theme="dark"] .menu-pop button:hover{background:rgba(120,190,150,.16); color:#bfe8d1;}
+
+@media (max-width:700px){ .menu-pop{max-width:calc(100vw - 32px);} }

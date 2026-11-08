@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 import { MENU } from "../config/menu";
 
 // Los accesos que ya están en la barra inferior no se repiten en la hoja «Más».
+const idGrupo = (nombre) => nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const EN_BARRA = ["/app/dashboard", "/app/galpones", "/app/lotes", "/app/recoleccion"];
 
 /**
@@ -58,7 +59,7 @@ export default function HojaMenu({ modo, rol, usuario, iniciales, esOscuro, onTe
         {modo === "mas" ? (
           <div className="hoja-menu-cuerpo">
             {grupos.map((g) => (
-              <section key={g.grupo}>
+              <section key={g.grupo} data-tutorial={`hoja-${idGrupo(g.grupo)}`}>
                 <h4>{g.grupo}</h4>
                 <div className="hoja-grilla">
                   {g.items.map((item) => (
@@ -84,7 +85,7 @@ export default function HojaMenu({ modo, rol, usuario, iniciales, esOscuro, onTe
               <button type="button" onClick={onTema} aria-pressed={esOscuro}>
                 <i className={`fa-solid ${esOscuro ? "fa-sun" : "fa-moon"}`}></i> {esOscuro ? "Modo claro" : "Modo oscuro"}
               </button>
-              <button type="button" onClick={onTutorial}>
+              <button type="button" onClick={onTutorial} data-tutorial="hoja-tutorial">
                 <i className="fa-solid fa-circle-question"></i> Ver tutorial
               </button>
               <button type="button" className="peligro" onClick={onSalir}>
