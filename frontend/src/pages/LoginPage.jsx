@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useLayoutEffect, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import CampoPassword from "../components/CampoPassword";
 import LogoAvigest from "../components/LogoAvigest";
 import { useAuth } from "../context/AuthContext";
+import { activarFondo } from "../utils/fondo";
 
 // Número de versión que se muestra al pie del login.
 const VERSION = "0.1";
@@ -19,6 +20,19 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [verRecupero, setVerRecupero] = useState(false);
+  const [tiembla, setTiembla] = useState(false); // sacudida corta de la tarjeta cuando hay error
+  const [saliendo, setSaliendo] = useState(false); // la tarjeta se va antes de entrar a la app
+  const campoUsuario = useRef(null);
+
+  // El fondo del login sigue la hora del día, igual que el de la aplicación.
+  useLayoutEffect(() => activarFondo(), []);
+
+  // Foco en el usuario al abrir, pero solo con mouse: en un celular abriría el teclado de golpe
+  // y taparía la pantalla antes de que la persona la vea.
+  useEffect(() => {
+    if (cargando || usuario) return;
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) campoUsuario.current?.focus();
+  }, [cargando, usuario]);
 
   // A dónde ir después de entrar: si venía de una ruta protegida, vuelve ahí.
   const destino = location.state?.from?.pathname || "/app/dashboard";
@@ -33,7 +47,8 @@ export default function LoginPage() {
   }
 
   // Si ya hay sesión activa no tiene sentido mostrar el login.
-  if (usuario) return <Navigate to={destino} replace />;
+  // (Mientras se envía o la tarjeta se está yendo se espera, para que la salida se vea completa.)
+  if (usuario && !enviando && !saliendo) return <Navigate to={destino} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault(); // evita que el navegador recargue la página
@@ -41,16 +56,22 @@ export default function LoginPage() {
     setEnviando(true);
     try {
       await iniciarSesion(nombreUsuario, password);
+      // La tarjeta se desvanece hacia arriba y recién ahí se entra. Con "reducir movimiento" no se espera.
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setSaliendo(true);
+        await new Promise((r) => setTimeout(r, 420));
+      }
       navigate(destino, { replace: true });
     } catch (err) {
       setError(err.message);
+      setTiembla(true);
     } finally {
       setEnviando(false);
     }
   }
 
   return (
-    <div className="screen active" id="screen-login">
+    <div className={`screen active${saliendo ? " login-saliendo" : ""}`} id="screen-login">
       <div className="login-bg">
         <div className="bg-circle bg-c1"></div>
         <div className="bg-circle bg-c2"></div>
@@ -69,12 +90,16 @@ export default function LoginPage() {
       </div>
 
       <div className="login-form-wrap">
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form
+          className={`login-form${tiembla ? " tiembla" : ""}`}
+          onSubmit={handleSubmit}
+          onAnimationEnd={(e) => { if (e.animationName === "login-tiembla") setTiembla(false); }}
+        >
           <h2>Iniciar sesión</h2>
           <div className="sub">Ingresá tus credenciales para acceder al sistema.</div>
 
           {error && (
-            <div className="alert alert-error">
+            <div className="alert alert-error" role="alert">
               <i className="fa-solid fa-circle-exclamation"></i>
               <span>{error}</span>
             </div>
@@ -89,6 +114,7 @@ export default function LoginPage() {
                 type="text"
                 placeholder="operario@granja.com"
                 autoComplete="username"
+                ref={campoUsuario}
                 value={nombreUsuario}
                 onChange={(e) => setNombreUsuario(e.target.value)}
                 required
@@ -119,15 +145,15 @@ export default function LoginPage() {
           </div>
 
           <button className="btn-primary" type="submit" disabled={enviando}>
-            {enviando ? "Ingresando…" : <>Ingresar <i className="fa-solid fa-arrow-right"></i></>}
+            {enviando ? <><span className="btn-spinner" aria-hidden="true" /> Ingresando…</> : <>Ingresar <i className="fa-solid fa-arrow-right"></i></>}
           </button>
-
-          <div className="login-footnote">
-            <span>AviGest · v{VERSION}</span>
-            <span>Desarrollado por Santiago Piazza &amp; Antonio Vargas</span>
-          </div>
         </form>
       </div>
+
+      <footer className="login-pie">
+        <span>AviGest · v{VERSION}</span>
+        <span>Desarrollado por Santiago Piazza &amp; Antonio Vargas</span>
+      </footer>
 
       {/* El sistema no envía mails de recupero: el usuario le pide al
           administrador que le restablezca la contraseña. */}

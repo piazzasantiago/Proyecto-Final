@@ -292,10 +292,8 @@ export default function SalidasPage() {
                         data-tutorial-fila=""
                         key={s.id_salida}
                         onClick={() => setSelectedId(s.id_salida)}
-                        style={{
-                          cursor: "pointer",
-                          background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
-                        }}
+                        className={isSel ? "row-selected" : undefined}
+                        style={{ cursor: "pointer" }}
                       >
                         <td>{s.items_count ?? (s.lineas ?? []).length}</td>
                         <td>{formatCantidad(totalUnidades(s))}</td>

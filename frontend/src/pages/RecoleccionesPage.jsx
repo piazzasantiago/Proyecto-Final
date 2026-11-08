@@ -332,12 +332,8 @@ export default function RecoleccionesPage() {
                         data-tutorial-fila=""
                         key={rec.id_recoleccion}
                         onClick={() => setSelectedId(rec.id_recoleccion)}
-                        style={{
-                          cursor: "pointer",
-                          background: isSel
-                            ? "var(--green-50, #f0fdf4)"
-                            : undefined,
-                        }}
+                        className={isSel ? "row-selected" : undefined}
+                        style={{ cursor: "pointer" }}
                       >
                         <td>{formatGalpon(rec)}</td>
                         <td>{rec.lote?.codigo ?? "—"}</td>

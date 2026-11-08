@@ -31,7 +31,7 @@
     --borde-card-suave:rgba(18,52,36,0.06);
     --vidrio:rgba(255,255,255,0.6);         /* botones y campos translúcidos */
     --vidrio-fuerte:rgba(255,255,255,0.85);
-    --main-bg:rgba(232,238,233,0.88);
+    --main-bg:rgba(232,238,233,0.78);
     --main-borde:rgba(255,255,255,0.7);
     --gold-texto:#96721e;                   /* texto dorado sobre fondos claros */
     --red-texto:#8a2f27;
@@ -149,7 +149,7 @@
     position:relative;
     z-index:1;
     overflow:hidden;
-    order:2;
+    order:1;
   }
   .login-brand{display:flex; align-items:center; gap:22px; margin-bottom:64px;}
   /* El logo (huevo + nombre) está en components/LogoAvigest.jsx; sus estilos, al final de este archivo. */
@@ -158,7 +158,7 @@
   .login-form-wrap{
     display:flex; align-items:center; justify-content:center; padding:40px;
     position:relative; z-index:1;
-    order:1;
+    order:2;
   }
   .login-form{
     width:100%; max-width:380px; padding:34px;
@@ -205,11 +205,15 @@
     min-height:100vh;
     padding:16px;
     background:
-      radial-gradient(circle at 12% 10%, rgba(87,187,137,0.22), transparent 45%),
-      radial-gradient(circle at 90% 15%, rgba(217,164,65,0.18), transparent 50%),
-      radial-gradient(circle at 50% 100%, rgba(87,187,137,0.16), transparent 55%),
+      var(--grano),
+      radial-gradient(circle at 12% 10%, var(--fondo-a), transparent 45%),
+      radial-gradient(circle at 90% 15%, var(--fondo-b), transparent 50%),
+      radial-gradient(circle at 50% 100%, var(--fondo-c), transparent 55%),
+      radial-gradient(circle at 80% 72%, var(--fondo-d), transparent 42%),
       var(--gray-100);
     background-attachment:fixed;
+    background-size:180px 180px, auto, auto, auto, auto, auto;
+    background-blend-mode:soft-light, normal, normal, normal, normal, normal;
   }
   .sidebar{
     background:rgba(27,74,52,0.92);
@@ -657,8 +661,8 @@
   .hbar-list{display:flex; flex-direction:column; gap:16px;}
   .hbar-row{display:flex; align-items:center; gap:12px;}
   .hbar-label{width:70px; flex-shrink:0; font-size:13.5px; font-weight:600; color:var(--gray-700);}
-  .hbar-track{flex:1; height:10px; background:var(--gray-200); border-radius:6px; overflow:hidden;}
-  .hbar-fill{height:100%; border-radius:6px;}
+  .hbar-track{flex:1; height:16px; background:var(--gray-200); border-radius:999px; overflow:hidden;}
+  .hbar-fill{height:100%; border-radius:999px;}
   .hbar-value{width:44px; text-align:right; font-size:13.5px; font-weight:700; color:var(--gray-900); flex-shrink:0;}
 
   .donut-wrap{display:flex; align-items:center; gap:26px; flex-wrap:wrap;}
@@ -873,7 +877,7 @@
       justify-content:center;
       margin-bottom:36px;
     }
-    .login-brand .logo-marca{ font-size:48px; }
+    .login-brand .logo-marca{ font-size:58px; }
     .login-panel h1{
       font-size:clamp(22px, 6vw, 30px);
       max-width:100%;
@@ -1111,8 +1115,8 @@ a.alert-link:hover{background:var(--gray-100);}
 /* Stock: porcentaje y barra de cada producto. */
 a.stock-link{text-decoration:none; color:inherit; transition:box-shadow .15s, background .15s;}
 a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,36,0.08);}
-.stock-bar{width:100%; height:6px; border-radius:6px; background:var(--gray-200); overflow:hidden; margin-top:4px;}
-.stock-bar-fill{height:100%; border-radius:6px;}
+.stock-bar{width:100%; height:10px; border-radius:999px; background:var(--gray-200); overflow:hidden; margin-top:4px;}
+.stock-bar-fill{height:100%; border-radius:999px;}
 .stock-pct{font-size:12px; color:var(--gray-500);}
 
 /* El gráfico ocupa el alto que deja la tarjeta de al lado (las alertas crecen
@@ -1157,33 +1161,19 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
 .esqueleto-detalle-fila{display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px dashed var(--gray-200);}
 /* En el panel del detalle el fondo es la superficie: los bloques de las tarjetas ya contrastan. */
 
-/* ── Logo del login (components/LogoAvigest.jsx) ────────────────────────── */
+/* ── Logo (components/LogoAvigest.jsx) ──────────────────────────────────── */
 /* Todo se mide en em: el tamaño del logo es el font-size de .logo-marca. */
-.logo-marca{position:relative; display:inline-flex; align-items:center; font-size:72px; padding:.8em 0 .8em 1.3em; animation:logo-aparecer .6s ease-out both;}
+.logo-marca{position:relative; display:inline-flex; align-items:center; font-size:88px; padding:.3em 0; animation:logo-aparecer .6s ease-out both;}
 .logo-nombre{
-  position:relative; z-index:1; display:block; height:1em; width:auto; overflow:visible;
+  position:relative; display:block; height:1.52em; width:auto; overflow:visible;
   color:#fff; filter:drop-shadow(0 .03em .12em rgba(14,32,22,0.45));
 }
-.logo-huevo-pos{position:absolute; left:0; top:50%; width:2.1em; height:2.6em; margin-top:-1.3em;}
-.logo-huevo{
-  position:relative; display:block; width:100%; height:100%; padding:0; border:none; background:none;
-  cursor:pointer; will-change:transform; transform-style:preserve-3d; -webkit-tap-highlight-color:transparent;
-}
-.logo-huevo svg{display:block; width:100%; height:100%; overflow:visible;}
-.logo-huevo:focus-visible{outline:2px solid rgba(255,255,255,.85); outline-offset:.12em; border-radius:50%;}
-.logo-sombra{
-  position:absolute; left:8%; right:8%; bottom:-.12em; height:.22em; border-radius:50%;
-  background:radial-gradient(closest-side, rgba(0,0,0,.3), transparent); filter:blur(.06em);
-  will-change:transform;
-}
+.logo-solo-huevo{display:none;}
 @keyframes logo-aparecer{from{opacity:0;} to{opacity:1;}}
 @media (prefers-reduced-motion: reduce){ .logo-marca{animation:none;} }
 
 /* ── Encabezado del menú: logo + saludo de bienvenida (components/MarcaSidebar.jsx) ── */
-.logo-marca.compacto{font-size:25px; padding:0 0 0 1.15em; animation:none; height:44px; align-items:center;}
-.logo-marca.compacto .logo-huevo-pos{width:1.4em; height:1.75em; margin-top:-.875em;}
-.logo-marca.compacto .logo-huevo{cursor:default;}
-.logo-marca.compacto .logo-sombra{display:none;}
+.logo-marca.compacto{font-size:25px; padding:0; animation:none; height:44px; align-items:center;}
 .sb-marca-logo,.sb-marca-saludo{position:absolute; inset:0; display:flex; align-items:center;}
 .sb-marca-saludo{font-size:20px; font-weight:700; letter-spacing:-0.01em; color:#fff; padding-left:8px; animation:saludo-entra .5s cubic-bezier(.2,.8,.2,1) both;}
 /* Barrido horizontal con máscara: el borde suave recorre el elemento de derecha a izquierda. */
@@ -1740,4 +1730,664 @@ a.stock-link:hover{background:var(--green-100); box-shadow:0 2px 8px rgba(18,52,
   :root[data-theme="dark"] .hoja-tile,:root[data-theme="dark"] .hoja-acciones button{background:rgba(255,255,255,.06);}
   html:has(.hoja-menu) .barra-inferior{visibility:hidden;}
   html:has(.hoja-menu) body{overflow:hidden;}
+}
+
+/* ===== Escritorio: menú lateral claro y translúcido (estilo macOS) ===== */
+@media (min-width:1101px){
+  .sidebar{
+    background:linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.42));
+    -webkit-backdrop-filter:blur(28px) saturate(190%); backdrop-filter:blur(28px) saturate(190%);
+    border:1px solid rgba(255,255,255,.75);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 10px 30px rgba(18,52,36,.10);
+    color:var(--gray-800);
+  }
+  .sb-brand{border-bottom-color:rgba(18,52,36,.08);}
+  .sb-section-label{color:var(--gray-500); font-weight:600; letter-spacing:.7px; font-size:11.5px;}
+  .sb-item{color:var(--gray-700); border-radius:10px; font-weight:500;}
+  .sb-item i{color:var(--gray-500); transition:color .15s;}
+  .sb-item:hover{background:rgba(18,52,36,.06); color:var(--gray-900);}
+  .sb-item:hover i{color:var(--green-700);}
+  /* Ítem activo: pastilla suave con el verde de la marca (ya no un bloque dorado) */
+  .sb-item.active{
+    background:rgba(46,138,92,.14); color:var(--green-700); font-weight:650;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 0 0 1px rgba(46,138,92,.18);
+  }
+  .sb-item.active i{color:var(--green-600);}
+  .sb-footer{border-top-color:rgba(18,52,36,.08);}
+  .sb-user-info b{color:var(--gray-900);}
+  .sb-user-info span{color:var(--gray-500);}
+  .sb-avatar{color:#fff;}
+  .sb-logout,.sb-tema{color:var(--gray-500);}
+  .sb-logout:hover,.sb-tema:hover{color:var(--gray-900);}
+  .sb-marca-saludo{color:var(--green-900);}
+  .sb-marca .logo-nombre{color:var(--green-900); filter:none;}
+
+  /* Tema oscuro: mismo criterio, con vidrio oscuro y texto claro */
+  :root[data-theme="dark"] .sidebar{
+    background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+    -webkit-backdrop-filter:blur(28px) saturate(160%); backdrop-filter:blur(28px) saturate(160%);
+    border-color:rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 10px 30px rgba(0,0,0,.35);
+    color:#fff;
+  }
+  :root[data-theme="dark"] .sb-brand,:root[data-theme="dark"] .sb-footer{border-color:rgba(255,255,255,.08);}
+  :root[data-theme="dark"] .sb-section-label{color:rgba(255,255,255,.45);}
+  :root[data-theme="dark"] .sb-item{color:rgba(255,255,255,.78);}
+  :root[data-theme="dark"] .sb-item i{color:rgba(255,255,255,.5);}
+  :root[data-theme="dark"] .sb-item:hover{background:rgba(255,255,255,.07); color:#fff;}
+  :root[data-theme="dark"] .sb-item:hover i{color:#9fd8b8;}
+  :root[data-theme="dark"] .sb-item.active{background:rgba(120,190,150,.18); color:#bfe8d1; box-shadow:inset 0 1px 0 rgba(255,255,255,.12), inset 0 0 0 1px rgba(120,190,150,.22);}
+  :root[data-theme="dark"] .sb-item.active i{color:#9fd8b8;}
+  :root[data-theme="dark"] .sb-user-info b{color:#fff;}
+  :root[data-theme="dark"] .sb-user-info span,:root[data-theme="dark"] .sb-logout,:root[data-theme="dark"] .sb-tema{color:rgba(255,255,255,.55);}
+  :root[data-theme="dark"] .sb-logout:hover,:root[data-theme="dark"] .sb-tema:hover{color:#fff;}
+  :root[data-theme="dark"] .sb-marca-saludo,:root[data-theme="dark"] .sb-marca .logo-nombre{color:#fff;}
+}
+
+/* ===== Escritorio: jerarquía, tablas, materiales y teclado ===== */
+@media (min-width:1101px){
+  /* Título grande al estilo Apple: más peso visual en el título, la descripción queda de apoyo */
+  .page-header h1{font-size:28px; font-weight:700; letter-spacing:-0.03em; line-height:1.15;}
+  .page-header .desc{font-size:14.5px; color:var(--gray-500); margin-top:5px; max-width:62ch;}
+
+  /* Menú de acciones («Exportar») */
+  .menu-acciones{position:relative;}
+  .menu-acciones-flecha{font-size:11px; margin-left:2px; opacity:.85;}
+  .menu-pop{
+    position:absolute; right:0; top:calc(100% + 8px); z-index:60; min-width:210px; padding:6px;
+    background:var(--vidrio-fuerte); -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+    border:1px solid var(--borde-card-fuerte); border-radius:14px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 14px 36px rgba(18,52,36,.18);
+    transform-origin:100% 0; animation:menu-pop-entra .35s var(--resorte) backwards;
+  }
+  .menu-pop button{
+    display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border:none; border-radius:9px; background:none;
+    font:inherit; font-size:14.5px; font-weight:600; color:var(--gray-800); cursor:pointer; text-align:left; transition:background .12s;
+  }
+  .menu-pop button:hover{background:rgba(46,138,92,.10); color:var(--green-700);}
+  .menu-pop button i{width:18px; text-align:center; color:var(--green-600);}
+  :root[data-theme="dark"] .menu-pop{background:rgba(34,46,40,.92); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 14px 36px rgba(0,0,0,.45);}
+  :root[data-theme="dark"] .menu-pop button{color:#e8f0eb;}
+  :root[data-theme="dark"] .menu-pop button:hover{background:rgba(120,190,150,.16); color:#bfe8d1;}
+
+  /* Tablas: encabezado fijo y translúcido, filas que reaccionan al cursor, cifras a la derecha */
+  .data-table thead th{
+    position:sticky; top:0; z-index:2; background:var(--vidrio-fuerte);
+    -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%);
+    box-shadow:0 1px 0 var(--borde-card-fuerte);
+  }
+  .data-table tbody tr{transition:background .12s ease;}
+  .data-table tbody tr:hover{background:rgba(46,138,92,.06);}
+  .data-table tbody tr.row-selected,.data-table tbody tr.row-selected:hover{background:rgba(46,138,92,.13);}
+  .data-table tbody tr.row-selected td:first-child{box-shadow:inset 3px 0 0 var(--green-600);}
+  .data-table th[data-num],.data-table td[data-num]{text-align:right; font-variant-numeric:tabular-nums;}
+  :root[data-theme="dark"] .data-table tbody tr:hover{background:rgba(120,190,150,.08);}
+
+  /* Materiales: borde de luz arriba en tarjetas y paneles, sombras con un solo criterio */
+  .card,.kpi-card,.toolbar,.detail-panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.75), 0 1px 2px rgba(18,52,36,.04), 0 6px 18px rgba(18,52,36,.05);}
+  :root[data-theme="dark"] .card,:root[data-theme="dark"] .kpi-card,:root[data-theme="dark"] .toolbar,:root[data-theme="dark"] .detail-panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 6px 18px rgba(0,0,0,.25);}
+  .galpon-card,.lote-card,.producto-card,.usuario-card,.mp-card,.prov-card{transition-property:transform,background,border-color,color,box-shadow,filter;}
+  .galpon-card:hover,.lote-card:hover,.producto-card:hover,.usuario-card:hover,.mp-card:hover,.prov-card:hover{transform:translateY(-1px); box-shadow:0 8px 20px rgba(18,52,36,.10);}
+  .galpon-card:active,.lote-card:active,.producto-card:active,.usuario-card:active,.mp-card:active,.prov-card:active{transform:scale(.985);}
+
+  /* Anillos de foco visibles solo con teclado */
+  :where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--green-600); outline-offset:2px;}
+}
+@keyframes menu-pop-entra{from{opacity:0; transform:scale(.94) translateY(-6px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion: reduce){ .menu-pop{animation:none;} }
+
+/* ── Panel principal (escritorio): tendencia en la tarjeta y promedio en el gráfico ── */
+.kpi-spark{display:none;}
+.bar-prom{display:none;}
+@media (min-width:1101px){
+  .kpi-spark{display:block; width:100%; height:30px; margin-top:10px; color:var(--green-600,#4a8c3a); overflow:visible;}
+  .bar-zona{position:relative;}
+  .bar-prom{display:block; position:absolute; left:-7px; right:-7px; bottom:var(--prom); border-top:1.5px dashed var(--gray-400,#a3a3a3); opacity:.7; pointer-events:none; z-index:1;}
+  .bars:hover .bar-col .bar{opacity:.45; transition:opacity .2s, transform .2s var(--resorte, ease);}
+  .bars .bar-col:hover .bar{opacity:1; transform:scaleX(1.06);}
+  .bars .bar-col:hover b{color:var(--green-700);}
+  .bar-col b{transition:color .15s;}
+}
+
+/* Encabezado de tabla fijo: overflow:hidden convertía al contenedor en el "scroll" del sticky y nunca se pegaba */
+@media (min-width:1101px){
+  .table-wrap{overflow:clip;}
+}
+@media (min-width:1101px){
+  .main{overflow:clip;}
+}
+
+/* ── Escritorio: alertas con más presencia y estados vacíos más cuidados ── */
+@media (min-width:1101px){
+  .empty-state{margin:8px; padding:48px 24px; border:1.5px dashed var(--borde-card-fuerte, var(--gray-200)); border-radius:16px; background:rgba(46,138,92,.03); color:var(--gray-500); line-height:1.5;}
+  .empty-state::before{content:""; display:block; width:44px; height:44px; margin:0 auto 14px; border-radius:50%; background:var(--green-100); box-shadow:inset 0 0 0 10px rgba(255,255,255,.55);}
+  :root[data-theme="dark"] .empty-state{background:rgba(255,255,255,.025);}
+}
+
+/* ── Alertas: filas uniformes de una línea, con fondo según severidad ── */
+.alert-link.alert-item{height:46px; padding:0 14px; margin:0 0 8px; border:none; border-radius:10px; align-items:center; gap:12px; overflow:hidden;}
+.alert-link.alert-item:last-child{margin-bottom:0; padding-bottom:0;}
+.alert-link.sev-red{background:#fbd9db;}
+.alert-link.sev-gold{background:#fbebb0;}
+.alert-link.sev-green{background:#cdf5cf;}
+.alert-link.alert-item:hover{filter:brightness(.97);}
+.alert-link .alert-icon{width:22px; height:22px; line-height:20px; border:1.6px solid currentColor; border-radius:50%; font-size:11px; background:none;}
+.alert-link.sev-red .alert-icon{color:#d6343f;}
+.alert-link.sev-gold .alert-icon{color:#c27a10;}
+.alert-link.sev-green .alert-icon{color:#2f9e44;}
+.alert-link .alert-text{display:flex; align-items:center; gap:10px; min-width:0; flex:1;}
+.alert-link .alert-top{display:contents;}
+.alert-link .alert-top b{order:1; white-space:nowrap; font-size:14px; font-weight:600; color:#1f2a24;}
+.alert-link .alert-sub{order:2; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; color:#4a5750;}
+.alert-link .status-tag{order:3; margin-left:auto; flex-shrink:0; background:rgba(255,255,255,.65); color:#3a443e;}
+.alert-grupo-titulo{margin:10px 0 8px;}
+:root[data-theme="dark"] .alert-link.sev-red{background:rgba(220,70,80,.22);}
+:root[data-theme="dark"] .alert-link.sev-gold{background:rgba(230,170,50,.2);}
+:root[data-theme="dark"] .alert-link.sev-green{background:rgba(60,190,100,.2);}
+:root[data-theme="dark"] .alert-link .alert-top b{color:#f1f5f2;}
+:root[data-theme="dark"] .alert-link .alert-sub{color:#c3cec7;}
+:root[data-theme="dark"] .alert-link .status-tag{background:rgba(255,255,255,.12); color:#e3ebe6;}
+@media (max-width:700px){
+  .alert-link.alert-item{height:auto; min-height:52px; padding:8px 12px;}
+  .alert-link .alert-text{flex-wrap:wrap; row-gap:0;}
+  .alert-link .alert-sub{order:4; flex:0 0 100%;}
+}
+.grid-2 > *, .card, .alert-grupo{min-width:0;}
+.alert-link.alert-item{max-width:100%; box-sizing:border-box;}
+
+/* Alertas: con mouse la fila mide lo mismo para todas y, al pasar el cursor, "crece" hacia abajo mostrando la descripción */
+@media (hover:hover) and (min-width:701px){
+  .alert-link.alert-item{height:auto; min-height:46px; align-items:flex-start; overflow:hidden; padding:0 14px;}
+  .alert-link .alert-icon{margin-top:12px;}
+  .alert-link .alert-text{flex-direction:row; flex-wrap:wrap; align-items:center; gap:0 10px; padding:12px 0; row-gap:0;}
+  .alert-link .alert-top{display:contents;}
+  .alert-link .alert-top b{order:1; line-height:22px;}
+  .alert-link .status-tag{order:2; margin-left:auto;}
+  .alert-link .alert-sub{
+    display:grid; order:3; flex:0 0 100%; white-space:normal; overflow:hidden;
+    grid-template-rows:0fr; opacity:0; margin-top:0;
+    transition:grid-template-rows .35s var(--resorte, ease), opacity .2s ease, margin-top .35s var(--resorte, ease);
+  }
+  .alert-link .alert-sub > div{min-height:0; overflow:hidden; font-size:13px; line-height:1.45; white-space:normal;}
+  .alert-link.alert-item:hover .alert-sub, .alert-link.alert-item:focus-visible .alert-sub{grid-template-rows:1fr; opacity:1; margin-top:6px;}
+}
+@media (hover:none) and (min-width:701px){
+  .alert-link .alert-sub{display:block;}
+}
+a.alert-link.sev-red:hover{background:#fbd9db;}
+a.alert-link.sev-gold:hover{background:#fbebb0;}
+a.alert-link.sev-green:hover{background:#cdf5cf;}
+:root[data-theme="dark"] a.alert-link.sev-red:hover{background:rgba(220,70,80,.22);}
+:root[data-theme="dark"] a.alert-link.sev-gold:hover{background:rgba(230,170,50,.2);}
+:root[data-theme="dark"] a.alert-link.sev-green:hover{background:rgba(60,190,100,.2);}
+
+/* ── Escritorio: densidad y tipografía más cuidadas en listas y filtros ── */
+@media (min-width:1101px){
+  .toolbar{gap:8px 10px; padding:10px 14px;}
+  .toolbar select, .toolbar input[type="date"], .toolbar input:not([type]), .toolbar input[type="text"]{font-size:14px; padding-top:7px; padding-bottom:7px;}
+  .toolbar input[type="date"]{width:138px; min-width:0;}
+  .toolbar label{font-size:13px; gap:6px;}
+  .toolbar select{max-width:190px;}
+  .search-box{min-width:170px;}
+  .search-box input{font-size:14px; padding-top:8px; padding-bottom:8px;}
+}
+@media (min-width:1400px){
+  .data-table thead th{white-space:nowrap; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-500);}
+  .data-table tbody td{font-size:14px; line-height:1.35;}
+  .data-table tbody td:first-child{font-weight:600;}
+  .data-table tbody td{white-space:nowrap;}
+  .data-table td.col-auditoria{width:44px;}
+}
+@media (min-width:1101px) and (max-width:1599px){ .page-body-split .col-opcional-2{display:none;} }
+
+/* ── Stock actual (escritorio): reparto en una barra y una fila por producto ── */
+.stock-reparto{display:none;}
+@media (min-width:1101px){
+  .stock-reparto{display:flex; gap:3px; height:10px; margin:6px 0 14px; border-radius:6px; overflow:hidden;}
+  .stock-reparto span{flex-basis:0; min-width:4px; border-radius:3px;}
+  .stock-grid{grid-template-columns:1fr; gap:0; align-items:stretch;}
+  .stock-item{
+    display:grid; grid-template-columns:36px minmax(120px,220px) auto minmax(80px,1fr) 96px 100px; align-items:center; gap:0 16px;
+    background:none; border-radius:10px; padding:10px 8px; text-align:left; border-bottom:1px solid var(--gray-200);
+  }
+  .stock-item:last-child{border-bottom:none;}
+  .stock-item .stock-icon-dato{width:34px; height:34px; font-size:15px; grid-column:1;}
+  .stock-item .stock-label{grid-column:2; grid-row:1; font-size:14.5px; font-weight:600; color:var(--gray-900);}
+  .stock-item .stock-size-tag{grid-column:3; grid-row:1;}
+  .stock-item .stock-bar{grid-column:4; grid-row:1; margin-top:0; height:14px;}
+  .stock-item .stock-value{grid-column:5; grid-row:1; font-size:16px; text-align:right;}
+  .stock-item .stock-pct{grid-column:6; grid-row:1; text-align:right; font-size:13px;}
+  a.stock-link:hover{background:rgba(46,138,92,.07); box-shadow:none;}
+}
+
+/* ── Panel principal (escritorio): "Pendientes" y "Stock" lado a lado ── */
+.par-tarjetas{display:contents;}
+@media (min-width:1101px){
+  .par-tarjetas{display:grid; grid-template-columns:minmax(280px,.75fr) minmax(0,1.5fr); gap:18px; margin-top:18px; align-items:stretch;}
+  .par-tarjetas > .card{margin-top:0 !important;}
+  .pendientes-grid{grid-template-columns:1fr; gap:0;}
+  .pendiente-item{
+    display:grid; grid-template-columns:22px 1fr auto; align-items:center; gap:0 12px; text-align:left;
+    background:none; border-radius:10px; padding:11px 8px; border-bottom:1px solid var(--gray-200);
+  }
+  .pendiente-item:last-child{border-bottom:none;}
+  .pendiente-item i{grid-column:1; text-align:center; margin:0; font-size:15px;}
+  .pendiente-item span{grid-column:2; font-size:14.5px; font-weight:600; color:var(--gray-900);}
+  .pendiente-item b{grid-column:3; grid-row:1; font-size:16px;}
+  a.pendiente-item:hover{background:rgba(46,138,92,.07);}
+  .stock-item{grid-template-columns:34px minmax(90px,150px) auto minmax(60px,1fr) 78px 92px; gap:0 12px;}
+}
+@media (min-width:1101px) and (max-width:1400px){
+  .stock-item .stock-pct{font-size:12px;}
+}
+@media (min-width:1101px){
+  .par-tarjetas .card-nota{white-space:nowrap; flex-shrink:0; margin-left:12px;}
+  .par-tarjetas .card-title{align-items:flex-start;}
+}
+
+/* ── Escritorio: encabezado de página fijo, de vidrio, que se compacta al desplazar ── */
+@media (min-width:1101px){
+  .main .page-header{
+    position:sticky; top:0; z-index:20;
+    margin:-26px -32px 22px; padding:26px 32px 14px; border-radius:22px 22px 0 0;
+    transition:background .25s ease, box-shadow .25s ease, border-color .25s ease;
+    border-bottom:1px solid transparent;
+  }
+  html[data-scroll="1"] .main .page-header{
+    border-radius:0;
+    background:rgba(255,255,255,.2);
+    -webkit-backdrop-filter:blur(44px) saturate(200%); backdrop-filter:blur(44px) saturate(200%);
+    border-bottom-color:var(--borde-card-fuerte);
+    box-shadow:0 6px 18px rgba(18,52,36,.06);
+  }
+  .data-table thead th{top:var(--alto-enc, 0px);}
+  .page-body-split > .detail-panel{top:calc(var(--alto-enc, 0px) + 14px);}
+}
+@media (min-width:1101px){
+}
+/* Un backdrop-filter dentro de otro (el del .main) no se aplica: el vidrio del encabezado dejaba ver el texto nítido. Sobre el fondo suave del escritorio el .main no necesita desenfoque propio. */
+@media (min-width:1101px){
+  .main{-webkit-backdrop-filter:none; backdrop-filter:none;}
+  html[data-scroll="1"] .main .page-header{background:rgba(255,255,255,.78);}
+  :root[data-theme="dark"][data-scroll="1"] .main .page-header{background:rgba(14,22,18,.86);}
+}
+@media (min-width:1101px){
+  .data-table thead th{background:rgba(255,255,255,.88);}
+  :root[data-theme="dark"] .data-table thead th{background:rgba(22,32,27,.9);}
+}
+
+/* Encabezado fijo con vidrio real: el vidrio es un elemento aparte (se crea en utils/movil.js) porque un backdrop-filter anidado dentro de .main no desenfoca. El texto del encabezado va por encima (z-index 20) y las filas quedan por debajo (z-index 10). */
+.encabezado-vidrio{display:none;}
+@media (min-width:1101px){
+  .main .page-header{background:none !important; border-bottom-color:transparent !important; box-shadow:none !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important;}
+  .encabezado-vidrio{
+    display:block; position:fixed; z-index:10; top:0; pointer-events:none; opacity:0;
+    -webkit-backdrop-filter:blur(40px) saturate(180%); backdrop-filter:blur(40px) saturate(180%);
+    background:rgba(255,255,255,.1); border-bottom:1px solid var(--borde-card-fuerte);
+    box-shadow:0 6px 18px rgba(18,52,36,.06);
+    transition:opacity .25s ease;
+  }
+  :root[data-theme="dark"] .encabezado-vidrio{background:rgba(14,22,18,.12); box-shadow:0 6px 18px rgba(0,0,0,.25);}
+  html[data-scroll="1"] .encabezado-vidrio{opacity:1;}
+  .data-table thead th{top:var(--alto-enc, 0px);}
+  .page-body-split > .detail-panel{top:calc(var(--alto-enc, 0px) + 14px);}
+}
+
+/* ── Escritorio: menú lateral contraíble a solo íconos ──────────────────── */
+.sb-contraer{display:none;}
+@media (min-width:1101px){
+  #screen-app.active{transition:grid-template-columns .32s cubic-bezier(.2,.8,.2,1);}
+  #screen-app.active.menu-min{grid-template-columns:76px 1fr;}
+  .sb-contraer{
+    display:flex; align-items:center; justify-content:center; flex:none; width:36px; height:36px; padding:0;
+    border-radius:10px; border:none; background:none; cursor:pointer; color:rgba(27,74,52,.7);
+    transition:background .15s ease, color .15s ease, transform .12s ease;
+  }
+  .sb-contraer:hover{background:rgba(27,74,52,.09); color:var(--green-900,#123424);}
+  :root[data-theme="dark"] .sb-contraer{color:rgba(255,255,255,.62);}
+  :root[data-theme="dark"] .sb-contraer:hover{background:rgba(255,255,255,.1); color:#fff;}
+  .sb-contraer:active{transform:scale(.92);}
+  .sb-contraer:focus-visible{outline:2px solid var(--gold-500); outline-offset:2px;}
+  .sb-contraer-franja{opacity:.9; transition:transform .3s cubic-bezier(.2,.8,.2,1);}
+
+  .menu-min .sidebar{padding:20px 12px;}
+  .menu-min .sb-texto,.menu-min .sb-user-info,.menu-min .sb-marca-saludo,.menu-min .logo-nombre,.menu-min .sidebar-close{display:none;}
+  .menu-min .sb-brand{flex-direction:column; gap:10px; padding:0 0 16px; justify-content:center;}
+  .menu-min .sb-marca{flex:none; width:100%;}
+  .menu-min .sb-marca-logo{justify-content:center;}
+  .menu-min .sb-marca .logo-marca.compacto{padding:0; width:100%; justify-content:center;}
+  .menu-min .sb-marca .logo-solo-huevo{display:block; height:1.52em; width:auto;}
+  .menu-min .sb-section-label{font-size:0; line-height:0; height:1px; padding:0; margin:12px 14px; background:rgba(255,255,255,.14);}
+  .menu-min .sb-nav > div:first-child .sb-section-label{display:none;}
+  .menu-min .sb-item{justify-content:center; padding-left:0; padding-right:0; gap:0;}
+  .menu-min .sb-item i{width:auto; font-size:17px;}
+  .menu-min .sb-user{justify-content:center; padding:8px 0;}
+  .menu-min .sb-tema,.menu-min .sb-logout{justify-content:center; gap:0; padding:10px 0;}
+  .menu-min .sb-tema i,.menu-min .sb-logout i{width:auto; font-size:16px;}
+}
+@media (prefers-reduced-motion: reduce){ #screen-app.active{transition:none;} }
+
+
+/* ── Fondo del sistema: colores por momento del día o por sección, más grano fino ────────────
+   Los colores salen de 4 variables (--fondo-a..d). utils/fondo.js pone data-momento (amanecer, día,
+   atardecer o noche según la hora) en <html>; sin él queda el fondo de siempre. Al cambiar de momento
+   los colores se funden despacio (por eso las variables se registran como <color>). */
+@property --fondo-a{syntax:"<color>"; inherits:true; initial-value:rgba(87,187,137,.22);}
+@property --fondo-b{syntax:"<color>"; inherits:true; initial-value:rgba(217,164,65,.18);}
+@property --fondo-c{syntax:"<color>"; inherits:true; initial-value:rgba(87,187,137,.16);}
+@property --fondo-d{syntax:"<color>"; inherits:true; initial-value:rgba(120,200,190,.10);}
+:root{transition:--fondo-a 4s ease, --fondo-b 4s ease, --fondo-c 4s ease, --fondo-d 4s ease;}
+@media (prefers-reduced-motion: reduce){ :root{transition:none;} }
+:root{
+  --fondo-a:rgba(87,187,137,.42); --fondo-b:rgba(217,164,65,.34); --fondo-c:rgba(87,187,137,.30); --fondo-d:rgba(120,200,190,.19);
+}
+:root[data-theme="dark"]{
+  --fondo-a:rgba(60,140,100,.20); --fondo-b:rgba(180,130,50,.13); --fondo-c:rgba(50,120,90,.16); --fondo-d:rgba(60,110,130,.10);
+}
+/* Momento del día */
+:root[data-momento="amanecer"]{--fondo-a:rgba(244,160,120,.49); --fondo-b:rgba(247,217,130,.50); --fondo-c:rgba(150,205,175,.38); --fondo-d:rgba(240,150,170,.23);}
+:root[data-momento="dia"]{--fondo-a:rgba(87,187,137,.46); --fondo-b:rgba(217,164,65,.30); --fondo-c:rgba(120,200,200,.30); --fondo-d:rgba(150,210,150,.19);}
+:root[data-momento="atardecer"]{--fondo-a:rgba(235,140,90,.49); --fondo-b:rgba(190,120,175,.32); --fondo-c:rgba(217,164,65,.42); --fondo-d:rgba(235,110,120,.19);}
+:root[data-momento="noche"]{--fondo-a:rgba(100,130,195,.42); --fondo-b:rgba(87,187,137,.27); --fondo-c:rgba(125,110,195,.32); --fondo-d:rgba(70,150,170,.19);}
+:root[data-theme="dark"][data-momento="amanecer"]{--fondo-a:rgba(200,110,80,.20); --fondo-b:rgba(200,160,70,.16); --fondo-c:rgba(70,130,100,.16); --fondo-d:rgba(190,100,120,.10);}
+:root[data-theme="dark"][data-momento="dia"]{--fondo-a:rgba(55,150,105,.22); --fondo-b:rgba(180,135,50,.13); --fondo-c:rgba(60,140,140,.15); --fondo-d:rgba(90,150,90,.10);}
+:root[data-theme="dark"][data-momento="atardecer"]{--fondo-a:rgba(195,100,60,.21); --fondo-b:rgba(140,80,135,.17); --fondo-c:rgba(180,130,50,.17); --fondo-d:rgba(190,80,90,.10);}
+:root[data-theme="dark"][data-momento="noche"]{--fondo-a:rgba(60,85,150,.24); --fondo-b:rgba(50,120,95,.16); --fondo-c:rgba(85,70,155,.19); --fondo-d:rgba(40,110,130,.11);}
+/* Grano fino: es la primera capa del fondo de #screen-app (se mezcla con soft-light). */
+:root{--grano:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .7 -.12'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");}
+:root[data-theme="dark"]{--grano:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 -.08'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");}
+
+/* El panel central también toma un velo del color del momento (en claro, el fondo apenas se asomaba). */
+:root{--velo-main:transparent;}
+:root[data-momento="amanecer"]{--velo-main:rgba(244,160,120,.15);}
+:root[data-momento="dia"]{--velo-main:rgba(87,187,137,.09);}
+:root[data-momento="atardecer"]{--velo-main:rgba(235,140,90,.15);}
+:root[data-momento="noche"]{--velo-main:rgba(100,130,195,.14);}
+:root[data-theme="dark"][data-momento="amanecer"]{--velo-main:rgba(200,110,80,.07);}
+:root[data-theme="dark"][data-momento="atardecer"]{--velo-main:rgba(195,100,60,.07);}
+:root[data-theme="dark"][data-momento="noche"]{--velo-main:rgba(60,85,150,.09);}
+:root[data-theme="dark"][data-momento="dia"]{--velo-main:rgba(55,150,105,.06);}
+@media (min-width:1101px){
+  .main{background:linear-gradient(var(--velo-main), var(--velo-main)), var(--main-bg);}
+}
+
+
+/* Filas de las tablas: velo blanco leve para separarlas del fondo y una línea un poco más marcada entre ellas. */
+@media (min-width:1101px){
+  .data-table tbody tr:not(:hover):not(.row-selected){background:rgba(255,255,255,.58);}
+  .data-table tbody td{border-bottom-color:rgba(18,52,36,.10);}
+  :root[data-theme="dark"] .data-table tbody tr:not(:hover):not(.row-selected){background:rgba(255,255,255,.04);}
+  :root[data-theme="dark"] .data-table tbody td{border-bottom-color:rgba(255,255,255,.08);}
+}
+
+/* Las tablas de las páginas con panel de detalle no tenían contenedor: quedaban con esquinas rectas sobre el fondo. Ahora la lista va dentro de un recuadro redondeado (clip no crea scroll, así que el encabezado sigue fijo). */
+@media (min-width:1101px){
+  .page-body-split > .list-panel:not(:has(> .empty-state:only-child)){
+    border-radius:18px; border:1px solid var(--borde-card-fuerte, rgba(18,52,36,.12)); overflow:clip;
+    box-shadow:0 6px 18px rgba(18,52,36,.06);
+  }
+  :root[data-theme="dark"] .page-body-split > .list-panel:not(:has(> .empty-state:only-child)){box-shadow:0 6px 18px rgba(0,0,0,.25);}
+  .page-body-split > .list-panel .data-table tbody tr:last-child td{border-bottom:none;}
+}
+
+/* ── Tarjetas “silenciosas” (escritorio): casi sin borde ni sombra, apenas un velo claro sobre el fondo ──
+   Referencia: dashboards donde las tarjetas se insinúan en lugar de destacar. La jerarquía la dan el
+   espacio y la tipografía, no la caja. */
+@media (min-width:1101px){
+  .card,.kpi-card,.toolbar,.detail-panel,
+  .page-body-split > .list-panel:not(:has(> .empty-state:only-child)){
+    background:rgba(255,255,255,.42);
+    border:1px solid rgba(255,255,255,.65);
+    border-radius:24px;
+    box-shadow:0 18px 40px -22px rgba(18,52,36,.12);
+  }
+  .toolbar{border-radius:20px;}
+  .card,.kpi-card{padding:22px 24px;}
+  .kpi-grid,.grid-2,.par-tarjetas{gap:20px;}
+  :root[data-theme="dark"] .card,:root[data-theme="dark"] .kpi-card,:root[data-theme="dark"] .toolbar,:root[data-theme="dark"] .detail-panel,
+  :root[data-theme="dark"] .page-body-split > .list-panel:not(:has(> .empty-state:only-child)){
+    background:rgba(255,255,255,.035);
+    border-color:rgba(255,255,255,.07);
+    box-shadow:none;
+  }
+  /* Dentro del panel de detalle, el encabezado y el pie dejan de ser bloques sólidos */
+  .detail-panel .detail-head,.detail-panel .detail-actions{background:transparent;}
+}
+
+/* Mismo estilo silencioso en el resto de las tarjetas (catálogos, informes) para que todo sea consistente. */
+@media (min-width:1101px){
+  .galpon-card,.producto-card,.lote-card,.mp-card,.prov-card,.user-profile-card,.usuario-card,.report-card,.table-wrap{
+    background:rgba(255,255,255,.42);
+    border:1px solid rgba(255,255,255,.65);
+    border-radius:20px;
+    box-shadow:0 14px 32px -20px rgba(18,52,36,.12);
+  }
+  .table-wrap{border-radius:24px; box-shadow:0 18px 40px -22px rgba(18,52,36,.12);}
+  :root[data-theme="dark"] .galpon-card,:root[data-theme="dark"] .producto-card,:root[data-theme="dark"] .lote-card,:root[data-theme="dark"] .mp-card,
+  :root[data-theme="dark"] .prov-card,:root[data-theme="dark"] .user-profile-card,:root[data-theme="dark"] .usuario-card,:root[data-theme="dark"] .report-card,
+  :root[data-theme="dark"] .table-wrap{
+    background:rgba(255,255,255,.035); border-color:rgba(255,255,255,.07); box-shadow:none;
+  }
+  /* La fila de títulos tiene desenfoque propio y el navegador no la recorta con el redondeo del recuadro: se redondean sus esquinas. */
+  .page-body-split > .list-panel .data-table thead th:first-child,.table-wrap .data-table thead th:first-child{border-top-left-radius:23px;}
+  .page-body-split > .list-panel .data-table thead th:last-child,.table-wrap .data-table thead th:last-child{border-top-right-radius:23px;}
+}
+
+/* Tarjetas: al pasar el cursor se tiñen como las opciones del menú (sin recuadro verde, sin sombra, sin saltito). */
+@media (min-width:1101px){
+  .galpon-card:hover,.producto-card:hover,.lote-card:hover,.mp-card:hover,.prov-card:hover,.user-profile-card:hover,.usuario-card:hover{
+    background:linear-gradient(rgba(18,52,36,.06), rgba(18,52,36,.06)), rgba(255,255,255,.42);
+    border-color:rgba(255,255,255,.65);
+    box-shadow:0 14px 32px -20px rgba(18,52,36,.12);
+    transform:none;
+  }
+  .galpon-card:hover .pc-icon,.producto-card:hover .pc-icon{transition:color .15s;}
+  /* Seleccionada: la misma pastilla verde suave del ítem activo del menú */
+  .galpon-card.card-selected,.producto-card.card-selected,.lote-card.card-selected,.mp-card.card-selected,.prov-card.card-selected,.user-profile-card.card-selected,.usuario-card.card-selected{
+    background:rgba(46,138,92,.14);
+    border-color:rgba(46,138,92,.18);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 32px -20px rgba(18,52,36,.12);
+  }
+  :root[data-theme="dark"] .galpon-card:hover,:root[data-theme="dark"] .producto-card:hover,:root[data-theme="dark"] .lote-card:hover,:root[data-theme="dark"] .mp-card:hover,
+  :root[data-theme="dark"] .prov-card:hover,:root[data-theme="dark"] .user-profile-card:hover,:root[data-theme="dark"] .usuario-card:hover{
+    background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.07); box-shadow:none;
+  }
+  :root[data-theme="dark"] .galpon-card.card-selected,:root[data-theme="dark"] .producto-card.card-selected,:root[data-theme="dark"] .lote-card.card-selected,:root[data-theme="dark"] .mp-card.card-selected,
+  :root[data-theme="dark"] .prov-card.card-selected,:root[data-theme="dark"] .user-profile-card.card-selected,:root[data-theme="dark"] .usuario-card.card-selected{
+    background:rgba(120,190,150,.18); border-color:rgba(120,190,150,.22); box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  }
+}
+
+
+/* Tabla: con la fila de títulos fija, las esquinas son rectas (utils/movil.js pone data-titulos-fijos). */
+@media (min-width:1101px){
+  html[data-titulos-fijos="1"] .data-table thead th:first-child,
+  html[data-titulos-fijos="1"] .data-table thead th:last-child{border-radius:0 !important;}
+}
+
+/* Dashboard: lo que reacciona al cursor se tiñe como el menú (sin recuadro verde ni sombra). */
+@media (min-width:1101px){
+  .pendiente-item:hover,a.pendiente-item:hover{background:rgba(18,52,36,.06); box-shadow:none;}
+  .qa-btn:hover{background:linear-gradient(rgba(18,52,36,.06), rgba(18,52,36,.06)), var(--vidrio-fuerte); box-shadow:none; border-color:var(--main-borde);}
+  :root[data-theme="dark"] .pendiente-item:hover,:root[data-theme="dark"] a.pendiente-item:hover{background:rgba(255,255,255,.07);}
+  :root[data-theme="dark"] .qa-btn:hover{background:linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.06)), var(--vidrio-fuerte);}
+}
+
+/* Indicadores del dashboard (accesos directos): mismo efecto de cursor que el menú y las demás tarjetas. */
+@media (min-width:1101px){
+  .kpi-link:hover{
+    background:linear-gradient(rgba(18,52,36,.06), rgba(18,52,36,.06)), rgba(255,255,255,.42);
+    border-color:rgba(255,255,255,.65);
+    box-shadow:0 18px 40px -22px rgba(18,52,36,.12);
+    transform:none;
+  }
+  :root[data-theme="dark"] .kpi-link:hover{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.07); box-shadow:none;}
+}
+
+/* =====================================================================
+   Login — mejoras de diseño (principios de Apple)
+   1) Un solo fondo continuo (sin la costura del medio) que sigue la hora del día.
+   2) Texto más oscuro y de más peso sobre el vidrio (legible sin importar qué color pasa detrás).
+   3) Campos "hundidos" (más oscuros que la tarjeta, no más claros) de 48px.
+   4) Movimiento: la tarjeta se materializa, el botón responde al apretar, el error la sacude
+      apenas y al entrar se va hacia arriba.
+   5) Menos transparencia / más contraste / menos movimiento si el sistema lo pide.
+   ===================================================================== */
+
+/* Paleta del fondo del login por momento del día (utils/fondo.js pone data-momento en <html>). */
+:root{
+  --lg-b1:#142e21; --lg-b2:#1b4a34;
+  --lg-1:var(--green-500); --lg-2:var(--gold-500); --lg-3:var(--green-700);
+  --lg-4:var(--green-900); --lg-5:var(--gold-500); --lg-6:var(--green-500);
+}
+:root[data-momento="amanecer"]{
+  --lg-b1:#1c3330; --lg-b2:#34493f;
+  --lg-1:#f4a078; --lg-2:#f7d982; --lg-3:#5fae8a; --lg-4:#2a3f3a; --lg-5:#f09aaa; --lg-6:#8fd0b0;
+}
+:root[data-momento="atardecer"]{
+  --lg-b1:#2b1d1c; --lg-b2:#4a2c24;
+  --lg-1:#eb8c5a; --lg-2:#d9a441; --lg-3:#b4609f; --lg-4:#3a2120; --lg-5:#eb6e78; --lg-6:#be78af;
+}
+:root[data-momento="noche"]{
+  --lg-b1:#0d1830; --lg-b2:#172a4d;
+  --lg-1:#4a68b0; --lg-2:#57bb89; --lg-3:#6a5cb8; --lg-4:#0a1226; --lg-5:#3f8fa8; --lg-6:#7d6ec3;
+}
+.login-bg{background:linear-gradient(160deg, var(--lg-b1), var(--lg-b2) 55%, var(--lg-b1));}
+.bg-c1{background:var(--lg-1);} .bg-c2{background:var(--lg-2);} .bg-c3{background:var(--lg-3);}
+.bg-c4{background:var(--lg-4);} .bg-c5{background:var(--lg-5);} .bg-c6{background:var(--lg-6);}
+
+/* Sin costura: el panel de la marca ya no tiene velo ni desenfoque propio. Para que el texto blanco
+   se lea siempre, un oscurecimiento suave y sin bordes detrás de la marca. */
+.login-panel{background:none; -webkit-backdrop-filter:none; backdrop-filter:none;}
+.login-bg::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 52% 58% at 25% 56%, rgba(5,18,12,.55), transparent 72%);
+}
+
+/* Tarjeta: más opaca y texto más oscuro y firme. */
+.login-form{background:rgba(255,255,255,.64); animation:login-entra .85s cubic-bezier(.2,.8,.2,1) backwards .05s;}
+.login-form h2{color:#17201b;}
+.login-form .sub{color:#3b4840; font-weight:500; letter-spacing:.005em;}
+.login-form .field label{color:#26312b;}
+.login-form .link{color:#1d5a3c; font-weight:700;}
+.login-form .link:hover{text-decoration:underline; text-underline-offset:3px;}
+.login-form .input-wrap i,
+.login-form .password-wrap.tiene-icono > i,
+.login-form .input-toggle{color:#56625b;}
+.login-footnote{color:#44514a; font-size:13px;}
+
+/* Campos hundidos: un poco más oscuros que la tarjeta (nunca claro sobre claro), 48px de alto. */
+.login-form .field input{
+  height:48px; padding-top:0; padding-bottom:0;
+  background:rgba(18,52,36,.07);
+  border:1px solid rgba(18,52,36,.15);
+  border-radius:12px; color:#1E2422;
+  box-shadow:inset 0 1px 2px rgba(18,52,36,.08);
+  transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.login-form .field input::placeholder{color:#66726b;}
+.login-form .field input:focus{
+  background:rgba(255,255,255,.9); border-color:var(--green-600);
+  box-shadow:0 0 0 3px var(--green-100);
+}
+.login-form .field input:-webkit-autofill{
+  -webkit-text-fill-color:#1E2422; -webkit-box-shadow:0 0 0 40px rgba(255,255,255,.92) inset;
+}
+.login-form .input-wrap i{left:15px;}
+.login-form .field input{padding-left:40px;}
+.login-form .password-wrap.tiene-icono > i{left:15px;}
+
+/* Botón: responde apenas se aprieta (no al soltar) y muestra que está trabajando. */
+.btn-primary{height:48px; padding-top:0; padding-bottom:0; transition:transform .1s ease-out, background .15s, box-shadow .15s;}
+.btn-primary:active:not(:disabled){transform:scale(.975);}
+.btn-primary:disabled{cursor:progress; opacity:.92;}
+.btn-spinner{
+  width:16px; height:16px; border-radius:50%;
+  border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff;
+  animation:girar .7s linear infinite;
+}
+
+/* Entrada: la tarjeta se materializa (blur + escala), la marca sube con retraso escalonado. */
+@keyframes login-entra{
+  from{opacity:0; transform:translateY(14px) scale(.965);
+       -webkit-backdrop-filter:blur(0) saturate(100%); backdrop-filter:blur(0) saturate(100%);}
+  to{opacity:1; transform:none;
+     -webkit-backdrop-filter:blur(36px) saturate(180%); backdrop-filter:blur(36px) saturate(180%);}
+}
+@keyframes login-sube{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+.login-panel > *{animation:login-sube .9s cubic-bezier(.2,.8,.2,1) backwards;}
+.login-panel > :nth-child(1){animation-delay:.12s;}
+.login-panel > :nth-child(2){animation-delay:.2s;}
+.login-panel > :nth-child(3){animation-delay:.28s;}
+.login-form .alert{animation:login-sube .3s ease-out backwards;}
+
+/* Error: sacudida corta que se amortigua. */
+@keyframes login-tiembla{
+  0%,100%{transform:translateX(0);}
+  15%{transform:translateX(-9px);} 35%{transform:translateX(7px);}
+  55%{transform:translateX(-4px);} 75%{transform:translateX(2px);}
+}
+.login-form.tiembla{animation:login-tiembla .45s cubic-bezier(.36,.07,.19,.97);}
+
+/* Salida: al iniciar sesión la tarjeta se va hacia arriba antes de entrar a la app. */
+.login-saliendo .login-form{
+  opacity:0; transform:translateY(-14px) scale(.985);
+  transition:opacity .38s ease, transform .38s cubic-bezier(.4,0,.6,1);
+}
+.login-saliendo .login-panel{opacity:0; transition:opacity .38s ease;}
+
+/* Celular: la tarjeta usa todo el ancho y el oscurecimiento va detrás del logo (arriba). */
+@media(max-width:900px){
+  .login-bg::after{background:radial-gradient(ellipse 80% 22% at 50% 14%, rgba(5,18,12,.5), transparent 75%);}
+}
+@media(max-width:600px){
+  .login-form{max-width:none;}
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce){
+  .login-form, .login-panel > *, .login-form .alert{animation:login-fundido .3s ease backwards;}
+  .login-form.tiembla{animation:login-tiembla .6s ease;}
+  @keyframes login-fundido{from{opacity:0;} to{opacity:1;}}
+  @keyframes login-tiembla{
+    0%,100%{box-shadow:0 24px 60px rgba(18,52,36,.16), inset 0 1px 0 rgba(255,255,255,.5);}
+    50%{box-shadow:0 0 0 3px rgba(190,60,50,.4), 0 24px 60px rgba(18,52,36,.16);}
+  }
+  .login-saliendo .login-form{transform:none;}
+  .btn-primary:active:not(:disabled){transform:none;}
+}
+@media (prefers-reduced-transparency: reduce){
+  .login-form{background:rgba(255,255,255,.96); -webkit-backdrop-filter:none; backdrop-filter:none;}
+  .btn-primary{background:#2E8A5C; -webkit-backdrop-filter:none; backdrop-filter:none;}
+}
+@media (prefers-contrast: more){
+  .login-form{background:#fff; border:1.5px solid #1E2422; -webkit-backdrop-filter:none; backdrop-filter:none;}
+  .login-form .sub, .login-footnote, .login-form .field label{color:#1E2422;}
+  .login-form .field input{background:#fff; border-color:#1E2422;}
+  .login-form .link{color:#14472e;}
+  .login-panel p{color:#fff;}
+  .login-bg::after{background:radial-gradient(ellipse 70% 70% at 25% 56%, rgba(5,18,12,.8), transparent 80%);}
+}
+
+/* Login: la marca a la izquierda con más aire respecto del borde, para equilibrar la tarjeta de la derecha. */
+@media(min-width:901px){
+  .login-panel{padding-left:clamp(60px, 9vw, 150px);}
+}
+
+/* Login: versión y créditos al pie de la pantalla (fuera de la tarjeta), en una línea discreta. */
+#screen-login.active{grid-template-rows:1fr auto;}
+.login-pie{
+  grid-column:1 / -1; order:3; position:relative; z-index:1;
+  display:flex; flex-wrap:wrap; justify-content:center; gap:2px 14px;
+  padding:0 20px 22px; text-align:center;
+  font-size:13px; letter-spacing:.01em; color:rgba(255,255,255,.66);
+}
+.login-pie span + span::before{content:"·"; margin-right:14px; opacity:.7;}
+@media(max-width:900px){
+  #screen-login.active{grid-template-rows:auto auto 1fr;}
+  .login-pie{align-self:end; padding-top:16px;}
+}
+@media(max-width:600px){
+  .login-pie{flex-direction:column; gap:2px;}
+  .login-pie span + span::before{content:none;}
 }

@@ -352,10 +352,8 @@ export default function DescartesPage() {
                         data-tutorial-fila=""
                         key={d.id_descarte}
                         onClick={() => setSelectedId(d.id_descarte)}
-                        style={{
-                          cursor: "pointer",
-                          background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
-                        }}
+                        className={isSel ? "row-selected" : undefined}
+                        style={{ cursor: "pointer" }}
                       >
                         <td>
                           {cat && <i className={`fa-solid ${cat.icono}`}></i>} {d.categoria_display}

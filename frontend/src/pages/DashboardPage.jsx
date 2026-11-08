@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { getResumenDashboard } from "../api/dashboard";
@@ -90,12 +90,40 @@ function deltaPostura(variacion) {
   };
 }
 
+/** Línea mínima de tendencia (sin ejes) para las tarjetas de indicadores. */
+function Sparkline({ serie }) {
+  const id = `sp-${useId().replace(/:/g, "")}`;
+  if (!serie || serie.length < 2) return null;
+  const w = 100, h = 28, pad = 3;
+  const max = Math.max(...serie), min = Math.min(...serie);
+  const rango = max - min || 1;
+  const pts = serie.map((v, i) => [
+    (i / (serie.length - 1)) * w,
+    pad + (1 - (v - min) / rango) * (h - pad * 2),
+  ]);
+  const linea = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const ultimo = pts[pts.length - 1];
+  return (
+    <svg className="kpi-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="currentColor" stopOpacity=".22" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${linea} L${w} ${h} L0 ${h} Z`} fill={`url(#${id})`} />
+      <path d={linea} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={ultimo[0]} cy={ultimo[1]} r="0" />
+    </svg>
+  );
+}
+
 /**
  * Tarjeta de indicador. Si recibe `to` navega a la sección con el detalle (y
  * `state` con los filtros a aplicar); si recibe `onClick` hace esa acción; y
  * sin ninguna de las dos es solo informativa.
  */
-function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda }) {
+function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda, serie }) {
   const contenido = (
     <>
       <div className="kpi-top">
@@ -107,6 +135,7 @@ function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onCl
       <div className="value">{valor}</div>
       <div className="label">{etiqueta}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
+      {serie && <Sparkline serie={serie} />}
       {(to || onClick) && <i className="fa-solid fa-chevron-right kpi-flecha"></i>}
     </>
   );
@@ -137,14 +166,16 @@ function Produccion({ dias, hoy, enlazar }) {
       </div>
     );
   }
+  const promedio = dias.reduce((a, d) => a + d.huevos, 0) / dias.length;
   return (
-    <div className="bars">
+    <div className="bars" style={{ "--prom": `${(promedio / maximo) * 100}%` }}>
       {dias.map((dia) => {
         const esHoy = dia.fecha === hoy;
         const columna = (
           <>
             <b>{entero(dia.huevos)}</b>
             <div className="bar-zona">
+              <i className="bar-prom" aria-hidden="true"></i>
               <div
                 className={`bar${esHoy ? " bar-hoy" : ""}`}
                 style={{ height: `${Math.max((dia.huevos / maximo) * 100, 2)}%` }}
@@ -197,17 +228,17 @@ function agruparPorTipo(alertas) {
   return [...grupos.entries()].map(([clave, grupo]) => ({ clave, ...grupo }));
 }
 
-/** Una alerta: al hacer clic abre Lotes buscando el lote afectado. */
+/** Una alerta: al pasar el cursor se despliega la descripción; al hacer clic abre Lotes buscando el lote afectado. */
 function Alerta({ alerta, clave, extra }) {
   const resuelta = alerta.estado === "R";
   const severidad = resuelta ? "sev-green" : alerta.severidad === "A" ? "sev-red" : "sev-gold";
   const icono = resuelta ? "fa-check" : ICONO_ALERTA[clave] || "fa-triangle-exclamation";
+  const etiqueta = resuelta ? "Resuelta" : alerta.severidad === "A" ? "Alta" : "Media";
   return (
     <Link
       className={`alert-item alert-link ${severidad}${extra ? " alerta-extra" : ""}`}
       to="/app/lotes"
       state={{ filtros: { search: alerta.lote, fechaDesde: "", fechaHasta: "" } }}
-      title="Ver el lote"
     >
       <div className="alert-icon">
         <i className={`fa-solid ${icono}`}></i>
@@ -217,11 +248,11 @@ function Alerta({ alerta, clave, extra }) {
           <b>
             Lote {alerta.lote} · {alerta.galpon}
           </b>
-          <span className={`status-tag ${resuelta ? "tag-resuelta" : "tag-pendiente"}`}>
-            {resuelta ? "Resuelta" : alerta.severidad === "A" ? "Alta" : "Media"}
-          </span>
+          <span className={`status-tag ${resuelta ? "tag-resuelta" : "tag-pendiente"}`}>{etiqueta}</span>
         </div>
-        <div className="alert-sub">{sinEncabezado(alerta.descripcion)}</div>
+        <div className="alert-sub">
+          <div>{sinEncabezado(alerta.descripcion)}</div>
+        </div>
       </div>
     </Link>
   );
@@ -423,6 +454,7 @@ export default function DashboardPage() {
           etiqueta="Huevos recolectados hoy"
           delta={deltaHuevos(datos.variacion_huevos)}
           sub={`Ayer: ${entero(datos.huevos_ayer)}`}
+          serie={datos.produccion?.map((d) => d.huevos)}
           to="/app/recoleccion"
           state={{ filtros: { estado: "F", fechaDesde: hoy, fechaHasta: hoy } }}
           ayuda="Ver las recolecciones de hoy"
@@ -534,6 +566,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <div className="par-tarjetas">
       <div className="card" style={{ marginTop: 18 }} data-tutorial="dash-pendientes">
         <div className="card-title">
           <div>
@@ -575,6 +608,16 @@ export default function DashboardPage() {
         {stock.items.length === 0 ? (
           <div className="empty-state">Todavía no hay productos con stock para mostrar.</div>
         ) : (
+          <>
+          <div className="stock-reparto" aria-hidden="true">
+            {stock.items.map((item, indice) => (
+              <span
+                key={item.id_producto}
+                style={{ flexGrow: Math.max(item.stock, 0), background: TONOS[indice % TONOS.length].color }}
+                title={`${item.producto}: ${decimal(item.porcentaje, 0)}%`}
+              ></span>
+            ))}
+          </div>
           <div className="stock-grid">
             {stock.items.map((item, indice) => {
               const tono = TONOS[indice % TONOS.length];
@@ -606,7 +649,9 @@ export default function DashboardPage() {
               );
             })}
           </div>
+          </>
         )}
+      </div>
       </div>
     </div>
   );

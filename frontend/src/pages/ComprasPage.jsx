@@ -320,10 +320,8 @@ export default function ComprasPage() {
                         data-tutorial-fila=""
                         key={c.id_compra}
                         onClick={() => setSelectedId(c.id_compra)}
-                        style={{
-                          cursor: "pointer",
-                          background: isSel ? "var(--green-50, #f0fdf4)" : undefined,
-                        }}
+                        className={isSel ? "row-selected" : undefined}
+                        style={{ cursor: "pointer" }}
                       >
                         <td>{c.nro_comprobante}</td>
                         <td>{c.proveedor?.nombre ?? "—"}</td>
