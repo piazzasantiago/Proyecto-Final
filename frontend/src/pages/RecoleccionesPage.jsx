@@ -17,6 +17,7 @@ import useAtajoAlta from "../components/useAtajoAlta";
 import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
+import CerrarDetalle from "../components/CerrarDetalle";
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
 // Registros por página por defecto; el usuario puede cambiarlo en la barra de paginación.
@@ -381,6 +382,7 @@ export default function RecoleccionesPage() {
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>{formatGalpon(selected)}</h3>

@@ -8,6 +8,7 @@ import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 import AyudaSeccion from "../components/AyudaSeccion";
 
+import CerrarDetalle from "../components/CerrarDetalle";
 // El modelo solo tiene idGalpon (PK numérica) y galpon (nombre); "G-01"
 // es puramente una etiqueta visual derivada del id real, no un campo aparte.
 function formatCodigo(id) {
@@ -263,6 +264,7 @@ export default function GalponesPage() {
 
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>{formatCodigo(selected.id_galpon)} · {selected.galpon}</h3>

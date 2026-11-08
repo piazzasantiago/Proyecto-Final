@@ -198,13 +198,13 @@ function agruparPorTipo(alertas) {
 }
 
 /** Una alerta: al hacer clic abre Lotes buscando el lote afectado. */
-function Alerta({ alerta, clave }) {
+function Alerta({ alerta, clave, extra }) {
   const resuelta = alerta.estado === "R";
   const severidad = resuelta ? "sev-green" : alerta.severidad === "A" ? "sev-red" : "sev-gold";
   const icono = resuelta ? "fa-check" : ICONO_ALERTA[clave] || "fa-triangle-exclamation";
   return (
     <Link
-      className={`alert-item alert-link ${severidad}`}
+      className={`alert-item alert-link ${severidad}${extra ? " alerta-extra" : ""}`}
       to="/app/lotes"
       state={{ filtros: { search: alerta.lote, fechaDesde: "", fechaHasta: "" } }}
       title="Ver el lote"
@@ -333,6 +333,7 @@ export default function DashboardPage() {
   const [datos, setDatos] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [verTodasAlertas, setVerTodasAlertas] = useState(false); // en el celular se muestran solo las primeras
 
   useEffect(() => {
     let vigente = true;
@@ -487,7 +488,7 @@ export default function DashboardPage() {
           <Produccion dias={datos.produccion} hoy={hoy} enlazar={puedeVerInformes} />
         </div>
 
-        <div className="card" ref={alertasRef} data-tutorial="dash-alertas">
+        <div className={`card${verTodasAlertas ? " alertas-todas" : ""}`} ref={alertasRef} data-tutorial="dash-alertas">
           <div className="card-title">
             <h3>Alertas recientes</h3>
             {datos.alertas_pendientes > 0 && (
@@ -501,16 +502,28 @@ export default function DashboardPage() {
               No hay alertas. Los lotes vienen trabajando dentro de lo esperado.
             </div>
           ) : (
-            grupos.map((grupo) => (
-              <div className="alert-grupo" key={grupo.clave}>
-                <div className="alert-grupo-titulo">
-                  {grupo.tipo} <span>{grupo.items.length}</span>
-                </div>
-                {grupo.items.map((alerta) => (
-                  <Alerta key={alerta.id_alerta} alerta={alerta} clave={grupo.clave} />
-                ))}
-              </div>
-            ))
+            (() => {
+              let n = 0; // cuántas alertas ya se dibujaron: en el celular solo se ven las primeras 3
+              return grupos.map((grupo) => {
+                const inicio = n;
+                n += grupo.items.length;
+                return (
+                  <div className={`alert-grupo${inicio >= 3 ? " alerta-extra" : ""}`} key={grupo.clave}>
+                    <div className="alert-grupo-titulo">
+                      {grupo.tipo} <span>{grupo.items.length}</span>
+                    </div>
+                    {grupo.items.map((alerta, i) => (
+                      <Alerta key={alerta.id_alerta} alerta={alerta} clave={grupo.clave} extra={inicio + i >= 3} />
+                    ))}
+                  </div>
+                );
+              });
+            })()
+          )}
+          {grupos.reduce((t, g) => t + g.items.length, 0) > 3 && (
+            <button type="button" className="alertas-ver-todas" onClick={() => setVerTodasAlertas((v) => !v)}>
+              {verTodasAlertas ? "Ver menos" : `Ver todas (${grupos.reduce((t, g) => t + g.items.length, 0)})`}
+            </button>
           )}
           {alertasOcultas > 0 && (
             <div className="alert-resto">

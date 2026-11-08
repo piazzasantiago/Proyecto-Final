@@ -12,6 +12,7 @@ import useAtajoAlta from "../components/useAtajoAlta";
 import AyudaSeccion from "../components/AyudaSeccion";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
+import CerrarDetalle from "../components/CerrarDetalle";
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
 
@@ -356,6 +357,7 @@ export default function EntradasPage() {
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>Entrada · {formatGalpon(selected)}</h3>

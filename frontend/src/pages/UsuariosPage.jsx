@@ -18,6 +18,7 @@ import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 import AyudaSeccion from "../components/AyudaSeccion";
+import CerrarDetalle from "../components/CerrarDetalle";
 // Clase del badge según el rol, para diferenciarlos de un vistazo.
 const BADGE_ROL = { A: "badge-gold", O: "badge-green", C: "badge-gray" };
 
@@ -241,6 +242,7 @@ export default function UsuariosPage() {
 
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div className="uc-head-user">
                   <div className="uc-avatar uc-avatar-sm">{iniciales(selected)}</div>

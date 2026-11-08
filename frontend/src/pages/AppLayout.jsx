@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { MENU } from "../config/menu";
 import { marcarTutorialVisto, pasosParaRol, tutorialVisto } from "../config/tutorial";
 import { marcarSeccionVista, pasosSeccion, seccionesVistas } from "../config/tutorialSecciones";
 import MarcaSidebar from "../components/MarcaSidebar";
+import LogoAvigest from "../components/LogoAvigest";
+import BarraInferior from "../components/BarraInferior";
+import HojaMenu from "../components/HojaMenu";
 import Tutorial from "../components/Tutorial";
 import { TutorialContext } from "../components/TutorialContext";
 import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
+import { activarMovil, cerrarDetalleMovil } from "../utils/movil";
 
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
 
@@ -23,6 +27,7 @@ function iniciales(usuario) {
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { usuario, cerrarSesion } = useAuth();
   const { esOscuro, alternar } = useTema();
   // Controla el sidebar como panel deslizante en tablet/celular.
@@ -31,6 +36,7 @@ export default function AppLayout() {
   // botón del menú; cada sección tiene el suyo, con el botón "?" de su encabezado.
   // `guia` es null (nada abierto), "general" o el id de una sección.
   const [guia, setGuia] = useState(null);
+  const [hojaMenu, setHojaMenu] = useState(null); // celular: "mas" | "cuenta" | null
   const [vistas, setVistas] = useState(() => seccionesVistas(usuario));
   const [marcaLista, setMarcaLista] = useState(false);
   const avisarMarcaLista = useCallback(() => setMarcaLista(true), []);
@@ -40,6 +46,16 @@ export default function AppLayout() {
     const t = setTimeout(() => setGuia("general"), 400);
     return () => clearTimeout(t);
   }, [marcaLista, usuario]);
+
+  // Pantallas chicas: el detalle como hoja desde abajo y títulos en las tablas (utils/movil.js).
+  useEffect(() => activarMovil(), []);
+  useEffect(() => { cerrarDetalleMovil(); setHojaMenu(null); }, [pathname]);
+  useEffect(() => {
+    if (!hojaMenu) return undefined;
+    const alTeclear = (e) => e.key === "Escape" && setHojaMenu(null);
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, [hojaMenu]);
 
   const cerrarTutorial = useCallback(() => {
     if (guia === "general") {
@@ -77,6 +93,12 @@ export default function AppLayout() {
       >
         <i className="fa-solid fa-bars"></i>
       </button>
+
+      <button type="button" className="topbar-avatar" aria-label="Mi cuenta" onClick={() => setHojaMenu("cuenta")}>{iniciales(usuario)}</button>
+
+      <div className="topbar-vidrio" aria-hidden="true"><span className="topbar-titulo"></span><LogoAvigest compacto /></div>
+
+      <div className="detalle-velo" onClick={cerrarDetalleMovil} aria-hidden="true"></div>
 
       {sidebarOpen && (
         <div
@@ -153,6 +175,22 @@ export default function AppLayout() {
       <div className="main">
         <Outlet />
       </div>
+
+      <BarraInferior rol={rol} onMas={() => setHojaMenu("mas")} />
+
+      {hojaMenu && (
+        <HojaMenu
+          modo={hojaMenu}
+          rol={rol}
+          usuario={usuario}
+          iniciales={iniciales(usuario)}
+          esOscuro={esOscuro}
+          onTema={alternar}
+          onTutorial={() => { setHojaMenu(null); setGuia("general"); }}
+          onSalir={handleLogout}
+          onCerrar={() => setHojaMenu(null)}
+        />
+      )}
 
       {guia && (
         <Tutorial

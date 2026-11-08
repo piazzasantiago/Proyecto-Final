@@ -11,6 +11,7 @@ import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTablero } from "../components/Esqueleto";
 import AyudaSeccion from "../components/AyudaSeccion";
 
+import CerrarDetalle from "../components/CerrarDetalle";
 const ESTADO_TRANSICION = "T";
 const ESTADO_PRODUCCION = "P";
 const ESTADO_FINALIZADO = "F";
@@ -455,6 +456,7 @@ export default function LotesPage() {
           {/* ---- Panel de detalle ---- */}
           {selected ? (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>{selected.codigo}</h3>
