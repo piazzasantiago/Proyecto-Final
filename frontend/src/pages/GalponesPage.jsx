@@ -365,12 +365,6 @@ export default function GalponesPage() {
                         <i className={`fa-solid ${verTodasMaterias ? "fa-chevron-up" : "fa-chevron-down"}`}></i>
                       </button>
                     )}
-                    <div className="form-hint" style={{ marginTop: 6 }}>
-                      <i className="fa-solid fa-circle-info"></i> Estimada, como máximo: último
-                      ingreso finalizado menos los descartes del galpón posteriores. Supone que la
-                      carga anterior ya se consumió y no descuenta el consumo diario de las
-                      gallinas.
-                    </div>
                   </>
                 )}
 
