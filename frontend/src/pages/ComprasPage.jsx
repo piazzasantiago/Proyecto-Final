@@ -12,6 +12,7 @@ import useAtajoAlta from "../components/useAtajoAlta";
 import { EsqueletoTabla } from "../components/Esqueleto";
 
 import AyudaSeccion from "../components/AyudaSeccion";
+import CerrarDetalle from "../components/CerrarDetalle";
 const ESTADO_PENDIENTE = "P";
 const ESTADO_FINALIZADA = "F";
 const CATEGORIA_LOTES = "L";
@@ -365,6 +366,7 @@ export default function ComprasPage() {
           {/* ── Panel de detalle ────────────────────────────────────── */}
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>Compra {selected.nro_comprobante}</h3>

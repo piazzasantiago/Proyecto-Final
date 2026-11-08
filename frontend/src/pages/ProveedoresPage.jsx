@@ -16,6 +16,7 @@ import AuditoriaBoton from "../components/AuditoriaBoton";
 import { EsqueletoTarjetas } from "../components/Esqueleto";
 
 import AyudaSeccion from "../components/AyudaSeccion";
+import CerrarDetalle from "../components/CerrarDetalle";
 export default function ProveedoresPage() {
   const { confirmar, avisar } = useDialogo();
   const { esAdministrador } = useAuth();
@@ -209,6 +210,7 @@ export default function ProveedoresPage() {
 
           {selected && (
             <div key={selectedId} className="detail-panel" data-tutorial="sec-detalle">
+              <CerrarDetalle />
               <div className="detail-head">
                 <div>
                   <h3>{selected.nombre}</h3>
