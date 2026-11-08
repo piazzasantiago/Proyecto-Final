@@ -240,6 +240,15 @@ function mensajeDeInforme(err) {
 
 export default function InformesPage() {
   const [tab, setTab] = useState("produccion");
+  const [menuExportar, setMenuExportar] = useState(false);
+  // El menú de exportar se cierra al tocar fuera o con Escape.
+  useEffect(() => {
+    if (!menuExportar) return undefined;
+    const cerrar = (e) => { if (e.type === "keydown" ? e.key === "Escape" : !e.target.closest(".menu-acciones")) setMenuExportar(false); };
+    document.addEventListener("mousedown", cerrar);
+    document.addEventListener("keydown", cerrar);
+    return () => { document.removeEventListener("mousedown", cerrar); document.removeEventListener("keydown", cerrar); };
+  }, [menuExportar]);
   const [periodo, setPeriodo] = useState(periodoInicial);
   const [idGalpon, setIdGalpon] = useState("");
   const [estadoLote, setEstadoLote] = useState("");
@@ -341,13 +350,28 @@ export default function InformesPage() {
           <div className="page-titulo"><h1>Informes</h1><AyudaSeccion seccion="informes" /></div>
           <div className="desc">Indicadores productivos y reportes de producción, lotes, materias primas y descartes.</div>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} data-tutorial="inf-exportar">
-          <button className="btn btn-outline" disabled={!puedeExportar || descargando} onClick={() => exportar("pdf")}>
-            <i className="fa-solid fa-file-pdf"></i> {descargando === "pdf" ? "Generando..." : "Exportar a PDF"}
+        <div className="menu-acciones" data-tutorial="inf-exportar">
+          <button
+            type="button"
+            className="btn btn-green"
+            disabled={!puedeExportar || descargando}
+            aria-haspopup="menu"
+            aria-expanded={menuExportar}
+            onClick={() => setMenuExportar((v) => !v)}
+          >
+            <i className="fa-solid fa-arrow-down-to-line"></i> {descargando ? "Generando..." : "Exportar"}
+            <i className="fa-solid fa-chevron-down menu-acciones-flecha"></i>
           </button>
-          <button className="btn btn-green" disabled={!puedeExportar || descargando} onClick={() => exportar("xlsx")}>
-            <i className="fa-solid fa-file-excel"></i> {descargando === "xlsx" ? "Generando..." : "Exportar a Excel"}
-          </button>
+          {menuExportar && (
+            <div className="menu-pop" role="menu">
+              <button type="button" role="menuitem" onClick={() => { setMenuExportar(false); exportar("pdf"); }}>
+                <i className="fa-solid fa-file-pdf"></i> Exportar a PDF
+              </button>
+              <button type="button" role="menuitem" onClick={() => { setMenuExportar(false); exportar("xlsx"); }}>
+                <i className="fa-solid fa-file-excel"></i> Exportar a Excel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

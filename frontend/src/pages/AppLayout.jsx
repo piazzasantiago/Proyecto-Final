@@ -12,7 +12,10 @@ import Tutorial from "../components/Tutorial";
 import { TutorialContext } from "../components/TutorialContext";
 import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
+import { activarFondo } from "../utils/fondo";
 import { activarMovil, cerrarDetalleMovil } from "../utils/movil";
+
+const CLAVE_MENU_MIN = "avigest-menu-min";
 
 const navItemClass = ({ isActive }) => `sb-item${isActive ? " active" : ""}`;
 
@@ -32,6 +35,16 @@ export default function AppLayout() {
   const { esOscuro, alternar } = useTema();
   // Controla el sidebar como panel deslizante en tablet/celular.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Escritorio: menú contraído a solo íconos (se recuerda entre visitas).
+  const [menuMin, setMenuMin] = useState(() => {
+    try { return localStorage.getItem(CLAVE_MENU_MIN) === "1"; } catch { return false; }
+  });
+  const alternarMenu = useCallback(() => {
+    setMenuMin((v) => {
+      try { localStorage.setItem(CLAVE_MENU_MIN, v ? "0" : "1"); } catch { /* sin almacenamiento */ }
+      return !v;
+    });
+  }, []);
   // Tutorial guiado: el general arranca solo la primera vez que el usuario entra y se repite con un
   // botón del menú; cada sección tiene el suyo, con el botón "?" de su encabezado.
   // `guia` es null (nada abierto), "general" o el id de una sección.
@@ -49,6 +62,8 @@ export default function AppLayout() {
 
   // Pantallas chicas: el detalle como hoja desde abajo y títulos en las tablas (utils/movil.js).
   useEffect(() => activarMovil(), []);
+  // Fondo que cambia con la hora del día (amanecer, día, atardecer, noche).
+  useEffect(() => activarFondo(), []);
   useEffect(() => { cerrarDetalleMovil(); setHojaMenu(null); }, [pathname]);
   useEffect(() => {
     if (!hojaMenu) return undefined;
@@ -84,7 +99,7 @@ export default function AppLayout() {
 
   return (
     <TutorialContext.Provider value={contextoTutorial}>
-    <div className="screen active" id="screen-app">
+    <div className={`screen active${menuMin ? " menu-min" : ""}`} id="screen-app">
       <button
         type="button"
         className="mobile-topbar-toggle"
@@ -113,6 +128,20 @@ export default function AppLayout() {
           <MarcaSidebar onLista={avisarMarcaLista} />
           <button
             type="button"
+            className="sb-contraer"
+            onClick={alternarMenu}
+            aria-label={menuMin ? "Expandir menú" : "Contraer menú"}
+            aria-pressed={menuMin}
+            title={menuMin ? "Expandir menú" : "Contraer menú"}
+          >
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+              <rect x="3" y="4.5" width="18" height="15" rx="3.2" />
+              <path d="M9.5 4.5v15" />
+              <path className="sb-contraer-franja" d="M5.4 8.5v7" strokeWidth="2.2" />
+            </svg>
+          </button>
+          <button
+            type="button"
             className="sidebar-close"
             aria-label="Cerrar menú"
             onClick={() => setSidebarOpen(false)}
@@ -131,8 +160,8 @@ export default function AppLayout() {
               <div key={grupo.grupo} data-tutorial={`menu-${idGrupo(grupo.grupo)}`}>
                 <div className="sb-section-label">{grupo.grupo}</div>
                 {visibles.map((item) => (
-                  <NavLink key={item.to} to={item.to} className={navItemClass}>
-                    <i className={`fa-solid ${item.icono}`}></i> {item.texto}
+                  <NavLink key={item.to} to={item.to} className={navItemClass} title={menuMin ? item.texto : undefined}>
+                    <i className={`fa-solid ${item.icono}`}></i> <span className="sb-texto">{item.texto}</span>
                   </NavLink>
                 ))}
               </div>
@@ -141,7 +170,7 @@ export default function AppLayout() {
         </div>
 
         <div className="sb-footer">
-          <div className="sb-user">
+          <div className="sb-user" title={menuMin ? usuario?.nombre_completo : undefined}>
             <div className="sb-avatar">{iniciales(usuario)}</div>
             <div className="sb-user-info">
               <b>{usuario?.nombre_completo}</b>
@@ -153,8 +182,9 @@ export default function AppLayout() {
             className="sb-tema"
             data-tutorial="btn-tutorial"
             onClick={() => setGuia("general")}
+            title={menuMin ? "Ver tutorial" : undefined}
           >
-            <i className="fa-solid fa-circle-question"></i> Ver tutorial
+            <i className="fa-solid fa-circle-question"></i> <span className="sb-texto">Ver tutorial</span>
           </button>
           <button
             type="button"
@@ -164,10 +194,10 @@ export default function AppLayout() {
             title={esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
           >
             <i className={`fa-solid ${esOscuro ? "fa-sun" : "fa-moon"}`}></i>
-            {esOscuro ? "Modo claro" : "Modo oscuro"}
+            <span className="sb-texto">{esOscuro ? "Modo claro" : "Modo oscuro"}</span>
           </button>
-          <div className="sb-logout" onClick={handleLogout}>
-            <i className="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+          <div className="sb-logout" onClick={handleLogout} title={menuMin ? "Cerrar sesión" : undefined}>
+            <i className="fa-solid fa-right-from-bracket"></i> <span className="sb-texto">Cerrar sesión</span>
           </div>
         </div>
       </div>
