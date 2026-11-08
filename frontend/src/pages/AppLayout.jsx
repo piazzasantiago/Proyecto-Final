@@ -13,6 +13,7 @@ import { TutorialContext } from "../components/TutorialContext";
 import useTema from "../components/useTema";
 import { useAuth } from "../context/AuthContext";
 import { activarFondo } from "../utils/fondo";
+import { activarAltoDetalle } from "../utils/detalle";
 import { activarMovil, cerrarDetalleMovil } from "../utils/movil";
 
 const CLAVE_MENU_MIN = "avigest-menu-min";
@@ -64,6 +65,7 @@ export default function AppLayout() {
   useEffect(() => activarMovil(), []);
   // Fondo que cambia con la hora del día (amanecer, día, atardecer, noche).
   useEffect(() => activarFondo(), []);
+  useEffect(() => activarAltoDetalle(), []);
   useEffect(() => { cerrarDetalleMovil(); setHojaMenu(null); }, [pathname]);
   useEffect(() => {
     if (!hojaMenu) return undefined;
@@ -109,7 +111,7 @@ export default function AppLayout() {
         <i className="fa-solid fa-bars"></i>
       </button>
 
-      <button type="button" className="topbar-avatar" aria-label="Mi cuenta" onClick={() => setHojaMenu("cuenta")}>{iniciales(usuario)}</button>
+      <button type="button" className="topbar-avatar" aria-label="Mi cuenta" data-tutorial="boton-perfil" onClick={() => setHojaMenu("cuenta")}>{iniciales(usuario)}</button>
 
       <div className="topbar-vidrio" aria-hidden="true"><span className="topbar-titulo"></span><LogoAvigest compacto /></div>
 
@@ -228,6 +230,7 @@ export default function AppLayout() {
           pasos={guia === "general" ? pasosParaRol(rol) : pasosSeccion(guia, rol)}
           onCerrar={cerrarTutorial}
           abrirMenu={setSidebarOpen}
+          abrirHoja={setHojaMenu}
         />
       )}
     </div>

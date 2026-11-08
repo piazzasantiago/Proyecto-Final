@@ -7,6 +7,7 @@ import { BarrasHorizontales, COLORES, Dona } from "../components/GraficosInforme
 import { EsqueletoInforme } from "../components/Esqueleto";
 
 import AyudaSeccion from "../components/AyudaSeccion";
+import InformeCompacto from "../components/InformeCompacto";
 const TABS = [
   { id: "produccion", ruta: "produccion", texto: "Producción", icono: "fa-egg", cu: "CU85" },
   { id: "lotes", ruta: "lotes", texto: "Lotes", icono: "fa-kiwi-bird", cu: "CU86" },
@@ -20,6 +21,19 @@ const INDICADORES = [
   { id: "mortandad", texto: "Mortandad (gallinas)" },
   { id: "consumo", texto: "Consumo de materia prima" },
 ];
+
+/** true en celular (hasta 700 px): ahí los informes se muestran como tarjetas compactas. */
+function useCelular() {
+  const consulta = "(max-width: 700px)";
+  const [chico, setChico] = useState(() => window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const m = window.matchMedia(consulta);
+    const cambiar = () => setChico(m.matches);
+    m.addEventListener("change", cambiar);
+    return () => m.removeEventListener("change", cambiar);
+  }, []);
+  return chico;
+}
 
 const nfEntero = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
 const nfDecimal = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -115,14 +129,15 @@ function conOtros(items, maximoItems = 5) {
 
 const COLORES_RANKING = [COLORES.rojo, COLORES.dorado, COLORES.verde];
 
-function TablaInforme({ informe }) {
+function TablaInforme({ informe, tab, celular }) {
   const { columnas, filas, totales } = informe;
   if (filas.length === 0) {
     return <div className="empty-state" style={{ padding: 28 }}>No hay datos para los filtros elegidos.</div>;
   }
+  if (celular) return <InformeCompacto tab={tab} informe={informe} formatear={formatear} />;
   return (
     <div className="table-wrap" style={{ overflowX: "auto" }}>
-      <table>
+      <table className="tabla-informe">
         <thead>
           <tr>
             {columnas.map((c) => (
@@ -138,6 +153,7 @@ function TablaInforme({ informe }) {
               {columnas.map((c) => (
                 <td
                   key={c.clave}
+                  data-label={c.titulo}
                   style={{
                     textAlign: c.tipo === "entero" || c.tipo === "decimal" ? "right" : undefined,
                     ...(c.clave === "stock_actual" && f.bajo_minimo ? { color: "var(--red-alerta)", fontWeight: 700 } : {}),
@@ -152,10 +168,11 @@ function TablaInforme({ informe }) {
             </tr>
           ))}
           {totales && (
-            <tr style={{ fontWeight: 700, background: "var(--gray-100)" }}>
+            <tr className="fila-total" style={{ fontWeight: 700, background: "var(--gray-100)" }}>
               {columnas.map((c) => (
                 <td
                   key={c.clave}
+                  data-label={c.titulo}
                   style={{ textAlign: c.tipo === "entero" || c.tipo === "decimal" ? "right" : undefined }}
                 >
                   {totales[c.clave] === undefined ? "" : formatear(totales[c.clave], c.tipo)}
@@ -342,6 +359,7 @@ export default function InformesPage() {
       ? informe.promedio - objetivoNumero
       : null;
   const puedeExportar = informe && !loading && !error && !periodoInvalido;
+  const celular = useCelular();
 
   return (
     <div className="page active" id="page-informes">
@@ -372,15 +390,6 @@ export default function InformesPage() {
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* En celular los informes (tablas anchas y gráficos) no se leen bien: se avisa y se oculta el resto. */}
-      <div className="aviso-informes">
-        <i className="fa-solid fa-display"></i>
-        <div>
-          <b>Mejor en una pantalla más grande</b>
-          <p>Los informes tienen tablas y gráficos que necesitan más espacio. Abrí AviGest desde una computadora o una tablet para verlos y exportarlos.</p>
         </div>
       </div>
 
@@ -491,7 +500,7 @@ export default function InformesPage() {
             <div style={{ marginBottom: 16 }}>
               <BarrasHorizontales
                 titulo="Postura por galpón"
-                filas={posturaPorGalpon(informe, galpones, idGalpon)}
+                filas={posturaPorGalpon(informe, galpones, idGalpon).filter((f) => !celular || f.valor !== null)}
                 maximo={100}
                 nota="Verde: 85 % o más · Dorado: entre 70 % y 85 % · Rojo: menos de 70 % (criterio de vaciado sanitario)."
               />
@@ -507,7 +516,7 @@ export default function InformesPage() {
             </div>
           )}
           {tab === "descartes" && informe.filas.length > 0 && <GraficosDescartes informe={informe} />}
-          <TablaInforme informe={informe} />
+          <TablaInforme informe={informe} tab={tab} celular={celular} />
         </>
       )}
 

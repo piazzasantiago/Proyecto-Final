@@ -1,9 +1,10 @@
+import { useLayoutEffect, useRef, useState } from "react";
+
 // Gráfica de línea simple en SVG (sin librerías): la serie real y, opcionalmente,
 // una línea constante con el valor objetivo que carga el usuario.
 
-const W = 760;
-const H = 300;
-const M = { izq: 56, der: 18, arriba: 16, abajo: 38 };
+const W_MAX = 760;
+const ANGOSTO = 500; // por debajo de este ancho (celular) el gráfico se acomoda al espacio, sin deslizar
 
 const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
@@ -21,7 +22,35 @@ function etiquetaFecha(iso) {
   return `${d}/${m}`;
 }
 
-export default function GraficoIndicador({ serie, objetivo, unidad }) {
+/**
+ * El gráfico toma el ancho disponible: en celular se dibuja más angosto y con menos marcas, así que
+ * nunca hace falta deslizar de costado.
+ */
+export default function GraficoIndicador(props) {
+  const caja = useRef(null);
+  const [ancho, setAncho] = useState(W_MAX);
+
+  useLayoutEffect(() => {
+    const el = caja.current;
+    if (!el) return undefined;
+    const medir = () => setAncho(Math.round(Math.min(W_MAX, Math.max(240, el.clientWidth))));
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, []);
+
+  return (
+    <div ref={caja}>
+      <Grafico {...props} W={ancho} />
+    </div>
+  );
+}
+
+function Grafico({ serie, objetivo, unidad, W }) {
+  const angosto = W < ANGOSTO;
+  const H = angosto ? 240 : 300;
+  const M = angosto ? { izq: 40, der: 22, arriba: 14, abajo: 34 } : { izq: 56, der: 18, arriba: 16, abajo: 38 };
   const valores = serie.map((p) => p.valor).filter((v) => v !== null);
   const hayObjetivo = objetivo !== null && objetivo !== undefined && !Number.isNaN(objetivo);
   const maxDato = Math.max(0, ...valores, hayObjetivo ? objetivo : 0);
@@ -45,7 +74,7 @@ export default function GraficoIndicador({ serie, objetivo, unidad }) {
   });
 
   const marcasY = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMax);
-  const paso = Math.max(1, Math.ceil(serie.length / 8));
+  const paso = Math.max(1, Math.ceil(serie.length / (angosto ? 5 : 8)));
 
   if (valores.length === 0) {
     return (

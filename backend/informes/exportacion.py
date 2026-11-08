@@ -28,13 +28,16 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 PDF = "application/pdf"
 
-# Íconos del sistema (el huevo dorado de la marca). Hay dos versiones:
+# Marca del sistema (logo con la A integrada al huevo dorado). Hay tres versiones:
+#   - LOGO_COMPLETO: el logo con el nombre, en blanco y dorado sobre fondo transparente. Va en
+#     el encabezado del PDF, sobre la banda verde.
 #   - LOGO: el ícono de la app, una baldosa verde con el huevo dorado. Va en el Excel,
 #     que tiene fondo blanco.
 #   - LOGO_ARO: solo el huevo dorado, con fondo transparente. Va en el PDF, sobre la
 #     banda verde del encabezado y como marca de agua.
 RECURSOS = Path(__file__).resolve().parent / "recursos"
 LOGO = RECURSOS / "logo.png"
+LOGO_COMPLETO = RECURSOS / "logo-completo.png"
 LOGO_ARO = RECURSOS / "logo-aro.png"
 
 
@@ -254,6 +257,15 @@ def _medidas_aro(alto):
     return alto * ancho_px / alto_px, alto
 
 
+def _proporcion(ruta):
+    """Ancho dividido alto de una imagen."""
+    from PIL import Image
+
+    with Image.open(ruta) as imagen:
+        ancho_px, alto_px = imagen.size
+    return ancho_px / alto_px
+
+
 def _marca_de_agua():
     """El huevo dorado muy tenue (10 % de opacidad) para usarlo de fondo."""
     from PIL import Image
@@ -283,28 +295,28 @@ def _decorar_pdf(informe):
                 width=ancho_marca, height=alto_marca, mask="auto",
             )
 
-        # Encabezado: banda verde con la marca a la izquierda y el logo a la derecha.
+        # Encabezado: banda verde con el logo a la izquierda y la fecha de generación a la derecha.
         lienzo.setFillColor(VERDE_OSCURO)
         lienzo.rect(0, alto - ALTO_ENCABEZADO, ancho, ALTO_ENCABEZADO, stroke=0, fill=1)
         lienzo.setFillColor(DORADO)
         lienzo.rect(0, alto - ALTO_ENCABEZADO - 0.12 * cm, ancho, 0.12 * cm, stroke=0, fill=1)
-        lienzo.setFillColor(colors.white)
-        lienzo.setFont("Helvetica-Bold", 20)
-        lienzo.drawString(doc.leftMargin, alto - 1.15 * cm, "AviGest")
-        lienzo.setFont("Helvetica", 9.5)
-        lienzo.setFillColor(colors.HexColor("#EEC568"))
-        lienzo.drawString(doc.leftMargin, alto - 1.7 * cm, "Gestión de granja avícola")
-        lienzo.setFillColor(colors.white)
-        lienzo.setFont("Helvetica", 9)
-        if LOGO_ARO.exists():
-            ancho_logo, alto_logo = _medidas_aro(1.5 * cm)
+        if LOGO_COMPLETO.exists():
+            alto_logo = 1.2 * cm
+            ancho_logo = alto_logo * _proporcion(LOGO_COMPLETO)
             lienzo.drawImage(
-                str(LOGO_ARO), ancho - doc.rightMargin - ancho_logo, alto - ALTO_ENCABEZADO + 0.3 * cm,
+                str(LOGO_COMPLETO), doc.leftMargin, alto - 1.5 * cm,
                 width=ancho_logo, height=alto_logo, mask="auto",
             )
         else:
-            ancho_logo = 0
-        lienzo.drawRightString(ancho - doc.rightMargin - ancho_logo - 0.4 * cm, alto - 1.2 * cm, generado)
+            lienzo.setFillColor(colors.white)
+            lienzo.setFont("Helvetica-Bold", 20)
+            lienzo.drawString(doc.leftMargin, alto - 1.15 * cm, "AviGest")
+        lienzo.setFont("Helvetica", 9.5)
+        lienzo.setFillColor(colors.HexColor("#EEC568"))
+        lienzo.drawString(doc.leftMargin, alto - 1.88 * cm, "Gestión de granja avícola")
+        lienzo.setFillColor(colors.white)
+        lienzo.setFont("Helvetica", 9)
+        lienzo.drawRightString(ancho - doc.rightMargin, alto - 1.2 * cm, generado)
 
         # Pie: línea fina y título del informe (el número de página lo agrega el lienzo).
         lienzo.setStrokeColor(colors.HexColor("#D1D5DB"))
