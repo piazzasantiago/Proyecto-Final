@@ -217,7 +217,7 @@ export default function RecoleccionesPage() {
             data-tutorial="sec-nuevo"
             onClick={() => setModalMode("create")}
           >
-            <i className="fa-solid fa-plus"></i> Nueva recolección
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nueva recolección</span>
           </button>
         )}
       </div>

@@ -263,7 +263,7 @@ export default function DescartesPage() {
         </div>
         {puedeEscribir && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nuevo descarte
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo descarte</span>
           </button>
         )}
       </div>

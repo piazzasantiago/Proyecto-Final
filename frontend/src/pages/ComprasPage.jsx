@@ -211,7 +211,7 @@ export default function ComprasPage() {
         </div>
         {esAdministrador && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nueva compra
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nueva compra</span>
           </button>
         )}
       </div>
@@ -433,12 +433,10 @@ export default function ComprasPage() {
                 )}
 
                 <div className="detail-sec-title">Detalle</div>
-                <table className="plan-table">
+                <table className="plan-table plan-table-lineas">
                   <thead>
                     <tr>
                       <th>{esDeLotes ? "Concepto" : "Materia prima"}</th>
-                      <th style={{ textAlign: "right" }}>Cant.</th>
-                      <th style={{ textAlign: "right" }}>P. unit.</th>
                       <th style={{ textAlign: "right" }}>Subtotal</th>
                     </tr>
                   </thead>
@@ -446,36 +444,30 @@ export default function ComprasPage() {
                     {(selected.lineas ?? []).map((l) => (
                       <tr key={l.id_linea_compra}>
                         <td>
-                          {esDeLotes ? (
-                            <>
-                              Lote de gallinas
-                              <div style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                                {l.lote_codigo
-                                  ? `Asignado: ${l.lote_codigo}`
-                                  : selected.estado === ESTADO_FINALIZADA
-                                  ? "Pendiente de asignar a un galpón"
-                                  : "Sin asignar"}
-                              </div>
-                            </>
-                          ) : (
-                            l.materia_prima_nombre
+                          {esDeLotes ? "Lote de gallinas" : l.materia_prima_nombre}
+                          <div className="linea-sub">
+                            {formatNumero(l.cantidad)}
+                            {esDeLotes ? " aves" : ` ${l.materia_prima_unidad ?? ""}`} ×{" "}
+                            {formatPrecio(l.precio_unitario)}
+                          </div>
+                          {esDeLotes && (
+                            <div className="linea-sub">
+                              {l.lote_codigo
+                                ? `Asignado: ${l.lote_codigo}`
+                                : selected.estado === ESTADO_FINALIZADA
+                                ? "Pendiente de asignar a un galpón"
+                                : "Sin asignar"}
+                            </div>
                           )}
                         </td>
-                        <td style={{ textAlign: "right" }}>
-                          {formatNumero(l.cantidad)}
-                          {esDeLotes ? " aves" : ` ${l.materia_prima_unidad ?? ""}`}
-                        </td>
-                        <td style={{ textAlign: "right" }}>{formatPrecio(l.precio_unitario)}</td>
-                        <td style={{ textAlign: "right" }}>{formatPrecio(l.subtotal)}</td>
+                        <td className="linea-importe">{formatPrecio(l.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>
-                        Total
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }}>
+                      <td style={{ textAlign: "right", fontWeight: 600 }}>Total</td>
+                      <td className="linea-importe" style={{ fontWeight: 600 }}>
                         {formatPrecio(selected.total)}
                       </td>
                     </tr>

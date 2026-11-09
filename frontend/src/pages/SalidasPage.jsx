@@ -201,7 +201,7 @@ export default function SalidasPage() {
         </div>
         {puedeEscribir && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nueva salida
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nueva salida</span>
           </button>
         )}
       </div>

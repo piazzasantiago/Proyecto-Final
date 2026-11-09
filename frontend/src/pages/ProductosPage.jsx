@@ -146,7 +146,7 @@ export default function ProductosPage() {
         </div>
         {esAdministrador && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nuevo producto
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo producto</span>
           </button>
         )}
       </div>

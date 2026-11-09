@@ -188,7 +188,7 @@ export default function GalponesPage() {
         </div>
         {esAdministrador && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nuevo galpón
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo galpón</span>
           </button>
         )}
       </div>

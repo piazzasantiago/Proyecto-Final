@@ -49,6 +49,14 @@ class ResumenVacioTests(TestCase):
         self.assertEqual(datos["alertas_pendientes"], 0)
         self.assertEqual(datos["alertas"], [])
         self.assertEqual(datos["stock_productos"], {"total": 0, "items": []})
+        # Datos extra de las tarjetas: todo en cero y sin romper.
+        self.assertEqual(datos["galpones_en_transicion"], 0)
+        self.assertEqual(datos["galpones_sin_lote"], 0)
+        self.assertEqual(datos["galpones_inactivos"], 0)
+        self.assertEqual(datos["gallinas_en_produccion"], 0)
+        self.assertEqual(datos["alertas_por_tipo"], [])
+        self.assertEqual(len(datos["postura_serie"]), 7)
+        self.assertEqual({dia["valor"] for dia in datos["postura_serie"]}, {None})
 
     def test_la_produccion_trae_una_semana_de_dias(self):
         produccion = self.client.get(URL).data["produccion"]
@@ -129,6 +137,37 @@ class ResumenTests(TestCase):
         items = self.client.get(URL).data["stock_productos"]["items"]
         self.assertIn("Huevo viejo", {i["producto"] for i in items})
 
+    def test_galpones_por_estado(self):
+        # El Galpón 2 pasa a tener un lote en transición.
+        crear_lote(self.vacio, estado=Lote.ESTADO_TRANSICION, gallinas=50)
+        datos = self.client.get(URL).data
+        self.assertEqual(datos["galpones_en_produccion"], 1)
+        self.assertEqual(datos["galpones_en_transicion"], 1)
+        self.assertEqual(datos["galpones_sin_lote"], 0)
+        self.assertEqual(datos["galpones_inactivos"], 1)
+        # Las gallinas en transición no cuentan: solo las de lotes en producción.
+        self.assertEqual(datos["gallinas_en_produccion"], 100)
+
+    def test_un_galpon_sin_lote_se_cuenta_aparte(self):
+        datos = self.client.get(URL).data
+        self.assertEqual(datos["galpones_sin_lote"], 1)  # el Galpón 2
+        self.assertEqual(datos["galpones_en_transicion"], 0)
+
+    def test_la_postura_trae_los_ultimos_siete_dias(self):
+        serie = self.client.get(URL).data["postura_serie"]
+        self.assertEqual(len(serie), 7)
+        self.assertEqual(serie[-1], {"fecha": self.hoy.isoformat(), "valor": 90.0})
+        self.assertEqual(serie[-2], {"fecha": self.ayer.isoformat(), "valor": 80.0})
+        self.assertIsNone(serie[0]["valor"])  # sin recolección ese día
+
+    def test_las_alertas_pendientes_vienen_agrupadas_por_tipo(self):
+        self.lote.cantidad_inicial = 10000
+        self.lote.save()
+        datos = self.client.get(URL).data
+        por_tipo = [(t["clave"], t["cantidad"]) for t in datos["alertas_por_tipo"]]
+        self.assertEqual(por_tipo, [("postura_baja", 1)])
+        self.assertEqual(sum(t["cantidad"] for t in datos["alertas_por_tipo"]), datos["alertas_pendientes"])
+
     def test_trae_las_alertas_y_cuantas_quedan_pendientes(self):
         # Con 10.000 gallinas, los 90 huevos de hoy son una postura bajísima:
         # la alerta se genera al pedir el resumen.
@@ -168,6 +207,10 @@ class ResumenOperarioTests(TestCase):
         datos = self.client.get(URL).data
         self.assertEqual(datos["galpones_activos"], 1)
         self.assertEqual(datos["galpones_en_produccion"], 1)
+
+    def test_las_gallinas_en_produccion_son_las_de_sus_galpones(self):
+        datos = self.client.get(URL).data
+        self.assertEqual(datos["gallinas_en_produccion"], 100)  # no suma las 100 del galpón ajeno
 
     def test_solo_ve_las_alertas_de_sus_galpones(self):
         datos = self.client.get(URL).data
