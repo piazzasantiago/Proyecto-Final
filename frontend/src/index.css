@@ -2379,7 +2379,7 @@ a.alert-link.sev-green:hover{background:#cdf5cf;}
 /* Informes: "Exportar" es un botón normal en el encabezado, no el botón flotante de "nuevo". */
 @media (max-width:700px){
   #page-informes .page-header .btn-green{
-    position:static; width:auto; height:auto; min-height:40px; padding:0 14px; border-radius:11px;
+    position:static; width:auto; height:auto; min-height:40px; padding:0 14px; border-radius:var(--radio-tarjeta);
     font-size:14px; gap:8px; box-shadow:none; z-index:auto;
   }
   #page-informes .page-header .btn-green i{font-size:14px;}
@@ -2486,3 +2486,58 @@ a.alert-link.sev-green:hover{background:#cdf5cf;}
 :root[data-theme="dark"] .menu-pop button:hover{background:rgba(120,190,150,.16); color:#bfe8d1;}
 
 @media (max-width:700px){ .menu-pop{max-width:calc(100vw - 32px);} }
+
+/* Detalle de compra: las líneas se muestran como ticket (nombre + subtotal, y debajo cantidad × precio),
+   así ningún importe, por largo que sea, ensancha la tabla más allá del panel. */
+.plan-table-lineas td{vertical-align:top;}
+.plan-table-lineas .linea-sub{font-size:12.5px; color:var(--gray-500); margin-top:2px; font-variant-numeric:tabular-nums;}
+.plan-table-lineas .linea-importe{text-align:right; white-space:nowrap; font-weight:600; padding-left:12px;}
+.plan-table-lineas tfoot td{border-top:1px solid var(--gray-200); border-bottom:none;}
+
+/* ===== Botones: mismo radio que las tarjetas ===== */
+:root{--radio-tarjeta:12px;}
+@media (min-width:1101px){:root{--radio-tarjeta:24px;}} /* igual que .card, .kpi-card y .detail-panel */
+.btn,.btn-primary,.ver-mas{border-radius:var(--radio-tarjeta);}
+
+/* ===== Escritorio: con el encabezado fijo, las acciones pasan a círculo con ícono =====
+   El texto de cada botón va en .btn-txt para poder plegarlo con una transición (el ancho de un
+   texto suelto no se puede animar). La resolución de nombre y tooltip está en utils/movil.js. */
+@media (min-width:1101px){
+  .page-header .btn{
+    box-sizing:border-box; height:40px; padding:0 15px; border-width:1px; justify-content:center;
+    transition:padding .35s var(--resorte), gap .35s var(--resorte), transform .15s, box-shadow .15s, background .15s;
+  }
+  .page-header .btn i{width:16px; flex:none; text-align:center;}
+  .page-header .btn-txt{display:inline-block; max-width:260px; overflow:hidden; white-space:nowrap; transition:max-width .35s var(--resorte), opacity .2s ease;}
+  html[data-scroll="1"] .page-header .btn{padding:0 11px; gap:0;}
+  html[data-scroll="1"] .page-header .btn-txt{max-width:0; opacity:0;}
+  html[data-scroll="1"] .page-header .menu-acciones-flecha{display:none;}
+  html[data-scroll="1"] .page-header .btn:hover:not(:disabled),
+  html[data-scroll="1"] .page-header .btn:focus-visible{padding:0 15px; gap:8px;}
+  html[data-scroll="1"] .page-header .btn:hover:not(:disabled) .btn-txt,
+  html[data-scroll="1"] .page-header .btn:focus-visible .btn-txt{max-width:260px; opacity:1;}
+  html[data-scroll="1"] .page-header .btn:hover:not(:disabled) .menu-acciones-flecha,
+  html[data-scroll="1"] .page-header .btn:focus-visible .menu-acciones-flecha{display:inline-block;}
+}
+@media (prefers-reduced-motion: reduce){
+  .page-header .btn,.page-header .btn-txt{transition:none !important;}
+}
+
+/* ── Panel principal (escritorio): pie informativo en las tarjetas de galpones y alertas ── */
+.kpi-pie{display:none;}
+@media (min-width:1101px){
+  .kpi-pie{display:block; margin-top:12px;}
+  .kpi-segmentos{display:flex; gap:3px; height:8px; border-radius:999px; overflow:hidden;}
+  .kpi-segmentos > span{min-width:6px; border-radius:999px;}
+  .kpi-leyenda{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:9px; font-size:12.5px; color:var(--gray-500);}
+  .kpi-leyenda > span{display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+  .kpi-leyenda i{width:8px; height:8px; border-radius:50%; flex:none;}
+  .kpi-pie .kpi-sub{margin-top:6px;}
+  .kpi-desglose{display:flex; flex-direction:column; gap:7px;}
+  .kpi-desglose-fila{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
+  .kpi-desglose-fila .sev{width:8px; height:8px; border-radius:50%; flex:none; background:var(--gold-500);}
+  .kpi-desglose-fila .sev-A{background:var(--red-500);}
+  .kpi-desglose-nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .kpi-desglose-fila b{font-variant-numeric:tabular-nums; color:var(--gray-900);}
+  .kpi-desglose-mas{font-size:12.5px; color:var(--gray-500);}
+}

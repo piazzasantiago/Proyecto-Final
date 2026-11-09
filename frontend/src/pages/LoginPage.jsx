@@ -13,7 +13,7 @@ const VERSION = "0.1";
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { usuario, cargando, iniciarSesion } = useAuth();
+  const { usuario, cargando, cerradaPorInactividad, iniciarSesion } = useAuth();
 
   const [nombreUsuario, setNombreUsuario] = useState("");
   const [password, setPassword] = useState("");
@@ -97,6 +97,13 @@ export default function LoginPage() {
         >
           <h2>Iniciar sesión</h2>
           <div className="sub">Ingresá tus credenciales para acceder al sistema.</div>
+
+          {cerradaPorInactividad && !error && (
+            <div className="alert alert-info" role="status">
+              <i className="fa-regular fa-clock"></i>
+              <span>Tu sesión se cerró por inactividad. Ingresá de nuevo para continuar.</span>
+            </div>
+          )}
 
           {error && (
             <div className="alert alert-error" role="alert">

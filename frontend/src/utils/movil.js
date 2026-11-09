@@ -235,8 +235,12 @@ export function activarMovil() {
       actualizarTitulo();
       prepararFiltros();
       // El botón principal pasa a ser un botón flotante (solo ícono): necesita un nombre accesible.
-      document.querySelectorAll(".page-header .btn-green:not(.page-header-actions .btn-green):not([aria-label])").forEach((b) => {
-        b.setAttribute("aria-label", b.textContent.trim());
+      // Con el encabezado fijo (escritorio) las acciones quedan solo con el ícono: también necesitan nombre y tooltip.
+      document.querySelectorAll(".page-header .btn:not([aria-label])").forEach((b) => {
+        const texto = b.textContent.trim();
+        if (!texto) return;
+        b.setAttribute("aria-label", texto);
+        if (!b.title) b.title = texto;
       });
       // Si el registro abierto desapareció (se eliminó o se cambió de pantalla), se cierra la hoja.
       if (document.documentElement.dataset.detalle && !document.querySelector(".page-body-split > .detail-panel")) {

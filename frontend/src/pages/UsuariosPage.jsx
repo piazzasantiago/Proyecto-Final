@@ -169,7 +169,7 @@ export default function UsuariosPage() {
           <div className="desc">Administración de usuarios y permisos de acceso al sistema.</div>
         </div>
         <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-          <i className="fa-solid fa-plus"></i> Nuevo usuario
+          <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo usuario</span>
         </button>
       </div>
 

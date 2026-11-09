@@ -148,7 +148,7 @@ export default function MateriaPrimasPage() {
         </div>
         {esAdministrador && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nueva materia prima
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nueva materia prima</span>
           </button>
         )}
       </div>

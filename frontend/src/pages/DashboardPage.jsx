@@ -119,11 +119,78 @@ function Sparkline({ serie }) {
 }
 
 /**
+ * Pie de la tarjeta de galpones: una barra partida según el estado de los galpones activos
+ * (producción, transición, sin lote) con su leyenda, y las gallinas que hay en producción.
+ */
+function EstadoGalpones({ datos }) {
+  const partes = [
+    { clave: "prod", n: datos.galpones_en_produccion, texto: "en producción", corto: "producción", color: "var(--green-600)" },
+    { clave: "trans", n: datos.galpones_en_transicion, texto: "en transición", corto: "transición", color: "var(--gold-500)" },
+    { clave: "sin", n: datos.galpones_sin_lote, texto: "sin lote", corto: "sin lote", color: "var(--gray-300)" },
+  ].filter((p) => p.n > 0);
+  if (partes.length === 0) return null;
+  const descripcion = partes.map((p) => `${p.n} ${p.texto}`).join(", ");
+  return (
+    <div className="kpi-pie">
+      <div className="kpi-segmentos" role="img" aria-label={descripcion}>
+        {partes.map((p) => (
+          <span key={p.clave} style={{ flex: p.n, background: p.color }} />
+        ))}
+      </div>
+      <div className="kpi-leyenda">
+        {partes.map((p) => (
+          <span key={p.clave}>
+            <i style={{ background: p.color }}></i>
+            {p.n} {p.corto}
+          </span>
+        ))}
+      </div>
+      {(datos.gallinas_en_produccion > 0 || datos.galpones_inactivos > 0) && (
+        <div className="kpi-sub">
+          {[
+            datos.gallinas_en_produccion > 0 && `${entero(datos.gallinas_en_produccion)} gallinas en producción`,
+            datos.galpones_inactivos > 0 &&
+              `${datos.galpones_inactivos} ${datos.galpones_inactivos === 1 ? "inactivo" : "inactivos"}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Pie de la tarjeta de alertas: las pendientes por tipo, las más urgentes primero (máx. 3 filas). */
+function AlertasPorTipo({ tipos }) {
+  if (!tipos || tipos.length === 0) {
+    return (
+      <div className="kpi-pie">
+        <div className="kpi-sub">Ninguna alerta pendiente por ahora.</div>
+      </div>
+    );
+  }
+  const visibles = tipos.slice(0, 3);
+  const resto = tipos.slice(3).reduce((suma, t) => suma + t.cantidad, 0);
+  return (
+    <div className="kpi-pie kpi-desglose">
+      {visibles.map((t) => (
+        <span className="kpi-desglose-fila" key={t.clave}>
+          <i className={`sev sev-${t.severidad}`}></i>
+          <span className="kpi-desglose-nombre">{t.tipo}</span>
+          <b>{t.cantidad}</b>
+        </span>
+      ))}
+      {resto > 0 && <span className="kpi-desglose-mas">y {resto} más</span>}
+    </div>
+  );
+}
+
+/**
  * Tarjeta de indicador. Si recibe `to` navega a la sección con el detalle (y
  * `state` con los filtros a aplicar); si recibe `onClick` hace esa acción; y
  * sin ninguna de las dos es solo informativa.
  */
-function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda, serie }) {
+function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda, serie, pie }) {
   const contenido = (
     <>
       <div className="kpi-top">
@@ -136,6 +203,7 @@ function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onCl
       <div className="label">{etiqueta}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
       {serie && <Sparkline serie={serie} />}
+      {pie}
       {(to || onClick) && <i className="fa-solid fa-chevron-right kpi-flecha"></i>}
     </>
   );
@@ -410,6 +478,11 @@ export default function DashboardPage() {
 
   const stock = datos.stock_productos;
   const hoy = datos.fecha;
+  // Postura de los últimos 7 días (sin los días sin recolección) para la tendencia y el promedio.
+  const seriePostura = (datos.postura_serie ?? []).map((d) => d.valor).filter((v) => v !== null && v !== undefined);
+  const promedioPostura = seriePostura.length
+    ? seriePostura.reduce((suma, v) => suma + v, 0) / seriePostura.length
+    : null;
   const pendientes = datos.pendientes || {};
   const modulosPendientes = MODULOS_PENDIENTES.filter((m) => m.clave in pendientes);
   const grupos = agruparPorTipo(datos.alertas);
@@ -431,14 +504,14 @@ export default function DashboardPage() {
         {puedeCargarProduccion && (
           <div className="page-header-actions" data-tutorial="dash-acciones">
             <button type="button" className="btn btn-green" onClick={() => irACargar("/app/recoleccion")}>
-              <i className="fa-solid fa-egg"></i> Nueva recolección
+              <i className="fa-solid fa-egg"></i><span className="btn-txt">Nueva recolección</span>
             </button>
             <button type="button" className="btn btn-outline" onClick={() => irACargar("/app/descartes")}>
-              <i className="fa-solid fa-trash-can"></i> Registrar descarte
+              <i className="fa-solid fa-trash-can"></i><span className="btn-txt">Registrar descarte</span>
             </button>
             {esAdministrador && (
               <button type="button" className="btn btn-outline" onClick={() => irACargar("/app/compras")}>
-                <i className="fa-solid fa-cart-plus"></i> Nueva compra
+                <i className="fa-solid fa-cart-plus"></i><span className="btn-txt">Nueva compra</span>
               </button>
             )}
           </div>
@@ -467,10 +540,12 @@ export default function DashboardPage() {
           etiqueta="Postura promedio de hoy"
           delta={deltaPostura(datos.variacion_postura)}
           sub={
-            datos.postura_hoy === null || datos.postura_hoy === undefined
+            (datos.postura_hoy === null || datos.postura_hoy === undefined
               ? "Sin datos hoy"
-              : `Ayer: ${porcentaje(datos.postura_ayer)}`
+              : `Ayer: ${porcentaje(datos.postura_ayer)}`) +
+            (promedioPostura === null ? "" : ` · Prom. 7 días: ${porcentaje(promedioPostura)}`)
           }
+          serie={seriePostura.length >= 2 ? seriePostura : undefined}
           to={puedeVerInformes ? "/app/informes" : undefined}
           ayuda={puedeVerInformes ? "Ver los informes de postura" : undefined}
         />
@@ -484,6 +559,7 @@ export default function DashboardPage() {
             clase: "delta-neutral",
             texto: `${datos.galpones_en_produccion} de ${datos.galpones_activos}`,
           }}
+          pie={<EstadoGalpones datos={datos} />}
           to="/app/galpones"
           ayuda="Ver los galpones"
         />
@@ -498,6 +574,7 @@ export default function DashboardPage() {
               ? { clase: "delta-down", texto: "Requieren atención" }
               : { clase: "delta-up", texto: "Todo en orden" }
           }
+          pie={<AlertasPorTipo tipos={datos.alertas_por_tipo} />}
           onClick={() => alertasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           ayuda="Ir a las alertas"
         />
