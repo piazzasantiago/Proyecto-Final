@@ -135,7 +135,7 @@ export default function ProveedoresPage() {
         </div>
         {esAdministrador && (
           <button className="btn btn-green" data-tutorial="sec-nuevo" onClick={() => setModalMode("create")}>
-            <i className="fa-solid fa-plus"></i> Nuevo proveedor
+            <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo proveedor</span>
           </button>
         )}
       </div>

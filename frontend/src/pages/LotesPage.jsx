@@ -364,7 +364,7 @@ export default function LotesPage() {
               }
               style={lotesPendientes.length === 0 ? { opacity: 0.55, cursor: "not-allowed" } : undefined}
             >
-              <i className="fa-solid fa-plus"></i> Nuevo lote
+              <i className="fa-solid fa-plus"></i><span className="btn-txt">Nuevo lote</span>
             </button>
           </div>
         )}

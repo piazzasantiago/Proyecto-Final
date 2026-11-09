@@ -377,7 +377,8 @@ export default function InformesPage() {
             aria-expanded={menuExportar}
             onClick={() => setMenuExportar((v) => !v)}
           >
-            <i className="fa-solid fa-arrow-down-to-line"></i> {descargando ? "Generando..." : "Exportar"}
+            <i className="fa-solid fa-arrow-down-to-line"></i>
+            <span className="btn-txt">{descargando ? "Generando..." : "Exportar"}</span>
             <i className="fa-solid fa-chevron-down menu-acciones-flecha"></i>
           </button>
           {menuExportar && (

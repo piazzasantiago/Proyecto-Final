@@ -13,7 +13,7 @@ formato.
 import datetime
 from collections import defaultdict
 
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from alertas.views import alertas_visibles
@@ -68,15 +68,38 @@ def _produccion(hoy, ids_galpones):
 
 
 def _galpones(ids_galpones):
-    """Galpones activos y cuántos de ellos tienen un lote en producción."""
-    galpones = Galpon.objects.filter(estado=Galpon.ESTADO_ACTIVO)
+    """
+    Estado de los galpones para la tarjeta del panel: de los activos, cuántos
+    tienen un lote en producción, cuántos uno en transición y cuántos no tienen
+    lote; más los inactivos y las gallinas que hay en producción.
+    """
+    todos = Galpon.objects.all()
     if ids_galpones is not None:
-        galpones = galpones.filter(pk__in=ids_galpones)
+        todos = todos.filter(pk__in=ids_galpones)
+    activos = todos.filter(estado=Galpon.ESTADO_ACTIVO)
+
+    en_produccion = set(
+        activos.filter(lotes__estado=Lote.ESTADO_PRODUCCION).values_list("pk", flat=True)
+    )
+    # Un galpón con lote en producción cuenta solo como "en producción".
+    en_transicion = (
+        set(activos.filter(lotes__estado=Lote.ESTADO_TRANSICION).values_list("pk", flat=True))
+        - en_produccion
+    )
+    total_activos = activos.count()
+    gallinas = (
+        Lote.objects.filter(estado=Lote.ESTADO_PRODUCCION, id_galpon__in=activos).aggregate(
+            total=Sum("cantidad_actual")
+        )["total"]
+        or 0
+    )
     return {
-        "activos": galpones.count(),
-        "en_produccion": galpones.filter(lotes__estado=Lote.ESTADO_PRODUCCION)
-        .distinct()
-        .count(),
+        "activos": total_activos,
+        "en_produccion": len(en_produccion),
+        "en_transicion": len(en_transicion),
+        "sin_lote": total_activos - len(en_produccion) - len(en_transicion),
+        "inactivos": todos.exclude(estado=Galpon.ESTADO_ACTIVO).count(),
+        "gallinas": gallinas,
     }
 
 
@@ -153,8 +176,24 @@ def _alertas(usuario, ahora):
         Q(estado=Alerta.ESTADO_PENDIENTE)
         | Q(estado=Alerta.ESTADO_RESUELTA, fecha_resolucion__gte=desde)
     )[:MAX_ALERTAS]
+    pendientes = visibles.filter(estado=Alerta.ESTADO_PENDIENTE)
+    # order_by() vacío: el orden de la lista agregaría columnas al GROUP BY y no agruparía por tipo.
+    por_tipo = [
+        {
+            "clave": fila["id_tipo_alerta__clave"],
+            "tipo": fila["id_tipo_alerta__nombre"],
+            "severidad": fila["id_tipo_alerta__severidad"],
+            "cantidad": fila["cantidad"],
+        }
+        for fila in pendientes.order_by()
+        .values("id_tipo_alerta__clave", "id_tipo_alerta__nombre", "id_tipo_alerta__severidad")
+        .annotate(cantidad=Count("pk"))
+    ]
+    # Primero las más urgentes (la severidad "A" va antes que la "M") y, dentro de cada una, las más frecuentes.
+    por_tipo.sort(key=lambda t: (t["severidad"], -t["cantidad"], t["tipo"]))
     return {
-        "pendientes": visibles.filter(estado=Alerta.ESTADO_PENDIENTE).count(),
+        "pendientes": pendientes.count(),
+        "por_tipo": por_tipo,
         "recientes": list(recientes),
     }
 
@@ -170,10 +209,9 @@ def resumen(usuario):
     huevos_hoy = huevos.get(hoy.isoformat(), 0)
     huevos_ayer = huevos.get(ayer.isoformat(), 0)
 
-    postura = {
-        dia["fecha"]: dia["valor"]
-        for dia in serie_postura(ayer, hoy, ids_galpones=ids_galpones)
-    }
+    desde_postura = hoy - datetime.timedelta(days=DIAS_PRODUCCION - 1)
+    postura_serie = serie_postura(desde_postura, hoy, ids_galpones=ids_galpones)
+    postura = {dia["fecha"]: dia["valor"] for dia in postura_serie}
     postura_hoy = postura.get(hoy.isoformat())
     postura_ayer = postura.get(ayer.isoformat())
 
@@ -195,9 +233,16 @@ def resumen(usuario):
             if postura_hoy is not None and postura_ayer is not None
             else None
         ),
+        # Postura de los últimos 7 días (valor = None si ese día no hubo recolección).
+        "postura_serie": postura_serie,
         "galpones_activos": galpones["activos"],
         "galpones_en_produccion": galpones["en_produccion"],
+        "galpones_en_transicion": galpones["en_transicion"],
+        "galpones_sin_lote": galpones["sin_lote"],
+        "galpones_inactivos": galpones["inactivos"],
+        "gallinas_en_produccion": galpones["gallinas"],
         "alertas_pendientes": alertas["pendientes"],
+        "alertas_por_tipo": alertas["por_tipo"],
         "pendientes": pendientes,
         "pendientes_total": sum(pendientes.values()),
         "produccion": produccion,
