@@ -55,6 +55,7 @@ class ResumenVacioTests(TestCase):
         self.assertEqual(datos["galpones_inactivos"], 0)
         self.assertEqual(datos["gallinas_en_produccion"], 0)
         self.assertEqual(datos["alertas_por_tipo"], [])
+        self.assertEqual(datos["mapa_galpones"], [])
         self.assertEqual(len(datos["postura_serie"]), 7)
         self.assertEqual({dia["valor"] for dia in datos["postura_serie"]}, {None})
 
@@ -181,6 +182,48 @@ class ResumenTests(TestCase):
         self.assertEqual(alerta["estado"], "P")
         self.assertIn(self.lote.codigo, alerta["descripcion"])
 
+    def test_el_mapa_trae_un_renglon_por_galpon(self):
+        mapa = {g["galpon"]: g for g in self.client.get(URL).data["mapa_galpones"]}
+        self.assertEqual({n: g["estado"] for n, g in mapa.items()}, {"Galpón 1": "P", "Galpón 2": "S", "Galpón 3": "I"})
+        con_lote = mapa["Galpón 1"]
+        self.assertEqual(con_lote["id_galpon"], self.galpon.pk)
+        self.assertEqual(con_lote["lote"], self.lote.codigo)
+        self.assertEqual(con_lote["gallinas"], 100)
+        self.assertEqual(con_lote["postura"], 90.0)
+        self.assertEqual(con_lote["postura_fecha"], self.hoy.isoformat())
+        self.assertFalse(con_lote["alerta"])
+        sin_lote = mapa["Galpón 2"]
+        self.assertIsNone(sin_lote["lote"])
+        self.assertIsNone(sin_lote["gallinas"])
+        self.assertIsNone(sin_lote["postura"])
+
+    def test_un_galpon_con_lote_en_transicion_se_marca_en_transicion(self):
+        lote = crear_lote(self.vacio, estado=Lote.ESTADO_TRANSICION, gallinas=50)
+        mapa = {g["galpon"]: g for g in self.client.get(URL).data["mapa_galpones"]}
+        self.assertEqual(mapa["Galpón 2"]["estado"], "T")
+        self.assertEqual(mapa["Galpón 2"]["lote"], lote.codigo)
+        self.assertEqual(mapa["Galpón 2"]["gallinas"], 50)
+
+    def test_la_postura_del_mapa_es_la_del_ultimo_dia_con_recoleccion(self):
+        nuevo = crear_galpon("Galpón 4")
+        lote = crear_lote(nuevo, gallinas=100)
+        crear_recoleccion(lote, self.ayer, 40, self.producto)  # hoy todavía no se recolectó
+        mapa = {g["galpon"]: g for g in self.client.get(URL).data["mapa_galpones"]}
+        self.assertEqual(mapa["Galpón 4"]["postura"], 40.0)
+        self.assertEqual(mapa["Galpón 4"]["postura_fecha"], self.ayer.isoformat())
+
+    def test_el_mapa_marca_los_galpones_con_alertas_pendientes(self):
+        self.lote.cantidad_inicial = 10000  # postura bajísima: se genera la alerta
+        self.lote.save()
+        mapa = {g["galpon"]: g for g in self.client.get(URL).data["mapa_galpones"]}
+        self.assertTrue(mapa["Galpón 1"]["alerta"])
+        self.assertFalse(mapa["Galpón 2"]["alerta"])
+
+    def test_el_mapa_ordena_los_galpones_por_numero(self):
+        crear_galpon("Galpón 10")
+        nombres = [g["galpon"] for g in self.client.get(URL).data["mapa_galpones"]]
+        self.assertEqual(nombres, ["Galpón 1", "Galpón 2", "Galpón 3", "Galpón 10"])
+
 
 class ResumenOperarioTests(TestCase):
     """Lo que ve el operario queda limitado a sus galpones asignados (F-32)."""
@@ -217,6 +260,10 @@ class ResumenOperarioTests(TestCase):
         # La postura baja la tiene el lote ajeno (20 de 100 gallinas).
         self.assertEqual(datos["alertas_pendientes"], 0)
         self.assertEqual(datos["alertas"], [])
+
+    def test_el_mapa_solo_trae_sus_galpones(self):
+        mapa = self.client.get(URL).data["mapa_galpones"]
+        self.assertEqual([g["galpon"] for g in mapa], ["Galpón mío"])
 
     def test_el_stock_de_productos_es_el_de_toda_la_granja(self):
         datos = self.client.get(URL).data["stock_productos"]

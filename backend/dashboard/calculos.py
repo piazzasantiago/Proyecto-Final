@@ -11,6 +11,7 @@ formato.
 """
 
 import datetime
+import re
 from collections import defaultdict
 
 from django.db.models import Count, Q, Sum
@@ -23,7 +24,13 @@ from descartes.models import Descarte
 from entradas.models import Entrada
 from galpones.acceso import es_operario, ids_galpones_asignados, limitar_a_galpones_asignados
 from galpones.models import Galpon
-from informes.calculos import dias_del_periodo, serie_postura, huevos_por_lote_y_dia
+from informes.calculos import (
+    Gallinas,
+    dias_del_periodo,
+    huevos_por_lote_y_dia,
+    postura_del_dia,
+    serie_postura,
+)
 from lotes.models import Lote
 from productos.models import Producto
 from productos.stock import anotar_stock, stock_actual
@@ -101,6 +108,76 @@ def _galpones(ids_galpones):
         "inactivos": todos.exclude(estado=Galpon.ESTADO_ACTIVO).count(),
         "gallinas": gallinas,
     }
+
+
+def _orden_natural(nombre):
+    """«Galpón 2» antes que «Galpón 10»."""
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", nombre)]
+
+
+def _mapa_galpones(usuario, ids_galpones, hoy, ids_con_alerta):
+    """
+    Un renglón por galpón para el mapa del panel: su situación (producción,
+    transición, activo sin lote o inactivo), el lote y las gallinas que tiene,
+    su postura del último día con recolección de la semana y si tiene alertas
+    pendientes.
+
+    La postura es la del último día con datos y no siempre la de hoy: a primera
+    hora todavía no se recolectó y el galpón no tiene que quedar «sin dato».
+    `postura_fecha` dice a qué día corresponde.
+    """
+    galpones = Galpon.objects.all()
+    if ids_galpones is not None:
+        galpones = galpones.filter(pk__in=ids_galpones)
+
+    # De cada galpón, el lote que cuenta: el que está en producción y, si no hay, el que está en transición.
+    lotes = {}
+    for lote in Lote.objects.filter(
+        estado__in=[Lote.ESTADO_PRODUCCION, Lote.ESTADO_TRANSICION], id_galpon__in=galpones
+    ).order_by("estado", "pk"):
+        # "P" ordena antes que "T": el primero que aparece es el de producción.
+        lotes.setdefault(lote.id_galpon_id, lote)
+
+    desde = hoy - datetime.timedelta(days=DIAS_PRODUCCION - 1)
+    huevos = huevos_por_lote_y_dia(desde, hoy, ids_galpones=ids_galpones)
+    gallinas = Gallinas(k[0] for k in huevos)
+    # {galpón: {día: [huevos, gallinas]}}
+    por_galpon = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    for (id_lote, id_galpon, dia), cantidad in huevos.items():
+        acumulado = por_galpon[id_galpon][dia]
+        acumulado[0] += cantidad
+        acumulado[1] += gallinas.en(id_lote, dia) or 0
+
+    filas = []
+    for galpon in galpones:
+        lote = lotes.get(galpon.pk)
+        if galpon.estado != Galpon.ESTADO_ACTIVO:
+            situacion = "I"
+        elif lote is None:
+            situacion = "S"
+        else:
+            situacion = lote.estado  # "P" o "T"
+        postura = postura_fecha = None
+        dias = por_galpon.get(galpon.pk)
+        if dias:
+            ultimo = max(dias)
+            postura = postura_del_dia(*dias[ultimo])
+            postura = round(postura, 1) if postura is not None else None
+            postura_fecha = ultimo.isoformat() if postura is not None else None
+        filas.append(
+            {
+                "id_galpon": galpon.pk,
+                "galpon": galpon.galpon,
+                "estado": situacion,
+                "lote": lote.codigo if lote else None,
+                "gallinas": lote.cantidad_actual if lote else None,
+                "postura": postura,
+                "postura_fecha": postura_fecha,
+                "alerta": galpon.pk in ids_con_alerta,
+            }
+        )
+    filas.sort(key=lambda f: _orden_natural(f["galpon"]))
+    return filas
 
 
 def _stock_productos():
@@ -195,6 +272,8 @@ def _alertas(usuario, ahora):
         "pendientes": pendientes.count(),
         "por_tipo": por_tipo,
         "recientes": list(recientes),
+        # Galpones con alguna alerta pendiente: el mapa los marca con un punto.
+        "ids_galpones": set(pendientes.order_by().values_list("id_lote__id_galpon", flat=True)),
     }
 
 
@@ -217,6 +296,7 @@ def resumen(usuario):
 
     galpones = _galpones(ids_galpones)
     alertas = _alertas(usuario, timezone.now())
+    mapa_galpones = _mapa_galpones(usuario, ids_galpones, hoy, alertas["ids_galpones"])
     pendientes = _pendientes(usuario)
 
     return {
@@ -241,6 +321,7 @@ def resumen(usuario):
         "galpones_sin_lote": galpones["sin_lote"],
         "galpones_inactivos": galpones["inactivos"],
         "gallinas_en_produccion": galpones["gallinas"],
+        "mapa_galpones": mapa_galpones,
         "alertas_pendientes": alertas["pendientes"],
         "alertas_por_tipo": alertas["por_tipo"],
         "pendientes": pendientes,
