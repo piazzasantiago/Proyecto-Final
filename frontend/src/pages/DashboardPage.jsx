@@ -90,143 +90,190 @@ function deltaPostura(variacion) {
   };
 }
 
-/** Línea mínima de tendencia (sin ejes) para las tarjetas de indicadores. */
-function Sparkline({ serie }) {
-  const id = `sp-${useId().replace(/:/g, "")}`;
-  if (!serie || serie.length < 2) return null;
-  const w = 100, h = 28, pad = 3;
-  const max = Math.max(...serie), min = Math.min(...serie);
-  const rango = max - min || 1;
-  const pts = serie.map((v, i) => [
-    (i / (serie.length - 1)) * w,
-    pad + (1 - (v - min) / rango) * (h - pad * 2),
-  ]);
-  const linea = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-  const ultimo = pts[pts.length - 1];
+/**
+ * Postura del día como anillo: el porcentaje llena el círculo (100 % = vuelta
+ * completa) y debajo van la variación frente a ayer y el promedio semanal.
+ */
+function AnilloPostura({ valor, ayer, delta, promedio }) {
+  const hay = valor !== null && valor !== undefined;
+  const radio = 56;
+  const vuelta = 2 * Math.PI * radio;
+  const lleno = hay ? Math.min(Math.max(Number(valor), 0), 100) / 100 : 0;
   return (
-    <svg className="kpi-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="currentColor" stopOpacity=".22" />
-          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${linea} L${w} ${h} L0 ${h} Z`} fill={`url(#${id})`} />
-      <path d={linea} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={ultimo[0]} cy={ultimo[1]} r="0" />
-    </svg>
+    <div className="anillo">
+      <div className="anillo-fila">
+        <div className="anillo-dibujo">
+          <svg viewBox="0 0 140 140" role="img" aria-label={hay ? `Postura de hoy: ${porcentaje(valor)}` : "Sin datos de postura hoy"}>
+            <circle className="anillo-pista" cx="70" cy="70" r={radio} fill="none" strokeWidth="14" />
+            {hay && (
+              <circle
+                className="anillo-valor"
+                cx="70"
+                cy="70"
+                r={radio}
+                fill="none"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeDasharray={`${(vuelta * lleno).toFixed(1)} ${vuelta.toFixed(1)}`}
+                transform="rotate(-90 70 70)"
+              />
+            )}
+          </svg>
+          <div className="anillo-centro">
+            {hay ? (
+              <span className="anillo-cifra">{decimal(valor)}<small>%</small></span>
+            ) : (
+              <span className="anillo-cifra anillo-vacio">—</span>
+            )}
+          </div>
+        </div>
+        <div className="anillo-pie">
+          {hay ? (
+            <>
+              {delta && <span className={`kpi-delta ${delta.clase}`}>{delta.texto}</span>}
+              <span>{ayer !== null && ayer !== undefined ? `Ayer: ${porcentaje(ayer)}` : "Sin datos de ayer"}</span>
+            </>
+          ) : (
+            <span>Sin datos hoy</span>
+          )}
+          {promedio !== null && <span className="anillo-prom">Semana: {porcentaje(promedio)}</span>}
+        </div>
+      </div>
+    </div>
   );
 }
 
+const SITUACION = {
+  P: { texto: "En producción", clase: "mapa-prod" },
+  T: { texto: "En transición", clase: "mapa-trans" },
+  S: { texto: "Activo sin lote", clase: "mapa-sinlote" },
+  I: { texto: "Inactivo", clase: "mapa-inactivo" },
+};
+
 /**
- * Pie de la tarjeta de galpones: una barra partida según el estado de los galpones activos
- * (producción, transición, sin lote) con su leyenda, y las gallinas que hay en producción.
+ * Mapa de galpones: una casilla por galpón, pintada según su situación y con
+ * un punto rojo si tiene alertas. Tocar una casilla muestra al lado su lote,
+ * sus gallinas y su postura; desde ahí se abre el galpón.
  */
-function EstadoGalpones({ datos }) {
-  const partes = [
-    { clave: "prod", n: datos.galpones_en_produccion, texto: "en producción", corto: "producción", color: "var(--green-600)" },
-    { clave: "trans", n: datos.galpones_en_transicion, texto: "en transición", corto: "transición", color: "var(--gold-500)" },
-    { clave: "sin", n: datos.galpones_sin_lote, texto: "sin lote", corto: "sin lote", color: "var(--gray-300)" },
-  ].filter((p) => p.n > 0);
-  if (partes.length === 0) return null;
-  const descripcion = partes.map((p) => `${p.n} ${p.texto}`).join(", ");
+function MapaGalpones({ galpones, datos, hoy }) {
+  const [elegido, setElegido] = useState(null);
+  if (!galpones?.length) return null;
+  const actual =
+    galpones.find((g) => g.id_galpon === elegido) ||
+    galpones.find((g) => g.alerta) ||
+    galpones[0];
+  const etiquetaDato = (g) => {
+    if (g.estado === "T") return "Trans.";
+    if (g.estado === "S") return "Sin lote";
+    if (g.estado === "I") return "Inactivo";
+    return porcentaje(g.postura);
+  };
+  const numero = (nombre) => nombre.replace(/^galp[oó]n\s*/i, "");
+  const situacion = SITUACION[actual.estado];
+  const posturaDia =
+    actual.postura_fecha && actual.postura_fecha !== hoy ? ` · ${diaCorto(actual.postura_fecha)}` : "";
   return (
-    <div className="kpi-pie">
-      <div className="kpi-segmentos" role="img" aria-label={descripcion}>
-        {partes.map((p) => (
-          <span key={p.clave} style={{ flex: p.n, background: p.color }} />
-        ))}
-      </div>
-      <div className="kpi-leyenda">
-        {partes.map((p) => (
-          <span key={p.clave}>
-            <i style={{ background: p.color }}></i>
-            {p.n} {p.corto}
+    <div className="card mapa">
+      <div className="mapa-cabecera">
+        <div className="mapa-titulo">
+          <h3>Galpones</h3>
+          <span className="card-sub">
+            {datos.galpones_en_produccion} de {datos.galpones_activos} en producción
+            {datos.gallinas_en_produccion > 0 && ` · ${entero(datos.gallinas_en_produccion)} gallinas`}
           </span>
-        ))}
-      </div>
-      {(datos.gallinas_en_produccion > 0 || datos.galpones_inactivos > 0) && (
-        <div className="kpi-sub">
-          {[
-            datos.gallinas_en_produccion > 0 && `${entero(datos.gallinas_en_produccion)} gallinas en producción`,
-            datos.galpones_inactivos > 0 &&
-              `${datos.galpones_inactivos} ${datos.galpones_inactivos === 1 ? "inactivo" : "inactivos"}`,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
         </div>
-      )}
+        <div className="mapa-leyenda" aria-hidden="true">
+          <span><i className="mapa-prod"></i>Producción</span>
+          <span><i className="mapa-trans"></i>Transición</span>
+          <span><i className="mapa-sinlote"></i>Sin lote</span>
+          <span><i className="mapa-inactivo"></i>Inactivo</span>
+          <span><i className="mapa-punto"></i>Alerta</span>
+        </div>
+      </div>
+      <div className="mapa-fila">
+        <div className="mapa-tiles">
+          {galpones.map((g) => (
+            <button
+              key={g.id_galpon}
+              type="button"
+              className={`mapa-tile ${SITUACION[g.estado].clase}${g.id_galpon === actual.id_galpon ? " elegido" : ""}`}
+              aria-pressed={g.id_galpon === actual.id_galpon}
+              aria-label={`${g.galpon}, ${SITUACION[g.estado].texto.toLowerCase()}${g.alerta ? ", con alerta" : ""}`}
+              onClick={() => setElegido(g.id_galpon)}
+            >
+              <b>G{numero(g.galpon)}</b>
+              <span>{etiquetaDato(g)}</span>
+              {g.alerta && <i className="mapa-punto" aria-hidden="true"></i>}
+            </button>
+          ))}
+        </div>
+        <div className="mapa-detalle" aria-live="polite">
+          <div className="mapa-detalle-top">
+            {actual.alerta && <i className="mapa-punto" aria-hidden="true"></i>}
+            <b>{actual.galpon}</b>
+            <span className={`mapa-chip ${situacion.clase}`}>{situacion.texto}</span>
+            {actual.alerta && <span className="sr-only">, con alerta</span>}
+            <Link className="link" to="/app/galpones" state={{ id_galpon: actual.id_galpon }}>
+              Abrir →
+            </Link>
+          </div>
+          <div className="mapa-detalle-datos">
+            <span>Lote<b>{actual.lote ?? "—"}</b></span>
+            <span>Gallinas<b>{actual.gallinas === null ? "—" : entero(actual.gallinas)}</b></span>
+            <span>Postura<b>{actual.postura === null ? "—" : `${porcentaje(actual.postura)}${posturaDia}`}</b></span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Pie de la tarjeta de alertas: las pendientes por tipo, las más urgentes primero (máx. 3 filas). */
-function AlertasPorTipo({ tipos }) {
-  if (!tipos || tipos.length === 0) {
-    return (
-      <div className="kpi-pie">
-        <div className="kpi-sub">Ninguna alerta pendiente por ahora.</div>
-      </div>
-    );
+const ANCHO_GRAFICO = 640;
+/** Alto del gráfico (en unidades del dibujo): más bajo en escritorio, donde el ancho lo hace más largo que alto. */
+const ALTO_ANCHO = 150;
+const ALTO_ANGOSTO = 200;
+
+/** true mientras la pantalla mide hasta `px` de ancho. */
+function useAnchoMaximo(px) {
+  const consulta = `(max-width:${px}px)`;
+  const [coincide, setCoincide] = useState(() => window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(consulta);
+    const cambiar = () => setCoincide(mq.matches);
+    mq.addEventListener("change", cambiar);
+    return () => mq.removeEventListener("change", cambiar);
+  }, [consulta]);
+  return coincide;
+}
+
+/** Curva suave (Catmull-Rom pasada a Bézier) que pasa por todos los puntos. */
+function curvaSuave(puntos) {
+  let d = `M${puntos[0][0].toFixed(1)} ${puntos[0][1].toFixed(1)}`;
+  for (let i = 0; i < puntos.length - 1; i += 1) {
+    const p0 = puntos[i - 1] || puntos[i];
+    const p1 = puntos[i];
+    const p2 = puntos[i + 1];
+    const p3 = puntos[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
   }
-  const visibles = tipos.slice(0, 3);
-  const resto = tipos.slice(3).reduce((suma, t) => suma + t.cantidad, 0);
-  return (
-    <div className="kpi-pie kpi-desglose">
-      {visibles.map((t) => (
-        <span className="kpi-desglose-fila" key={t.clave}>
-          <i className={`sev sev-${t.severidad}`}></i>
-          <span className="kpi-desglose-nombre">{t.tipo}</span>
-          <b>{t.cantidad}</b>
-        </span>
-      ))}
-      {resto > 0 && <span className="kpi-desglose-mas">y {resto} más</span>}
-    </div>
-  );
+  return d;
 }
 
 /**
- * Tarjeta de indicador. Si recibe `to` navega a la sección con el detalle (y
- * `state` con los filtros a aplicar); si recibe `onClick` hace esa acción; y
- * sin ninguna de las dos es solo informativa.
+ * Producción de los últimos siete días: el número de hoy, su variación frente
+ * a ayer y la curva de la semana. Pasar el cursor (o el dedo) por el gráfico
+ * muestra el valor de cada día; al soltar vuelve a «Hoy».
  */
-function Kpi({ icono, fondo, color, valor, etiqueta, delta, sub, to, state, onClick, ayuda, serie, pie }) {
-  const contenido = (
-    <>
-      <div className="kpi-top">
-        <div className="kpi-icon" style={{ background: fondo, color }}>
-          <i className={`fa-solid ${icono}`}></i>
-        </div>
-        {delta && <span className={`kpi-delta ${delta.clase}`}>{delta.texto}</span>}
-      </div>
-      <div className="value">{valor}</div>
-      <div className="label">{etiqueta}</div>
-      {sub && <div className="kpi-sub">{sub}</div>}
-      {serie && <Sparkline serie={serie} />}
-      {pie}
-      {(to || onClick) && <i className="fa-solid fa-chevron-right kpi-flecha"></i>}
-    </>
-  );
-  if (to) {
-    return (
-      <Link className="kpi-card kpi-link" to={to} state={state} title={ayuda}>
-        {contenido}
-      </Link>
-    );
-  }
-  if (onClick) {
-    return (
-      <button type="button" className="kpi-card kpi-link" onClick={onClick} title={ayuda}>
-        {contenido}
-      </button>
-    );
-  }
-  return <div className="kpi-card">{contenido}</div>;
-}
-
-/** Gráfico de barras de la última semana (altura relativa al mejor día). */
-function Produccion({ dias, hoy, enlazar }) {
-  const maximo = Math.max(...dias.map((d) => d.huevos));
+function Produccion({ dias, hoy, huevosHoy, delta }) {
+  const idGrad = useId();
+  const [activo, setActivo] = useState(null);
+  const ALTO_GRAFICO = useAnchoMaximo(700) ? ALTO_ANGOSTO : ALTO_ANCHO;
+  const valores = dias.map((d) => d.huevos);
+  const maximo = Math.max(...valores);
   if (maximo === 0) {
     return (
       <div className="empty-state">
@@ -234,35 +281,89 @@ function Produccion({ dias, hoy, enlazar }) {
       </div>
     );
   }
-  const promedio = dias.reduce((a, d) => a + d.huevos, 0) / dias.length;
+  const minimo = Math.min(...valores);
+  const total = valores.reduce((a, v) => a + v, 0);
+  const margen = Math.max(maximo - minimo, maximo * 0.02);
+  const piso = minimo - margen * 0.25;
+  const techo = maximo + margen * 0.12;
+  const n = dias.length;
+  const puntos = valores.map((v, i) => [
+    (i / (n - 1)) * ANCHO_GRAFICO,
+    26 + ((techo - v) / (techo - piso)) * (ALTO_GRAFICO - 26 - 12),
+  ]);
+  const linea = curvaSuave(puntos);
+  const area = `${linea} L${puntos[n - 1][0].toFixed(1)} ${ALTO_GRAFICO} L${puntos[0][0].toFixed(1)} ${ALTO_GRAFICO} Z`;
+  const encontrado = dias.findIndex((d) => d.fecha === hoy);
+  const indiceHoy = encontrado === -1 ? n - 1 : encontrado;
+  const i = activo ?? indiceHoy;
+  const [px, py] = puntos[i];
+  const nombre = (k) => (dias[k].fecha === hoy ? "Hoy" : diaCorto(dias[k].fecha));
+  const mejor = valores.indexOf(maximo);
+
+  const mover = (e) => {
+    const caja = e.currentTarget.getBoundingClientRect();
+    const k = Math.round(((e.clientX - caja.left) / caja.width) * (n - 1));
+    setActivo(Math.min(Math.max(k, 0), n - 1));
+  };
+
   return (
-    <div className="bars" style={{ "--prom": `${(promedio / maximo) * 100}%` }}>
-      {dias.map((dia) => {
-        const esHoy = dia.fecha === hoy;
-        const columna = (
-          <>
-            <b>{entero(dia.huevos)}</b>
-            <div className="bar-zona">
-              <i className="bar-prom" aria-hidden="true"></i>
-              <div
-                className={`bar${esHoy ? " bar-hoy" : ""}`}
-                style={{ height: `${Math.max((dia.huevos / maximo) * 100, 2)}%` }}
-                title={`${entero(dia.huevos)} huevos`}
-              ></div>
-            </div>
-            <span>{esHoy ? "Hoy" : diaCorto(dia.fecha)}</span>
-          </>
-        );
-        return enlazar ? (
-          <Link className="bar-col bar-col-link" key={dia.fecha} to="/app/informes">
-            {columna}
-          </Link>
-        ) : (
-          <div className="bar-col" key={dia.fecha}>
-            {columna}
-          </div>
-        );
-      })}
+    <div className="prod">
+      <div className="prod-cifra">
+        <span className="prod-numero">{entero(huevosHoy)}</span>
+        {delta && <span className={`delta ${delta.clase}`}>{delta.texto}</span>}
+      </div>
+
+      <div
+        className="prod-grafico"
+        onPointerMove={mover}
+        onPointerLeave={() => setActivo(null)}
+        onPointerCancel={() => setActivo(null)}
+      >
+        <svg
+          viewBox={`0 0 ${ANCHO_GRAFICO} ${ALTO_GRAFICO}`}
+          role="img"
+          aria-label={`Huevos recolectados por día en la última semana. Hoy: ${entero(huevosHoy)}.`}
+        >
+          <defs>
+            <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--serie-real)" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="var(--serie-real)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0.25, 0.5, 0.75].map((f) => (
+            <line key={f} x1="0" x2={ANCHO_GRAFICO} y1={ALTO_GRAFICO * f} y2={ALTO_GRAFICO * f} stroke="var(--linea-grafico)" />
+          ))}
+          <path d={area} fill={`url(#${idGrad})`} />
+          <path d={linea} className="prod-linea" fill="none" />
+          <line className="prod-guia" x1={px} x2={px} y1={py} y2={ALTO_GRAFICO} />
+          <circle cx={px} cy={py} r="9" className="prod-halo" />
+          <circle cx={px} cy={py} r="5" className="prod-punto" />
+        </svg>
+        <span
+          className="prod-tip"
+          style={{ left: `${Math.min(Math.max(px / ANCHO_GRAFICO, 0.13), 0.87) * 100}%`, top: `${(py / ALTO_GRAFICO) * 100}%` }}
+        >
+          {nombre(i)} · {entero(valores[i])}
+        </span>
+      </div>
+
+      <div className="prod-dias">
+        {dias.map((d, k) => (
+          <span
+            key={d.fecha}
+            className={k === i ? "activo" : ""}
+            style={{ left: `${(k / (n - 1)) * 100}%`, transform: `translateX(-${(k / (n - 1)) * 100}%)` }}
+          >
+            {nombre(k)}
+          </span>
+        ))}
+      </div>
+
+      <div className="prod-datos">
+        <div><span>Promedio diario</span><b>{entero(Math.round(total / n))}</b></div>
+        <div><span>Mejor día ({nombre(mejor)})</span><b>{entero(maximo)}</b></div>
+        <div><span>Total de la semana</span><b>{entero(total)}</b></div>
+      </div>
     </div>
   );
 }
@@ -360,20 +461,6 @@ function EsqueletoPanel({ conAcciones, conCompras }) {
         )}
       </div>
 
-      <div className="kpi-grid">
-        {[0, 1, 2, 3].map((i) => (
-          <div className="kpi-card" key={i}>
-            <div className="kpi-top">
-              <Bloque ancho={34} alto={34} radio={9} />
-              <Bloque ancho={64} alto={18} radio={20} />
-            </div>
-            <Bloque ancho={90} alto={28} style={{ marginTop: 6 }} />
-            <Bloque ancho="70%" alto={14} style={{ marginTop: 10 }} />
-            <Bloque ancho="40%" alto={12} style={{ marginTop: 10 }} />
-          </div>
-        ))}
-      </div>
-
       <div className="grid-2">
         <div className="card">
           <Bloque ancho={220} alto={18} />
@@ -399,6 +486,18 @@ function EsqueletoPanel({ conAcciones, conCompras }) {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="fila-postura">
+        <div className="card">
+          <Bloque ancho={180} alto={18} />
+          <Bloque ancho={150} alto={150} radio="50%" style={{ margin: "18px auto 0" }} />
+        </div>
+        <div className="card">
+          <Bloque ancho={140} alto={18} />
+          <Bloque alto={62} radio={16} style={{ marginTop: 16 }} />
+          <Bloque alto={70} radio={16} style={{ marginTop: 14 }} />
         </div>
       </div>
 
@@ -518,73 +617,11 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="kpi-grid" data-tutorial="dash-kpis">
-        <Kpi
-          icono="fa-egg"
-          fondo="var(--green-100)"
-          color="var(--green-700)"
-          valor={entero(datos.huevos_hoy)}
-          etiqueta="Huevos recolectados hoy"
-          delta={deltaHuevos(datos.variacion_huevos)}
-          sub={`Ayer: ${entero(datos.huevos_ayer)}`}
-          serie={datos.produccion?.map((d) => d.huevos)}
-          to="/app/recoleccion"
-          state={{ filtros: { estado: "F", fechaDesde: hoy, fechaHasta: hoy } }}
-          ayuda="Ver las recolecciones de hoy"
-        />
-        <Kpi
-          icono="fa-chart-line"
-          fondo="var(--gold-100)"
-          color="var(--gold-texto)"
-          valor={porcentaje(datos.postura_hoy)}
-          etiqueta="Postura promedio de hoy"
-          delta={deltaPostura(datos.variacion_postura)}
-          sub={
-            (datos.postura_hoy === null || datos.postura_hoy === undefined
-              ? "Sin datos hoy"
-              : `Ayer: ${porcentaje(datos.postura_ayer)}`) +
-            (promedioPostura === null ? "" : ` · Prom. 7 días: ${porcentaje(promedioPostura)}`)
-          }
-          serie={seriePostura.length >= 2 ? seriePostura : undefined}
-          to={puedeVerInformes ? "/app/informes" : undefined}
-          ayuda={puedeVerInformes ? "Ver los informes de postura" : undefined}
-        />
-        <Kpi
-          icono="fa-warehouse"
-          fondo="var(--green-100)"
-          color="var(--green-700)"
-          valor={entero(datos.galpones_en_produccion)}
-          etiqueta="Galpones en producción"
-          delta={{
-            clase: "delta-neutral",
-            texto: `${datos.galpones_en_produccion} de ${datos.galpones_activos}`,
-          }}
-          pie={<EstadoGalpones datos={datos} />}
-          to="/app/galpones"
-          ayuda="Ver los galpones"
-        />
-        <Kpi
-          icono="fa-triangle-exclamation"
-          fondo={datos.alertas_pendientes ? "var(--red-100)" : "var(--gray-200)"}
-          color={datos.alertas_pendientes ? "var(--red-500)" : "var(--gray-700)"}
-          valor={entero(datos.alertas_pendientes)}
-          etiqueta="Alertas activas"
-          delta={
-            datos.alertas_pendientes
-              ? { clase: "delta-down", texto: "Requieren atención" }
-              : { clase: "delta-up", texto: "Todo en orden" }
-          }
-          pie={<AlertasPorTipo tipos={datos.alertas_por_tipo} />}
-          onClick={() => alertasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          ayuda="Ir a las alertas"
-        />
-      </div>
-
       <div className="grid-2">
         <div className="card card-produccion" data-tutorial="dash-produccion">
           <div className="card-title">
             <div>
-              <h3>Producción — últimos 7 días</h3>
+              <h3>Producción de los últimos 7 días</h3>
               <div className="card-sub">Huevos de recolecciones finalizadas</div>
             </div>
             {puedeVerInformes && (
@@ -594,10 +631,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <Produccion dias={datos.produccion} hoy={hoy} enlazar={puedeVerInformes} />
+          <Produccion dias={datos.produccion} hoy={hoy} huevosHoy={datos.huevos_hoy} delta={deltaHuevos(datos.variacion_huevos)} />
         </div>
 
-        <div className={`card${verTodasAlertas ? " alertas-todas" : ""}`} ref={alertasRef} data-tutorial="dash-alertas">
+        <div className={`card card-alertas${verTodasAlertas ? " alertas-todas" : ""}`} ref={alertasRef} data-tutorial="dash-alertas">
           <div className="card-title">
             <h3>Alertas recientes</h3>
             {datos.alertas_pendientes > 0 && (
@@ -606,41 +643,59 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          {grupos.length === 0 ? (
-            <div className="empty-state">
-              No hay alertas. Los lotes vienen trabajando dentro de lo esperado.
-            </div>
-          ) : (
-            (() => {
-              let n = 0; // cuántas alertas ya se dibujaron: en el celular solo se ven las primeras 3
-              return grupos.map((grupo) => {
-                const inicio = n;
-                n += grupo.items.length;
-                return (
-                  <div className={`alert-grupo${inicio >= 3 ? " alerta-extra" : ""}`} key={grupo.clave}>
-                    <div className="alert-grupo-titulo">
-                      {grupo.tipo} <span>{grupo.items.length}</span>
+          <div className="alertas-scroll">
+            {grupos.length === 0 ? (
+              <div className="empty-state">
+                No hay alertas. Los lotes vienen trabajando dentro de lo esperado.
+              </div>
+            ) : (
+              (() => {
+                let n = 0; // cuántas alertas ya se dibujaron: en el celular solo se ven las primeras 3
+                return grupos.map((grupo) => {
+                  const inicio = n;
+                  n += grupo.items.length;
+                  return (
+                    <div className={`alert-grupo${inicio >= 3 ? " alerta-extra" : ""}`} key={grupo.clave}>
+                      <div className="alert-grupo-titulo">
+                        {grupo.tipo} <span>{grupo.items.length}</span>
+                      </div>
+                      {grupo.items.map((alerta, i) => (
+                        <Alerta key={alerta.id_alerta} alerta={alerta} clave={grupo.clave} extra={inicio + i >= 3} />
+                      ))}
                     </div>
-                    {grupo.items.map((alerta, i) => (
-                      <Alerta key={alerta.id_alerta} alerta={alerta} clave={grupo.clave} extra={inicio + i >= 3} />
-                    ))}
-                  </div>
-                );
-              });
-            })()
-          )}
-          {grupos.reduce((t, g) => t + g.items.length, 0) > 3 && (
-            <button type="button" className="alertas-ver-todas" onClick={() => setVerTodasAlertas((v) => !v)}>
-              {verTodasAlertas ? "Ver menos" : `Ver todas (${grupos.reduce((t, g) => t + g.items.length, 0)})`}
-            </button>
-          )}
-          {alertasOcultas > 0 && (
-            <div className="alert-resto">
-              Hay {alertasOcultas} {alertasOcultas === 1 ? "alerta activa más" : "alertas activas más"} que
-              no se muestran acá.
-            </div>
-          )}
+                  );
+                });
+              })()
+            )}
+            {grupos.reduce((t, g) => t + g.items.length, 0) > 3 && (
+              <button type="button" className="alertas-ver-todas" onClick={() => setVerTodasAlertas((v) => !v)}>
+                {verTodasAlertas ? "Ver menos" : `Ver todas (${grupos.reduce((t, g) => t + g.items.length, 0)})`}
+              </button>
+            )}
+            {alertasOcultas > 0 && (
+              <div className="alert-resto">
+                Hay {alertasOcultas} {alertasOcultas === 1 ? "alerta activa más" : "alertas activas más"} que
+                no se muestran acá.
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="fila-postura" data-tutorial="dash-galpones">
+        <div className="card card-anillo">
+          <div className="card-title">
+            <h3>Postura promedio de hoy</h3>
+          </div>
+          <AnilloPostura
+            valor={datos.postura_hoy}
+            ayer={datos.postura_ayer}
+            delta={deltaPostura(datos.variacion_postura)}
+            promedio={promedioPostura}
+          />
+        </div>
+
+        <MapaGalpones galpones={datos.mapa_galpones} datos={datos} hoy={hoy} />
       </div>
 
       <div className="par-tarjetas">

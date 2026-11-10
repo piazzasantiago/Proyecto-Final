@@ -131,22 +131,14 @@ export const PASOS = [
     },
   },
   {
-    id: "indicadores",
-    objetivo: "dash-kpis",
-    ruta: "/app/dashboard",
-    titulo: "Indicadores del día",
-    texto:
-      "Huevos recolectados, postura promedio, galpones en producción y alertas activas. Tocá cualquier tarjeta para ir al detalle.",
-  },
-  {
     id: "produccion-semana",
     objetivo: "dash-produccion",
     ruta: "/app/dashboard",
     titulo: "Producción de la semana",
     texto: {
-      A: "Los huevos recolectados cada día. El de hoy se marca en dorado. Tocá una barra para ir a los informes.",
-      O: "Los huevos recolectados cada día. El de hoy se marca en dorado.",
-      C: "Los huevos recolectados cada día. El de hoy se marca en dorado. Tocá una barra para ir a los informes.",
+      A: "Los huevos de hoy, cómo viene contra ayer y la curva de la semana. Pasá el cursor por el gráfico para ver cada día; el link lleva al informe completo.",
+      O: "Los huevos de hoy, cómo viene contra ayer y la curva de la semana. Pasá el dedo por el gráfico para ver cada día.",
+      C: "Los huevos de hoy, cómo viene contra ayer y la curva de la semana. Pasá el cursor por el gráfico para ver cada día; el link lleva al informe completo.",
     },
   },
   {
@@ -156,6 +148,14 @@ export const PASOS = [
     titulo: "Alertas",
     texto:
       "Avisan cuando algo se sale de lo esperado en un lote. Tocá una para ver el lote y revisarlo.",
+  },
+  {
+    id: "postura-galpones",
+    objetivo: "dash-galpones",
+    ruta: "/app/dashboard",
+    titulo: "Postura y galpones",
+    texto:
+      "A la izquierda, la postura promedio de hoy. A la derecha, una casilla por galpón: el color indica su situación y el punto rojo, que tiene alertas. Tocá una casilla para ver su lote, sus gallinas y su postura, y abrir el galpón.",
   },
   {
     id: "pendientes",

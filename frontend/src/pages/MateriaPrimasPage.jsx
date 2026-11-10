@@ -206,7 +206,7 @@ export default function MateriaPrimasPage() {
                         <i className="fa-solid fa-cubes-stacked"></i> Stock actual: <strong>{m.stock_actual} {m.unidad}</strong>
                       </div>
                       <div className="gc-stat">
-                        <i className="fa-solid fa-arrow-down-to-line"></i> Mínimo: {m.stock_minimo} {m.unidad}
+                        <i className="fa-solid fa-arrow-down"></i> Mínimo: {m.stock_minimo} {m.unidad}
                       </div>
                       {stockBajo && (
                         <div className="gc-stat" style={{ color: "var(--red-alerta)", fontWeight: 500 }}>

@@ -2541,3 +2541,124 @@ a.alert-link.sev-green:hover{background:#cdf5cf;}
   .kpi-desglose-fila b{font-variant-numeric:tabular-nums; color:var(--gray-900);}
   .kpi-desglose-mas{font-size:12.5px; color:var(--gray-500);}
 }
+
+/* Tarjeta de producción: cifra de hoy y curva de la semana */
+.prod{display:flex; flex-direction:column; gap:10px; flex:1;}
+.prod-cifra{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.prod-numero{font-size:48px; line-height:1; font-weight:700; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; color:var(--gray-900);}
+.prod-grafico{position:relative; touch-action:pan-y; cursor:crosshair;}
+.prod-grafico svg{display:block; width:100%; height:auto; overflow:visible;}
+.prod-linea{stroke:var(--serie-real); stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+.prod-guia{stroke:var(--serie-real); stroke-opacity:.25; stroke-width:1.5; stroke-dasharray:3 4;}
+.prod-halo{fill:var(--serie-real); fill-opacity:.2;}
+.prod-punto{fill:var(--surface); stroke:var(--serie-real); stroke-width:3;}
+.prod-tip{position:absolute; transform:translate(-50%,-165%); padding:4px 11px; border-radius:12px; background:var(--gray-900); color:var(--surface); font-size:12.5px; font-weight:600; white-space:nowrap; pointer-events:none; transition:left .25s var(--resorte, cubic-bezier(.2,.8,.2,1)), top .25s var(--resorte, cubic-bezier(.2,.8,.2,1));}
+.prod-dias{position:relative; height:16px; margin-top:-6px; font-size:12px; color:var(--gray-500);}
+.prod-dias span{position:absolute; top:0; white-space:nowrap;}
+.prod-dias .activo{color:var(--gray-900); font-weight:700;}
+.prod-datos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding-top:14px; border-top:1px solid var(--borde-card);}
+.prod-datos span{display:block; font-size:12.5px; color:var(--gray-500);}
+.prod-datos b{display:block; margin-top:2px; font-size:20px; font-weight:650; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:var(--gray-900);}
+@media (max-width:700px){
+  .prod-numero{font-size:40px;}
+  .prod-datos b{font-size:17px;}
+}
+@media (prefers-reduced-motion: reduce){ .prod-tip{transition:none;} }
+.prod-cifra .delta{padding:4px 10px; border-radius:20px; font-size:13px; font-weight:600;}
+
+/* Fila de postura (anillo) y galpones (mapa) */
+.fila-postura{display:grid; grid-template-columns:1fr; gap:18px; margin-top:18px; align-items:stretch;}
+.fila-postura > .card{margin:0;}
+@media (min-width:1101px){
+  .fila-postura{grid-template-columns:minmax(260px,.8fr) minmax(0,2.2fr);}
+  /* En la columna ancha las casillas se reparten en filas parejas y el detalle va debajo. */
+  .fila-postura .mapa-fila{flex-direction:column; align-items:stretch;}
+  .fila-postura .mapa-tiles{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); width:100%;}
+  .fila-postura .mapa-tile{width:auto; height:66px;}
+  .fila-postura .mapa-detalle{flex:none;}
+}
+.card-anillo{display:flex; flex-direction:column;}
+.card-anillo .card-title{margin-bottom:6px;}
+
+/* Anillo de postura: en pantallas chicas, anillo a la izquierda y datos a la derecha; en escritorio, apilado */
+.anillo{display:flex; flex-direction:column; justify-content:center; width:100%; flex:1;}
+.anillo-fila{display:flex; align-items:center; gap:18px; margin:auto 0;}
+.anillo-dibujo{position:relative; flex:none; width:108px; aspect-ratio:1/1;}
+.anillo-dibujo svg{display:block; width:100%; height:100%;}
+.anillo-pista{stroke:var(--gray-200);}
+.anillo-valor{stroke:var(--green-600); transition:stroke-dasharray .6s var(--resorte, cubic-bezier(.2,.8,.2,1));}
+.anillo-centro{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+.anillo-cifra{font-size:26px; font-weight:700; letter-spacing:-0.04em; line-height:1; color:var(--gray-900); font-variant-numeric:tabular-nums;}
+.anillo-cifra small{font-size:14px; letter-spacing:0; margin-left:1px;}
+.anillo-vacio{color:var(--gray-500);}
+.anillo-pie{display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; font-size:13.5px; line-height:1.4; color:var(--gray-700);}
+.anillo-pie span{white-space:nowrap;}
+@media (min-width:1101px){
+  .anillo-fila{flex-direction:column; gap:16px;}
+  .anillo-dibujo{width:min(180px,100%);}
+  .anillo-cifra{font-size:40px;}
+  .anillo-cifra small{font-size:21px;}
+  .anillo-pie{align-items:center; text-align:center;}
+}
+@media (max-width:700px){
+  .anillo-dibujo{width:92px;}
+  .anillo-cifra{font-size:22px;}
+  .anillo-cifra small{font-size:12px;}
+}
+@media (prefers-reduced-motion: reduce){ .anillo-valor{transition:none;} }
+
+/* Mapa de galpones del dashboard */
+.mapa{margin-bottom:18px; display:flex; flex-direction:column; gap:14px;}
+.mapa-cabecera{display:flex; justify-content:space-between; align-items:baseline; gap:8px 16px; flex-wrap:wrap;}
+.mapa-titulo{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.mapa-titulo h3{margin:0;}
+.mapa-titulo .card-sub{margin:0;}
+.mapa-leyenda{display:flex; gap:6px 14px; flex-wrap:wrap; font-size:12.5px; color:var(--gray-500);}
+.mapa-leyenda span{display:inline-flex; align-items:center; gap:5px;}
+.mapa-leyenda i{display:inline-block; width:9px; height:9px; border-radius:3px;}
+.mapa-leyenda .mapa-prod{background:var(--green-600);}
+.mapa-leyenda .mapa-trans{background:var(--gold-500);}
+.mapa-leyenda .mapa-sinlote{border:1.5px dashed var(--gray-500);}
+.mapa-leyenda .mapa-inactivo{background:var(--gray-300);}
+.mapa-punto{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--red-500);}
+.mapa-fila{display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px;}
+.mapa-tiles{display:flex; flex-wrap:wrap; gap:8px; max-width:100%;}
+.mapa-tile{position:relative; width:62px; height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:2px; border-radius:var(--radio-tarjeta); border:1px solid transparent; font-family:inherit; cursor:pointer; transition:transform .25s var(--resorte, cubic-bezier(.2,.8,.2,1)), box-shadow .25s ease;}
+.mapa-tile b{font-size:14px; font-weight:700;}
+.mapa-tile span{font-size:11px; font-weight:500;}
+.mapa-tile:hover{transform:scale(1.06);}
+.mapa-tile:active{transform:scale(.96);}
+.mapa-tile.elegido{box-shadow:0 0 0 2px var(--gray-900);}
+.mapa-tile .mapa-punto{position:absolute; top:6px; right:6px;}
+.mapa-tile.mapa-prod,.mapa-chip.mapa-prod{background:var(--green-100); color:var(--green-800);}
+@supports (background:color-mix(in srgb, red 10%, white)){
+  .mapa-tile.mapa-prod,.mapa-chip.mapa-prod{background:color-mix(in srgb, var(--green-600) 24%, var(--surface)); border-color:color-mix(in srgb, var(--green-600) 45%, var(--surface));}
+  .mapa-tile.mapa-trans,.mapa-chip.mapa-trans{background:color-mix(in srgb, var(--gold-500) 30%, var(--surface)); border-color:color-mix(in srgb, var(--gold-500) 50%, var(--surface));}
+}
+.mapa-tile.mapa-trans,.mapa-chip.mapa-trans{background:var(--gold-100); color:var(--gold-texto);}
+.mapa-tile.mapa-sinlote{background:transparent; color:var(--gray-500); border:1.5px dashed var(--gray-500);}
+.mapa-chip.mapa-sinlote,.mapa-chip.mapa-inactivo{background:var(--gray-200); color:var(--gray-700);}
+.mapa-tile.mapa-inactivo{background:var(--gray-200); color:var(--gray-500); opacity:.75;}
+.mapa-detalle{flex:1 1 300px; min-width:0; min-height:92px; padding:12px 16px; border-radius:var(--radio-tarjeta); background:var(--gray-100); display:flex; flex-direction:column; justify-content:center; gap:8px;}
+.mapa-detalle-top{display:flex; align-items:center; gap:8px; flex-wrap:nowrap; min-width:0;}
+.mapa-detalle-top > b{font-size:15px; white-space:nowrap;}
+.mapa-detalle-top .link{margin-left:auto; white-space:nowrap;}
+.mapa-chip{padding:2px 9px; border-radius:11px; font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+.mapa-detalle-datos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; font-size:12px; color:var(--gray-500);}
+.mapa-detalle-datos span{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.mapa-detalle-datos b{font-size:13.5px; color:var(--gray-900); font-weight:600; white-space:nowrap;}
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+@media (max-width:700px){
+  .mapa-tiles{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); width:100%;}
+  .mapa-tile{width:auto; height:auto; aspect-ratio:1/1;}
+  .mapa-leyenda{display:none;}
+}
+@media (prefers-reduced-motion: reduce){ .mapa-tile{transition:none;} .mapa-tile:hover{transform:none;} }
+
+/* Alertas: en escritorio la tarjeta toma el alto de Producción y la lista se desplaza dentro */
+@media (min-width:1101px){
+  .card-alertas{contain:size; min-height:260px; display:flex; flex-direction:column; overflow:hidden;}
+  .alertas-scroll{flex:1; min-height:0; overflow-y:auto; margin-right:-10px; padding-right:10px; scrollbar-width:thin; scrollbar-color:var(--gray-300) transparent;}
+  .alertas-scroll::-webkit-scrollbar{width:6px;}
+  .alertas-scroll::-webkit-scrollbar-thumb{background:var(--gray-300); border-radius:3px;}
+}

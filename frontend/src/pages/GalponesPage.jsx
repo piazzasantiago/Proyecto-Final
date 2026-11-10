@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { listGalpones, createGalpon, updateGalpon, deleteGalpon, altaGalpon, bajaGalpon, getExistenciasGalpon } from "../api/galpones";
 import GalponFormModal from "../components/GalponFormModal";
 import { useAuth } from "../context/AuthContext";
@@ -37,7 +38,8 @@ export default function GalponesPage() {
   const { esAdministrador, esOperario } = useAuth();
 
   const [galpones, setGalpones] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
+  // Desde el mapa del dashboard se llega con el galpón elegido (location.state.id_galpon).
+  const [selectedId, setSelectedId] = useState(useLocation().state?.id_galpon ?? null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useTamanoPagina("galpones", 16);
   const [count, setCount] = useState(0);
